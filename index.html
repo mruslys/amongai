@@ -25,7 +25,7 @@
 
         .container {
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -36,15 +36,16 @@
         }
 
         h1 {
-            font-size: 1.5rem;
+            font-size: 1.6rem;
             margin-bottom: 10px;
             color: #e0e0e0;
         }
 
         .counter {
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             color: #aaa;
             margin-bottom: 20px;
+            font-weight: bold;
         }
 
         .setup-screen, .game-screen {
@@ -56,53 +57,67 @@
         }
 
         .input-group {
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             text-align: left;
         }
 
         label {
             display: block;
-            font-size: 0.9rem;
+            font-size: 1rem;
             color: #ccc;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
         input[type="number"] {
             width: 100%;
-            padding: 12px;
+            padding: 15px;
             background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
             color: #fff;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             text-align: center;
+        }
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #4cd137;
         }
 
         .card {
             background: rgba(0, 0, 0, 0.2);
             border-radius: 15px;
-            padding: 30px 20px;
+            padding: 20px;
             margin-bottom: 25px;
-            min-height: 120px;
+            min-height: 200px; /* Padidinta vietos paveiksliukui */
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.1);
             transition: all 0.3s ease;
         }
 
+        .card img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            display: none; /* Paslėpta kol neatversta */
+        }
+
         .role-title {
-            font-size: 1.8rem;
+            font-size: 2rem;
             font-weight: bold;
             color: #4cd137;
             text-transform: capitalize;
             letter-spacing: 1px;
+            display: none; /* Paslėpta kol neatversta */
         }
 
         .placeholder-text {
             color: #888;
-            font-size: 1rem;
+            font-size: 1.1rem;
+            font-style: italic;
         }
 
         button {
@@ -110,18 +125,18 @@
             color: #1e1e2f;
             border: none;
             border-radius: 12px;
-            padding: 15px 30px;
-            font-size: 1.1rem;
+            padding: 16px 30px;
+            font-size: 1.2rem;
             font-weight: bold;
             cursor: pointer;
             width: 100%;
             transition: transform 0.1s ease, background 0.2s ease;
             box-shadow: 0 5px 15px rgba(76, 209, 55, 0.4);
-            margin-bottom: 10px;
+            margin-bottom: 15px;
         }
 
         button:active {
-            transform: scale(0.97);
+            transform: scale(0.98);
         }
 
         button:hover {
@@ -147,7 +162,7 @@
         <!-- Nustatymų ekranas -->
         <div id="setupScreen" class="setup-screen active">
             <div class="input-group">
-                <label for="playerCount">Įveskite žaidėjų skaičių:</label>
+                <label for="playerCount">Žaidėjų skaičius:</label>
                 <input type="number" id="playerCount" min="1" max="20" value="5">
             </div>
             <button onclick="startGame()">Pradėti žaidimą</button>
@@ -158,7 +173,9 @@
             <div class="counter" id="counterText">Liko rolių: 0</div>
             
             <div class="card" id="roleCard">
-                <span class="placeholder-text" id="roleText">Paspauskite mygtuką norėdami gauti rolę</span>
+                <span class="placeholder-text" id="initialText">Paspauskite mygtuką</span>
+                <img id="roleImage" src="" alt="Rolės vaizdas">
+                <div class="role-title" id="roleText"></div>
             </div>
 
             <button id="actionBtn" onclick="generateRole()">Gauti rolę</button>
@@ -167,9 +184,24 @@
     </div>
 
     <script>
-        const mandatoryRoles = ["imposteris", "džakalas", "trintukas"];
-        const regularRoles = ["žmogus", "gydytojas", "teisėjas", "policininkas", "ligonis"];
+        // NAUJA LOGIKA:
+        // Privalomos rolės (iš šio trejeto bus viena): Imposteris, Trintukas, Ligonis.
+        const mandatoryGroup = ["imposteris", "trintukas", "ligonis"];
+        // Paprastos rolės: Žmogus, Gydytojas, Teisėjas, Policininkas, Džakalas.
+        const regularRoles = ["žmogus", "gydytojas", "teisėjas", "policininkas", "džakalas"];
         
+        // Susiejame rolės pavadinimą su failo pavadinimu (tikimės, kad .png)
+        const roleImages = {
+            "imposteris": "role_imposteris.png",
+            "žmogus": "role_zmogus.png",
+            "gydytojas": "role_gydytojas.png",
+            "teisėjas": "role_teisejas.png",
+            "policininkas": "role_policininkas.png",
+            "džakalas": "role_dzakalas.png",
+            "trintukas": "role_trintukas.png",
+            "ligonis": "role_ligonis.png"
+        };
+
         let availableRoles = [];
 
         function startGame() {
@@ -181,9 +213,9 @@
                 return;
             }
 
-            // 1. Parenkame VIENĄ būtiną rolę iš trijų
-            const randomMandatoryIndex = Math.floor(Math.random() * mandatoryRoles.length);
-            const chosenMandatory = mandatoryRoles[randomMandatoryIndex];
+            // 1. Parenkame VIENĄ būtiną rolę iš trijų (imposteris, trintukas, ligonis)
+            const randomIndex = Math.floor(Math.random() * mandatoryGroup.length);
+            const chosenMandatory = mandatoryGroup[randomIndex];
 
             // 2. Sukuriame pradinį šio žaidimo rinkinį: Būtina rolė + visos kitos reguliarios rolės
             let gameRoles = [chosenMandatory, ...regularRoles];
@@ -193,9 +225,9 @@
                 gameRoles.push("žmogus");
             }
 
-            // 4. Jei žaidėjų mažiau nei rolių, apdorojame atsitiktinai pasirinkdami tik reikiamą skaičių (užtikrinant, kad būtina rolė visada būtų)
+            // 4. Jei žaidėjų mažiau nei rolių, apdorojame atsitiktinai pasirinkdami tik reikiamą skaičių
             if (gameRoles.length > playerCount) {
-                // Išimame būtiną rolę laikinai, išmaišome likusias ir paimame kiek reikia, tada vėl prijungiame
+                // Laikinai išimame būtiną rolę
                 let others = gameRoles.filter(r => r !== chosenMandatory);
                 // Sumaišome kitas roles
                 others.sort(() => Math.random() - 0.5);
@@ -203,59 +235,84 @@
                 gameRoles = [chosenMandatory, ...others.slice(0, playerCount - 1)];
             }
 
-            // Galutinai išmaišome roles, kad būtų netvarkingai
+            // Galutinai išmaišome visas atrinktas roles
             availableRoles = gameRoles.sort(() => Math.random() - 0.5);
 
             // Perjungiame ekranus
             document.getElementById("setupScreen").classList.remove("active");
             document.getElementById("gameScreen").classList.add("active");
             
-            // Atstatome mygtuko būseną
-            const actionBtn = document.getElementById("actionBtn");
-            actionBtn.disabled = false;
-            actionBtn.style.opacity = "1";
-
-            document.getElementById("roleText.className") = "placeholder-text";
-            document.getElementById("roleText").textContent = "Paspauskite mygtuką norėdami gauti rolę";
-
+            resetCardDisplay();
             updateCounter();
         }
 
         function updateCounter() {
             const counterText = document.getElementById("counterText");
-            counterText.textContent = `Liko rolių: ${availableRoles.length}`;
+            counterText.textContent = `Liko neatverstų rolių: ${availableRoles.length}`;
+        }
+
+        function resetCardDisplay() {
+            document.getElementById("initialText").style.display = "block";
+            document.getElementById("roleImage").style.display = "none";
+            document.getElementById("roleText").style.display = "none";
+            document.getElementById("roleImage").src = "";
+            document.getElementById("roleText").textContent = "";
+            
+            const actionBtn = document.getElementById("actionBtn");
+            actionBtn.disabled = false;
+            actionBtn.style.opacity = "1";
+            actionBtn.textContent = "Gauti rolę";
         }
 
         function generateRole() {
+            const roleImage = document.getElementById("roleImage");
             const roleText = document.getElementById("roleText");
-            const roleCard = document.getElementById("roleCard");
+            const initialText = document.getElementById("initialText");
             const actionBtn = document.getElementById("actionBtn");
+            const roleCard = document.getElementById("roleCard");
 
             if (availableRoles.length === 0) {
-                roleText.className = "placeholder-text";
-                roleText.textContent = "Visos rolės išdalintos!";
+                initialText.style.display = "block";
+                initialText.textContent = "Visos rolės išdalintos!";
+                roleImage.style.display = "none";
+                roleText.style.display = "none";
                 actionBtn.disabled = true;
                 actionBtn.style.opacity = "0.5";
                 return;
             }
 
+            // Efektas: pritemdome kortelę
             roleCard.style.opacity = "0.3";
 
             setTimeout(() => {
-                // Paimame pirmąją rolę iš išmaišyto masyvo (pop-inam)
+                // Paimame pirmąją rolę iš išmaišyto masyvo
                 const selectedRole = availableRoles.shift();
 
-                roleText.className = "role-title";
-                roleText.textContent = selectedRole;
+                // Paslepiame pradinį tekstą
+                initialText.style.display = "none";
 
+                // Nustatome vaizdą
+                roleImage.src = roleImages[selectedRole];
+                roleImage.alt = selectedRole;
+                roleImage.style.display = "block"; // Rodome paveiksliuką
+
+                // Nustatome tekstą
+                roleText.textContent = selectedRole;
+                roleText.style.display = "block"; // Rodome tekstą
+
+                // Grąžiname ryškumą
                 roleCard.style.opacity = "1";
+                
                 updateCounter();
 
                 if (availableRoles.length === 0) {
+                    actionBtn.textContent = "Žaidimas baigtas";
                     actionBtn.disabled = true;
                     actionBtn.style.opacity = "0.5";
+                } else {
+                    actionBtn.textContent = "Kitas žaidėjas";
                 }
-            }, 150);
+            }, 200);
         }
 
         function resetGame() {
