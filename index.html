@@ -1,1 +1,141 @@
-test
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rolės generatorius</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1e1e2f, #2a2a40);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 25px;
+            color: #e0e0e0;
+        }
+
+        .card {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 30px 20px;
+            margin-bottom: 25px;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .role-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #4cd137;
+            text-transform: capitalize;
+            letter-spacing: 1px;
+        }
+
+        .placeholder-text {
+            color: #888;
+            font-size: 1rem;
+        }
+
+        button {
+            background: #4cd137;
+            color: #1e1e2f;
+            border: none;
+            border-radius: 12px;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.1s ease, background 0.2s ease;
+            box-shadow: 0 5px 15px rgba(76, 209, 55, 0.4);
+        }
+
+        button:active {
+            transform: scale(0.97);
+        }
+
+        button:hover {
+            background: #44bd32;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Slapta Rolė</h1>
+        
+        <div class="card" id="roleCard">
+            <span class="placeholder-text" id="roleText">Paspauskite mygtuką norėdami gauti rolę</span>
+        </div>
+
+        <button onclick="generateRole()">Gauti rolę</button>
+    </div>
+
+    <script>
+        const roles = [
+            "imposteris", 
+            "žmogus", 
+            "gydytojas", 
+            "teisėjas", 
+            "policininkas", 
+            "džakalas", 
+            "trintukas", 
+            "ligonis"
+        ];
+
+        function generateRole() {
+            const roleText = document.getElementById("roleText");
+            const roleCard = document.getElementById("roleCard");
+
+            // Efektas: trumpam sumaišome tekstą arba pritemdome
+            roleCard.style.opacity = "0.3";
+
+            setTimeout(() => {
+                // Parenkamo atsitiktinio indekso generavimas
+                const randomIndex = Math.floor(Math.random() * roles.length);
+                const selectedRole = roles[randomIndex];
+
+                // Atnaujiname elementą
+                roleText.className = "role-title";
+                roleText.textContent = selectedRole;
+
+                roleCard.style.opacity = "1";
+            }, 150);
+        }
+    </script>
+
+</body>
+</html>
+
