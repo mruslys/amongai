@@ -86,9 +86,9 @@
         .card {
             background: rgba(0, 0, 0, 0.2);
             border-radius: 15px;
-            padding: 20px;
+            padding: 30px 20px;
             margin-bottom: 25px;
-            min-height: 200px;
+            min-height: 180px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -96,21 +96,23 @@
             border: 2px solid rgba(255, 255, 255, 0.1);
         }
 
-        .card img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            display: none;
-        }
-
         .role-title {
             font-size: 2rem;
             font-weight: bold;
-            color: #4cd137;
             text-transform: capitalize;
             letter-spacing: 1px;
             display: none;
+        }
+
+        /* Standartinė rolė (žalia) */
+        .role-title.normal {
+            color: #4cd137;
+        }
+
+        /* Speciali/alerte rolė (raudona) */
+        .role-title.alert {
+            color: #ff4757;
+            text-shadow: 0 0 10px rgba(255, 71, 87, 0.4);
         }
 
         .placeholder-text {
@@ -172,7 +174,6 @@
             
             <div class="card" id="roleCard">
                 <span class="placeholder-text" id="initialText">Duokite telefoną kitam žaidėjui ir paspauskite mygtuką</span>
-                <img id="roleImage" src="" alt="Rolės vaizdas">
                 <div class="role-title" id="roleText"></div>
             </div>
 
@@ -184,20 +185,9 @@
     <script>
         const mandatoryGroup = ["imposteris", "trintukas", "ligonis"];
         const regularRoles = ["žmogus", "gydytojas", "teisėjas", "policininkas", "džakalas"];
-        
-        const roleImages = {
-            "imposteris": "role_imposteris.png",
-            "žmogus": "role_zmogus.png",
-            "gydytojas": "role_gydytojas.png",
-            "teisėjas": "role_teisejas.png",
-            "policininkas": "role_policininkas.png",
-            "džakalas": "role_dzakalas.png",
-            "trintukas": "role_trintukas.png",
-            "ligonis": "role_ligonis.png"
-        };
 
         let availableRoles = [];
-        let currentState = "READY_TO_GET"; // Bsenos: "READY_TO_GET" arba "ROLE_SHOWN"
+        let currentState = "READY_TO_GET"; 
 
         function startGame() {
             const countInput = document.getElementById("playerCount");
@@ -241,11 +231,12 @@
             currentState = "READY_TO_GET";
             
             document.getElementById("initialText").style.display = "block";
-            document.getElementById("initialText").textContent = "Duokite telefoną žaidėjui irspauskite mygtuką";
-            document.getElementById("roleImage").style.display = "none";
-            document.getElementById("roleText").style.display = "none";
-            document.getElementById("roleImage").src = "";
-            document.getElementById("roleText").textContent = "";
+            document.getElementById("initialText").textContent = "Duokite telefoną kitam žaidėjui ir paspauskite mygtuką";
+            
+            const roleText = document.getElementById("roleText");
+            roleText.style.display = "none";
+            roleText.textContent = "";
+            roleText.className = "role-title"; // Išvalome stilių klases
             
             const actionBtn = document.getElementById("actionBtn");
             actionBtn.disabled = false;
@@ -254,7 +245,6 @@
         }
 
         function handleAction() {
-            const roleImage = document.getElementById("roleImage");
             const roleText = document.getElementById("roleText");
             const initialText = document.getElementById("initialText");
             const actionBtn = document.getElementById("actionBtn");
@@ -262,7 +252,6 @@
             if (availableRoles.length === 0) {
                 initialText.style.display = "block";
                 initialText.textContent = "Visos rolės išdalintos!";
-                roleImage.style.display = "none";
                 roleText.style.display = "none";
                 actionBtn.disabled = true;
                 actionBtn.style.opacity = "0.5";
@@ -270,16 +259,19 @@
             }
 
             if (currentState === "READY_TO_GET") {
-                // Parodome rolę
-                const selectedRole = availableRoles.shift(); // Paimam ir pašalinam iš sąrašo
+                const selectedRole = availableRoles.shift();
 
                 initialText.style.display = "none";
 
-                roleImage.src = roleImages[selectedRole];
-                roleImage.alt = selectedRole;
-                roleImage.style.display = "block";
-
                 roleText.textContent = selectedRole;
+                
+                // Tikriname, ar tai speciali rolė (imposteris, trintukas, ligonis)
+                if (mandatoryGroup.includes(selectedRole)) {
+                    roleText.className = "role-title alert"; // Raudonas alertas
+                } else {
+                    roleText.className = "role-title normal"; // Žalia normali rolė
+                }
+
                 roleText.style.display = "block";
 
                 updateCounter();
@@ -292,11 +284,9 @@
                     actionBtn.textContent = "Rolę gavau (Perduoti kitam)";
                 }
             } else {
-                // Užmaskuojam atgal ir paruošiam kitam žaidėjui
                 if (availableRoles.length === 0) {
                     initialText.style.display = "block";
                     initialText.textContent = "Žaidimas baigtas! Visos rolės išdalintos.";
-                    roleImage.style.display = "none";
                     roleText.style.display = "none";
                     actionBtn.disabled = true;
                     actionBtn.style.opacity = "0.5";
