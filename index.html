@@ -37,8 +37,45 @@
 
         h1 {
             font-size: 1.5rem;
-            margin-bottom: 25px;
+            margin-bottom: 10px;
             color: #e0e0e0;
+        }
+
+        .counter {
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-bottom: 20px;
+        }
+
+        .setup-screen, .game-screen {
+            display: none;
+        }
+
+        .setup-screen.active, .game-screen.active {
+            display: block;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
+            color: #ccc;
+            margin-bottom: 8px;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 1.1rem;
+            text-align: center;
         }
 
         .card {
@@ -80,6 +117,7 @@
             width: 100%;
             transition: transform 0.1s ease, background 0.2s ease;
             box-shadow: 0 5px 15px rgba(76, 209, 55, 0.4);
+            margin-bottom: 10px;
         }
 
         button:active {
@@ -89,53 +127,143 @@
         button:hover {
             background: #44bd32;
         }
+
+        button.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            box-shadow: none;
+        }
+
+        button.secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
         <h1>Slapta Rolė</h1>
-        
-        <div class="card" id="roleCard">
-            <span class="placeholder-text" id="roleText">Paspauskite mygtuką norėdami gauti rolę</span>
+
+        <!-- Nustatymų ekranas -->
+        <div id="setupScreen" class="setup-screen active">
+            <div class="input-group">
+                <label for="playerCount">Įveskite žaidėjų skaičių:</label>
+                <input type="number" id="playerCount" min="1" max="20" value="5">
+            </div>
+            <button onclick="startGame()">Pradėti žaidimą</button>
         </div>
 
-        <button onclick="generateRole()">Gauti rolę</button>
+        <!-- Žaidimo ekranas -->
+        <div id="gameScreen" class="game-screen">
+            <div class="counter" id="counterText">Liko rolių: 0</div>
+            
+            <div class="card" id="roleCard">
+                <span class="placeholder-text" id="roleText">Paspauskite mygtuką norėdami gauti rolę</span>
+            </div>
+
+            <button id="actionBtn" onclick="generateRole()">Gauti rolę</button>
+            <button class="secondary" onclick="resetGame()">Naujas žaidimas</button>
+        </div>
     </div>
 
     <script>
-        const roles = [
-            "imposteris", 
-            "žmogus", 
-            "gydytojas", 
-            "teisėjas", 
-            "policininkas", 
-            "džakalas", 
-            "trintukas", 
-            "ligonis"
-        ];
+        const mandatoryRoles = ["imposteris", "džakalas", "trintukas"];
+        const regularRoles = ["žmogus", "gydytojas", "teisėjas", "policininkas", "ligonis"];
+        
+        let availableRoles = [];
+
+        function startGame() {
+            const countInput = document.getElementById("playerCount");
+            let playerCount = parseInt(countInput.value);
+
+            if (isNaN(playerCount) || playerCount < 1) {
+                alert("Įveskite teisingą žaidėjų skaičių!");
+                return;
+            }
+
+            // 1. Parenkame VIENĄ būtiną rolę iš trijų
+            const randomMandatoryIndex = Math.floor(Math.random() * mandatoryRoles.length);
+            const chosenMandatory = mandatoryRoles[randomMandatoryIndex];
+
+            // 2. Sukuriame pradinį šio žaidimo rinkinį: Būtina rolė + visos kitos reguliarios rolės
+            let gameRoles = [chosenMandatory, ...regularRoles];
+
+            // 3. Jei žaidėjų yra daugiau nei paruoštų rolių, trūkstamus užpildome „žmogus“ rolėmis
+            while (gameRoles.length < playerCount) {
+                gameRoles.push("žmogus");
+            }
+
+            // 4. Jei žaidėjų mažiau nei rolių, apdorojame atsitiktinai pasirinkdami tik reikiamą skaičių (užtikrinant, kad būtina rolė visada būtų)
+            if (gameRoles.length > playerCount) {
+                // Išimame būtiną rolę laikinai, išmaišome likusias ir paimame kiek reikia, tada vėl prijungiame
+                let others = gameRoles.filter(r => r !== chosenMandatory);
+                // Sumaišome kitas roles
+                others.sort(() => Math.random() - 0.5);
+                // Paimame tiek, kiek reikia iki norimo žaidėjų skaičiaus (minus 1 vieta būtinai rolei)
+                gameRoles = [chosenMandatory, ...others.slice(0, playerCount - 1)];
+            }
+
+            // Galutinai išmaišome roles, kad būtų netvarkingai
+            availableRoles = gameRoles.sort(() => Math.random() - 0.5);
+
+            // Perjungiame ekranus
+            document.getElementById("setupScreen").classList.remove("active");
+            document.getElementById("gameScreen").classList.add("active");
+            
+            // Atstatome mygtuko būseną
+            const actionBtn = document.getElementById("actionBtn");
+            actionBtn.disabled = false;
+            actionBtn.style.opacity = "1";
+
+            document.getElementById("roleText.className") = "placeholder-text";
+            document.getElementById("roleText").textContent = "Paspauskite mygtuką norėdami gauti rolę";
+
+            updateCounter();
+        }
+
+        function updateCounter() {
+            const counterText = document.getElementById("counterText");
+            counterText.textContent = `Liko rolių: ${availableRoles.length}`;
+        }
 
         function generateRole() {
             const roleText = document.getElementById("roleText");
             const roleCard = document.getElementById("roleCard");
+            const actionBtn = document.getElementById("actionBtn");
 
-            // Efektas: trumpam sumaišome tekstą arba pritemdome
+            if (availableRoles.length === 0) {
+                roleText.className = "placeholder-text";
+                roleText.textContent = "Visos rolės išdalintos!";
+                actionBtn.disabled = true;
+                actionBtn.style.opacity = "0.5";
+                return;
+            }
+
             roleCard.style.opacity = "0.3";
 
             setTimeout(() => {
-                // Parenkamo atsitiktinio indekso generavimas
-                const randomIndex = Math.floor(Math.random() * roles.length);
-                const selectedRole = roles[randomIndex];
+                // Paimame pirmąją rolę iš išmaišyto masyvo (pop-inam)
+                const selectedRole = availableRoles.shift();
 
-                // Atnaujiname elementą
                 roleText.className = "role-title";
                 roleText.textContent = selectedRole;
 
                 roleCard.style.opacity = "1";
+                updateCounter();
+
+                if (availableRoles.length === 0) {
+                    actionBtn.disabled = true;
+                    actionBtn.style.opacity = "0.5";
+                }
             }, 150);
+        }
+
+        function resetGame() {
+            // Grįžtame į nustatymų ekraną
+            document.getElementById("gameScreen").classList.remove("active");
+            document.getElementById("setupScreen").classList.add("active");
         }
     </script>
 
 </body>
 </html>
-
