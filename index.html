@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rolės generatorius 🎭</title>
+    <title>Rolių generatorius 🎭</title>
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
         }
 
         body {
@@ -37,22 +38,8 @@
 
         h1 {
             font-size: 1.6rem;
-            margin-bottom: 10px;
-            color: #e0e0e0;
-        }
-
-        .counter {
-            font-size: 0.95rem;
-            color: #aaa;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
-        .info-badge {
-            font-size: 0.85rem;
-            color: #ff4757;
             margin-bottom: 20px;
-            font-weight: bold;
+            color: #e0e0e0;
         }
 
         .setup-screen, .game-screen {
@@ -65,292 +52,76 @@
 
         .input-group {
             margin-bottom: 25px;
-            text-align: left;
+            text-align: center;
         }
 
         label {
             display: block;
             font-size: 1rem;
             color: #ccc;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
+        }
+
+        /* Skaičiaus pasirinkimo blokas su - ir + */
+        .number-picker {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 14px;
+            padding: 6px;
+        }
+
+        .qty-btn {
+            width: 54px;
+            height: 54px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: none;
+            margin-bottom: 0;
+            padding: 0;
+            transition: background 0.2s ease, transform 0.1s ease;
+        }
+
+        .qty-btn:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .qty-btn:active:not(:disabled) {
+            transform: scale(0.94);
         }
 
         input[type="number"] {
             width: 100%;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.3);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 12px;
+            background: transparent;
+            border: none;
             color: #fff;
-            font-size: 1.2rem;
+            font-size: 1.6rem;
+            font-weight: bold;
             text-align: center;
+            -moz-appearance: textfield;
         }
+
+        /* Paslepiame standartines naršyklės rodyklytes */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
         input[type="number"]:focus {
             outline: none;
-            border-color: #4cd137;
         }
 
-        .card {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 15px;
-            padding: 30px 20px;
-            margin-bottom: 25px;
-            min-height: 180px;
+        /* Kompaktiška statistikos juosta žaidimo metu */
+        .stats-bar {
             display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .role-title {
-            font-size: 2rem;
-            font-weight: bold;
-            text-transform: capitalize;
-            letter-spacing: 1px;
-            display: none;
-        }
-
-        /* Standartinė / geroji rolė (žalia) */
-        .role-title.normal {
-            color: #4cd137;
-        }
-
-        /* Neutrali / speciali rolė, pvz. Džakalas (oranžinė) */
-        .role-title.neutral {
-            color: #ffa502;
-            text-shadow: 0 0 10px rgba(255, 165, 2, 0.4);
-        }
-
-        /* Blogiečio / alerto rolė (raudona) */
-        .role-title.alert {
-            color: #ff4757;
-            text-shadow: 0 0 10px rgba(255, 71, 87, 0.4);
-        }
-
-        .placeholder-text {
-            color: #aaa;
-            font-size: 1.1rem;
-            line-height: 1.4;
-        }
-
-        button {
-            background: #4cd137;
-            color: #1e1e2f;
-            border: none;
-            border-radius: 12px;
-            padding: 16px 30px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-            transition: transform 0.1s ease, background 0.2s ease, opacity 0.2s ease;
-            box-shadow: 0 5px 15px rgba(76, 209, 55, 0.4);
-            margin-bottom: 15px;
-        }
-
-        button:active:not(:disabled) {
-            transform: scale(0.98);
-        }
-
-        button:hover:not(:disabled) {
-            background: #44bd32;
-        }
-
-        button:disabled {
-            cursor: not-allowed;
-            box-shadow: none;
-        }
-
-        button.secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-            box-shadow: none;
-        }
-
-        button.secondary:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.2);
-        }
-    </style>
-</head>
-<body>
-
-    <div class="container">
-        <h1>Slapta Rolė 🎭</h1>
-
-        <!-- Nustatymų ekranas -->
-        <div id="setupScreen" class="setup-screen active">
-            <div class="input-group">
-                <label for="playerCount">Žaidėjų skaičius (min. 3):</label>
-                <input type="number" id="playerCount" min="3" max="20" value="5">
-            </div>
-            <button onclick="startGame()">Pradėti žaidimą</button>
-        </div>
-
-        <!-- Žaidimo ekranas -->
-        <div id="gameScreen" class="game-screen">
-            <div class="counter" id="counterText">Liko neatverstų rolių: 0</div>
-            <div class="info-badge" id="imposterInfo">Šiame žaidime blogiečių: 1</div>
-            
-            <div class="card" id="roleCard">
-                <span class="placeholder-text" id="initialText">Duokite telefoną kitam žaidėjui ir paspauskite mygtuką</span>
-                <div class="role-title" id="roleText"></div>
-            </div>
-
-            <button id="actionBtn" onclick="handleAction()">Gauti rolę</button>
-            <button class="secondary" onclick="resetGame()">Naujas žaidimas</button>
-        </div>
-    </div>
-
-    <script>
-        const mandatoryGroup = ["imposteris", "trintukas", "ligonis"];
-        const neutralGroup = ["džakalas"];
-        const regularRoles = ["žmogus", "gydytojas", "teisėjas", "policininkas", "džakalas"];
-
-        let availableRoles = [];
-        let currentState = "READY_TO_GET"; 
-        let cooldownTimer = null;
-
-        // Fisher-Yates masyvo maišymo algoritmas
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
-        }
-
-        function startGame() {
-            const countInput = document.getElementById("playerCount");
-            let playerCount = parseInt(countInput.value);
-
-            if (isNaN(playerCount) || playerCount < 3) {
-                alert("Žaidimui reikia bent 3 žaidėjų!");
-                return;
-            }
-
-            // PAPILDOMI IMPOSTERIAI: Apskaičiuojame blogiečių skaičių pagal žaidėjus
-            let imposterCount = 1;
-            if (playerCount >= 14) {
-                imposterCount = 3; // 14+ žaidėjų -> 3 blogiečiai
-            } else if (playerCount >= 8) {
-                imposterCount = 2; // 8-13 žaidėjų -> 2 blogiečiai
-            }
-
-            // Išmaišome blogiečių grupę ir paimame tiek, kiek reikia šiam žaidimui
-            let shuffledMandatory = shuffleArray([...mandatoryGroup]);
-            let chosenImposters = shuffledMandatory.slice(0, imposterCount);
-
-            // Išmaišome geriečių/neutralių roles
-            let shuffledRegular = shuffleArray([...regularRoles]);
-
-            // Sudedame išrinktus blogiečius ir kitas roles
-            let gameRoles = [...chosenImposters, ...shuffledRegular];
-
-            // Jei žaidėjų daugiau nei unikalių rolių, likusius užpildome "žmogus" role
-            while (gameRoles.length < playerCount) {
-                gameRoles.push("žmogus");
-            }
-
-            // Jei žaidėjų mažiau (pvz. 3 ar 4), nukerpame perteklių, bet paliekame blogietį
-            if (gameRoles.length > playerCount) {
-                gameRoles = gameRoles.slice(0, playerCount);
-            }
-
-            // Galutinai išmaišome visą kaladę
-            availableRoles = shuffleArray(gameRoles);
-
-            // Atnaujiname užrašą, kiek blogiečių yra žaidime
-            document.getElementById("imposterInfo").textContent = `Šiame žaidime blogiečių: ${imposterCount}`;
-
-            document.getElementById("setupScreen").classList.remove("active");
-            document.getElementById("gameScreen").classList.add("active");
-            
-            resetToHiddenState();
-            updateCounter();
-        }
-
-        function updateCounter() {
-            const counterText = document.getElementById("counterText");
-            counterText.textContent = `Liko neatverstų rolių: ${availableRoles.length}`;
-        }
-
-        function resetToHiddenState() {
-            clearTimeout(cooldownTimer);
-            currentState = "READY_TO_GET";
-            
-            document.getElementById("initialText").style.display = "block";
-            document.getElementById("initialText").textContent = "Duokite telefoną kitam žaidėjui ir paspauskite mygtuką";
-            
-            const roleText = document.getElementById("roleText");
-            roleText.style.display = "none";
-            roleText.textContent = "";
-            roleText.className = "role-title"; 
-            
-            const actionBtn = document.getElementById("actionBtn");
-            actionBtn.disabled = false;
-            actionBtn.style.opacity = "1";
-            actionBtn.textContent = "Gauti rolę";
-        }
-
-        function handleAction() {
-            const roleText = document.getElementById("roleText");
-            const initialText = document.getElementById("initialText");
-            const actionBtn = document.getElementById("actionBtn");
-
-            if (currentState === "READY_TO_GET") {
-                const selectedRole = availableRoles.shift();
-
-                initialText.style.display = "none";
-                roleText.textContent = selectedRole;
-                
-                if (mandatoryGroup.includes(selectedRole)) {
-                    roleText.className = "role-title alert";
-                } else if (neutralGroup.includes(selectedRole)) {
-                    roleText.className = "role-title neutral";
-                } else {
-                    roleText.className = "role-title normal";
-                }
-
-                roleText.style.display = "block";
-                updateCounter();
-                currentState = "ROLE_SHOWN";
-
-                actionBtn.disabled = true;
-                actionBtn.style.opacity = "0.5";
-                actionBtn.textContent = "Įsiminkite rolę...";
-
-                cooldownTimer = setTimeout(() => {
-                    actionBtn.disabled = false;
-                    actionBtn.style.opacity = "1";
-                    
-                    if (availableRoles.length === 0) {
-                        actionBtn.textContent = "Paslėpti rolę ir pradėti!";
-                    } else {
-                        actionBtn.textContent = "Rolę gavau (Perduoti kitam)";
-                    }
-                }, 1000);
-
-            } else {
-                if (availableRoles.length === 0) {
-                    initialText.style.display = "block";
-                    initialText.textContent = "Visos rolės išdalintos! Pradėkite žaidimą ir diskusijas!";
-                    roleText.style.display = "none";
-                    actionBtn.disabled = true;
-                    actionBtn.style.opacity = "0.5";
-                    actionBtn.textContent = "Žaidimas vyksta";
-                    return;
-                }
-                resetToHiddenState();
-            }
-        }
-
-        function resetGame() {
-            clearTimeout(cooldownTimer);
-            document.getElementById("gameScreen").classList.remove("active");
-            document.getElementById("setupScreen").classList.add("active");
-        }
-    </script>
-
-</body>
-</html>
