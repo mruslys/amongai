@@ -42,10 +42,47 @@
             justify-content: center;
         }
 
-        h1 {
-            font-size: 1.8rem;
+        /* Žaidimo ekrano viršutinė juosta (antraštė kairėje, nustatymai dešinėje) */
+        .game-header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             margin-bottom: 22px;
+        }
+
+        .game-header-bar h1 {
+            font-size: 1.6rem;
             color: #e0e0e0;
+            margin-bottom: 0;
+            text-align: left;
+        }
+
+        /* Viršutinis krumpliaračio mygtukas */
+        .top-settings-btn {
+            background: transparent !important;
+            border: none !important;
+            color: #aaa !important;
+            font-size: 1.4rem !important;
+            cursor: pointer !important;
+            width: auto !important;
+            padding: 5px !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            transition: color 0.2s ease, transform 0.2s ease !important;
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .top-settings-btn:hover:not(:disabled) {
+            color: #fff !important;
+            transform: rotate(30deg);
+        }
+
+        .top-settings-btn:disabled {
+            opacity: 0.35;
+            cursor: default !important;
+            transform: none !important;
         }
 
         /* Nustatymų viršutinė juosta */
@@ -383,27 +420,6 @@
             margin-bottom: 0;
             padding: 14px 10px;
         }
-
-        .settings-btn {
-            background: transparent;
-            color: #aaa;
-            box-shadow: none;
-            font-size: 1rem;
-            font-weight: normal;
-            margin-top: 12px;
-            margin-bottom: 0;
-            padding: 8px;
-            border: 1px solid transparent;
-        }
-
-        .settings-btn:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.05);
-            color: #fff;
-        }
-
-        .settings-btn:disabled {
-            opacity: 0.35;
-        }
     </style>
 </head>
 <body>
@@ -442,7 +458,13 @@
 
         <!-- 2. Pagrindinis žaidimo ekranas -->
         <div id="gameScreen" class="game-screen active">
-            <h1>Neišsiduok! 🤫</h1>
+            <!-- Viršutinė juosta: antraštė kairėje, dantratis dešinėje -->
+            <div class="game-header-bar">
+                <h1>Neišsiduok! 🤫</h1>
+                <button type="button" class="top-settings-btn" id="settingsBtn" onclick="openSettings()" title="Nustatymai">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+            </div>
 
             <!-- Statistikos ir nustatymo indikatoriai -->
             <div class="stats-bar">
@@ -477,9 +499,6 @@
 
             <button id="actionBtn" onclick="handleAction()">Gauti rolę</button>
             <button class="secondary" onclick="resetGame()">Naujas žaidimas</button>
-            <button id="settingsBtn" class="settings-btn" onclick="openSettings()">
-                <i class="fa-solid fa-gear"></i> Nustatymai
-            </button>
         </div>
 
     </div>
