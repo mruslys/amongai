@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kas tu? 🎭</title>
-    <!-- Pridėta Font Awesome 6 ikonos -->
+    <title>Neišsiduok! 🤫</title>
+    <!-- Font Awesome 6 ikonos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
         * {
@@ -44,24 +44,36 @@
             color: #e0e0e0;
         }
 
-        .setup-screen, .game-screen {
+        h2 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: #e0e0e0;
+        }
+
+        .setup-screen, .game-screen, .settings-screen {
             display: none;
         }
 
-        .setup-screen.active, .game-screen.active {
+        .active {
             display: block;
         }
 
         .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .input-group-center {
             margin-bottom: 25px;
             text-align: center;
         }
 
         label {
             display: block;
-            font-size: 1rem;
+            font-size: 0.95rem;
             color: #ccc;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
+            font-weight: 500;
         }
 
         /* Skaičiaus pasirinkimo blokas su - ir + */
@@ -102,15 +114,29 @@
             transform: scale(0.94);
         }
 
-        input[type="number"] {
+        input[type="number"], input[type="text"], textarea {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 1rem;
+            padding: 12px;
+        }
+
+        input[type="number"]:focus, input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: #4cd137;
+        }
+
+        input[type="number"].inline-input {
             width: 100%;
             background: transparent;
             border: none;
-            color: #fff;
             font-size: 1.6rem;
             font-weight: bold;
             text-align: center;
-            -moz-appearance: textfield;
+            padding: 0;
         }
 
         input[type="number"]::-webkit-outer-spin-button,
@@ -119,8 +145,12 @@
             margin: 0;
         }
 
-        input[type="number"]:focus {
-            outline: none;
+        /* Nustatymų tekstiniai laukai */
+        textarea {
+            resize: none;
+            height: 65px;
+            font-size: 0.9rem;
+            line-height: 1.4;
         }
 
         /* ŠIUOLAIKIŠKA IR KOMPAKTIŠKA STATISTIKOS JUOSTA (TIK IKONOS) */
@@ -142,7 +172,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px; /* Tarpas tarp ikonos ir skaičiaus */
+            gap: 8px;
         }
 
         .stat-pill i {
@@ -156,7 +186,6 @@
             font-weight: bold;
         }
 
-        /* Raudonas, pavojaus spalvos blogiečių blokas */
         .stat-pill.danger {
             border-color: rgba(255, 71, 87, 0.25);
             background: rgba(255, 71, 87, 0.05);
@@ -224,7 +253,7 @@
             width: 100%;
             transition: transform 0.1s ease, background 0.2s ease, opacity 0.2s ease;
             box-shadow: 0 5px 15px rgba(76, 209, 55, 0.4);
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
 
         button:active:not(:disabled) {
@@ -250,29 +279,98 @@
         button.secondary:hover:not(:disabled) {
             background: rgba(255, 255, 255, 0.2);
         }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .btn-group button {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .settings-btn {
+            background: transparent;
+            color: #aaa;
+            box-shadow: none;
+            font-size: 1rem;
+            font-weight: normal;
+            margin-top: 15px;
+            margin-bottom: 0;
+            padding: 8px;
+            border: 1px solid transparent;
+        }
+
+        .settings-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+        }
+
+        .small-desc {
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>Kas tu? 🎭</h1>
+        <!-- Nustatymų ekranas -->
+        <div id="settingsScreen" class="settings-screen">
+            <h2>Nustatymai ⚙️</h2>
+            
+            <div class="input-group">
+                <label>🔴 Blogiečiai (atskirkite kableliais):</label>
+                <textarea id="setMandatory"></textarea>
+            </div>
+
+            <div class="input-group">
+                <label>🟠 Neutralūs (atskirkite kableliais):</label>
+                <textarea id="setNeutral"></textarea>
+            </div>
+
+            <div class="input-group">
+                <label>🟢 Geriečiai (atskirkite kableliais):</label>
+                <textarea id="setRegular"></textarea>
+            </div>
+
+            <div class="input-group">
+                <label>👿 Piktadarių žingsnis (kas kiek žaidėjų):</label>
+                <input type="number" id="setBadStep" min="1" max="10" value="6">
+                <div class="small-desc">Kuo mažesnis skaičius – tuo greičiau gausėja piktadarių didėjant žaidėjų skaičiui.</div>
+            </div>
+
+            <div class="input-group">
+                <label>⏳ Apsaugos pauzė atvėrus rolę (sekundėmis):</label>
+                <input type="number" id="setCooldown" min="0" max="5" step="0.5" value="1.0">
+            </div>
+
+            <div class="btn-group">
+                <button class="secondary" onclick="resetToFactoryDefaults()">Atstatyti</button>
+                <button onclick="saveSettings()">Išsaugoti</button>
+            </div>
+        </div>
 
         <!-- Nustatymų ekranas -->
         <div id="setupScreen" class="setup-screen active">
-            <div class="input-group">
+            <h1>Neišsiduok! 🤫</h1>
+            <div class="input-group-center">
                 <label for="playerCount">Žaidėjų skaičius:</label>
                 <div class="number-picker">
                     <button type="button" class="qty-btn" onclick="changeCount(-1)">−</button>
-                    <input type="number" id="playerCount" min="3" max="20" value="5" readonly>
+                    <input type="number" id="playerCount" class="inline-input" min="3" max="20" value="5" readonly>
                     <button type="button" class="qty-btn" onclick="changeCount(1)">+</button>
                 </div>
             </div>
             <button onclick="startGame()">Pradėti žaidimą</button>
+            <button class="settings-btn" onclick="openSettings()"><i class="fa-solid fa-gear"></i> Nustatymai</button>
         </div>
 
         <!-- Žaidimo ekranas -->
         <div id="gameScreen" class="game-screen">
-            <!-- Pakeistos statistikos į kompaktiškas ikonas -->
             <div class="stats-bar">
                 <div class="stat-pill" title="Žaidėjų skaičius">
                     <i class="fa-solid fa-users"></i>
@@ -299,14 +397,76 @@
     </div>
 
     <script>
-        const mandatoryGroup = ["imposteris", "trintukas", "ligonis"];
-        const neutralGroup = ["džakalas"];
-        const regularRoles = ["žmogus", "gydytojas", "teisėjas", "policininkas", "džakalas"];
+        // Numatytoji žaidimo taisyklė (jei atmintinėje dar nieko nėra)
+        const defaultSettings = {
+            mandatory: ["imposteris", "trintukas", "ligonis"],
+            neutral: ["džakalas"],
+            regular: ["žmogus", "gydytojas", "teisėjas", "policininkas"],
+            badGuyStep: 6,
+            cooldown: 1.0
+        };
 
+        let currentSettings = { ...defaultSettings };
         let availableRoles = [];
         let currentState = "READY_TO_GET"; 
         let cooldownTimer = null;
 
+        // Užkraunami nustatymai iš naršyklės localStorage
+        function loadSettings() {
+            const saved = localStorage.getItem("game_settings");
+            if (saved) {
+                try {
+                    currentSettings = JSON.parse(saved);
+                } catch (e) {
+                    currentSettings = { ...defaultSettings };
+                }
+            } else {
+                currentSettings = { ...defaultSettings };
+            }
+        }
+
+        function openSettings() {
+            loadSettings();
+            document.getElementById("setMandatory").value = currentSettings.mandatory.join(", ");
+            document.getElementById("setNeutral").value = currentSettings.neutral.join(", ");
+            document.getElementById("setRegular").value = currentSettings.regular.join(", ");
+            document.getElementById("setBadStep").value = currentSettings.badGuyStep;
+            document.getElementById("setCooldown").value = currentSettings.cooldown;
+
+            document.getElementById("setupScreen").classList.remove("active");
+            document.getElementById("settingsScreen").classList.add("active");
+        }
+
+        function saveSettings() {
+            const mandatoryText = document.getElementById("setMandatory").value;
+            const neutralText = document.getElementById("setNeutral").value;
+            const regularText = document.getElementById("setRegular").value;
+            const badStep = parseInt(document.getElementById("setBadStep").value) || 6;
+            const cooldown = parseFloat(document.getElementById("setCooldown").value) || 1.0;
+
+            // Konvertuojame kableliais atskirtus tekstus į masyvus ir apvalome tarpus
+            currentSettings.mandatory = mandatoryText.split(",").map(r => r.trim().toLowerCase()).filter(Boolean);
+            currentSettings.neutral = neutralText.split(",").map(r => r.trim().toLowerCase()).filter(Boolean);
+            currentSettings.regular = regularText.split(",").map(r => r.trim().toLowerCase()).filter(Boolean);
+            currentSettings.badGuyStep = Math.max(1, badStep);
+            currentSettings.cooldown = Math.max(0, cooldown);
+
+            // Saugome nustatymus į naršyklę
+            localStorage.setItem("game_settings", JSON.stringify(currentSettings));
+
+            document.getElementById("settingsScreen").classList.remove("active");
+            document.getElementById("setupScreen").classList.add("active");
+        }
+
+        function resetToFactoryDefaults() {
+            if (confirm("Ar tikrai norite atstatyti gamyklines žaidimo roles ir taisykles?")) {
+                currentSettings = { ...defaultSettings };
+                localStorage.setItem("game_settings", JSON.stringify(currentSettings));
+                openSettings(); // perrašome įvesties laukus
+            }
+        }
+
+        // Įvesties mygtukų - ir + funkcionalumas
         function changeCount(delta) {
             const countInput = document.getElementById("playerCount");
             let current = parseInt(countInput.value) || 5;
@@ -316,6 +476,7 @@
             }
         }
 
+        // Fisher-Yates masyvo maišymas
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -325,6 +486,7 @@
         }
 
         function startGame() {
+            loadSettings(); // Įsitikiname, kad taisyklės šviežios
             const countInput = document.getElementById("playerCount");
             let playerCount = parseInt(countInput.value);
 
@@ -333,29 +495,34 @@
                 return;
             }
 
-            let imposterCount = 1;
-            if (playerCount >= 14) {
-                imposterCount = 3;
-            } else if (playerCount >= 8) {
-                imposterCount = 2;
-            }
+            // Apskaičiuojame piktadarių skaičių pagal žingsnio nustatymą
+            // Numatytoji formulė: 1 piktadarys nuo 3 žaidėjų, sekantys didėja kas pasirinktą žingsnį (badGuyStep)
+            let imposterCount = Math.max(1, Math.floor((playerCount - 3) / currentSettings.badGuyStep) + 1);
 
-            let shuffledMandatory = shuffleArray([...mandatoryGroup]);
+            let shuffledMandatory = shuffleArray([...currentSettings.mandatory]);
             let chosenImposters = shuffledMandatory.slice(0, imposterCount);
-            let shuffledRegular = shuffleArray([...regularRoles]);
 
-            let gameRoles = [...chosenImposters, ...shuffledRegular];
+            // Likusias specialias roles
+            let otherAvailable = [...currentSettings.neutral, ...currentSettings.regular];
+            let shuffledOthers = shuffleArray(otherAvailable);
 
+            // Sudedame išrinktus blogiečius ir turimas kitas vaidmenų roles
+            let gameRoles = [...chosenImposters, ...shuffledOthers];
+
+            // Jei žaidėjų daugiau nei specialiųjų vaidmenų krepšelis, užpildome paprastais žmonėmis (arba pirmuoju reguliariu)
+            const fillerRole = currentSettings.regular[0] || "žmogus";
             while (gameRoles.length < playerCount) {
-                gameRoles.push("žmogus");
+                gameRoles.push(fillerRole);
             }
 
+            // Jei rolių per daug didelėms / mažoms grupėms, nukerpame perteklių, bet paliekame blogiečius
             if (gameRoles.length > playerCount) {
                 gameRoles = gameRoles.slice(0, playerCount);
             }
 
             availableRoles = shuffleArray(gameRoles);
 
+            // Užpildome viršutinę statistiką
             document.getElementById("statPlayers").textContent = playerCount;
             document.getElementById("statBad").textContent = imposterCount;
 
@@ -399,9 +566,10 @@
                 initialText.style.display = "none";
                 roleText.textContent = selectedRole;
                 
-                if (mandatoryGroup.includes(selectedRole)) {
+                // Spalviname rolę pagal nustatytas grupes
+                if (currentSettings.mandatory.includes(selectedRole)) {
                     roleText.className = "role-title alert";
-                } else if (neutralGroup.includes(selectedRole)) {
+                } else if (currentSettings.neutral.includes(selectedRole)) {
                     roleText.className = "role-title neutral";
                 } else {
                     roleText.className = "role-title normal";
@@ -411,9 +579,12 @@
                 updateCounter();
                 currentState = "ROLE_SHOWN";
 
+                // Užrakiname mygtuką pagal išsaugotą apsaugos sekundžių nustatymą
                 actionBtn.disabled = true;
                 actionBtn.style.opacity = "0.5";
                 actionBtn.textContent = "Įsiminkite rolę...";
+
+                const cooldownMs = currentSettings.cooldown * 1000;
 
                 cooldownTimer = setTimeout(() => {
                     actionBtn.disabled = false;
@@ -424,7 +595,7 @@
                     } else {
                         actionBtn.textContent = "Įsiminiau! Kitas žaidėjas ➔";
                     }
-                }, 1000);
+                }, cooldownMs);
 
             } else {
                 if (availableRoles.length === 0) {
@@ -445,6 +616,9 @@
             document.getElementById("gameScreen").classList.remove("active");
             document.getElementById("setupScreen").classList.add("active");
         }
+
+        // Pirmas užkrovimas: pasirūpiname, kad nustatymai egzistuotų
+        loadSettings();
     </script>
 
 </body>
