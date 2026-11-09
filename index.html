@@ -448,11 +448,11 @@
             <div class="stats-bar">
                 <button type="button" class="stat-pill interactive" id="pillPlayers" onclick="togglePicker('players')" title="Keisti žaidėjų skaičių">
                     <i class="fa-solid fa-users"></i>
-                    <span id="statPlayers">5</span>
+                    <span id="statPlayers">3</span>
                 </button>
                 <div class="stat-pill" title="Liko neatverstų rolių">
                     <i class="fa-solid fa-id-card"></i>
-                    <span id="statLeft">5</span>
+                    <span id="statLeft">3</span>
                 </div>
                 <button type="button" class="stat-pill danger interactive" id="pillBad" onclick="togglePicker('bad')" title="Keisti blogiečių skaičių">
                     <i class="fa-solid fa-skull"></i>
@@ -465,7 +465,7 @@
                 <label id="pickerLabel" for="pickerInput">Žaidėjų skaičius:</label>
                 <div class="number-picker">
                     <button type="button" class="qty-btn" onclick="changePickerValue(-1)">−</button>
-                    <input type="number" id="pickerInput" class="inline-input" value="5" readonly>
+                    <input type="number" id="pickerInput" class="inline-input" value="3" readonly>
                     <button type="button" class="qty-btn" onclick="changePickerValue(1)">+</button>
                 </div>
             </div>
@@ -491,7 +491,7 @@
             mandatory: ["imposteris", "trintukas", "ligonis"],
             neutral: ["džakalas"],
             regular: ["žmogus", "gydytojas", "teisėjas", "policininkas"],
-            playerCount: 5,
+            playerCount: 3,
             badCount: 1
         };
 
@@ -504,15 +504,10 @@
 
         function initApp() {
             const savedRaw = localStorage.getItem("game_settings");
-            let isFirstVisit = false;
 
             if (savedRaw) {
                 try {
                     const parsed = JSON.parse(savedRaw);
-                    // Jei atmintyje dar senas formatas be playerCount – traktuojame kaip pirmą kartą
-                    if (typeof parsed.playerCount !== "number") {
-                        isFirstVisit = true;
-                    }
                     currentSettings = {
                         mandatory: Array.isArray(parsed.mandatory) && parsed.mandatory.length ? parsed.mandatory : [...defaultSettings.mandatory],
                         neutral: Array.isArray(parsed.neutral) ? parsed.neutral : [...defaultSettings.neutral],
@@ -522,20 +517,13 @@
                     };
                 } catch (e) {
                     currentSettings = { ...defaultSettings };
-                    isFirstVisit = true;
                 }
             } else {
                 currentSettings = { ...defaultSettings };
-                isFirstVisit = true;
             }
 
             validateCounts();
             prepareNewGame();
-
-            // Jei duomenų localStorage nebuvo – automatiškai atidarome žaidėjų skaičiaus pasirinkimą
-            if (isFirstVisit) {
-                openPicker("players");
-            }
         }
 
         function saveToStorage() {
@@ -589,7 +577,6 @@
             document.getElementById("pickerDrawer").classList.remove("open");
             document.getElementById("pillPlayers").classList.remove("selected");
             document.getElementById("pillBad").classList.remove("selected");
-            saveToStorage();
         }
 
         function changePickerValue(delta) {
@@ -654,8 +641,14 @@
 
         function resetToFactoryDefaults() {
             if (confirm("Ar tikrai norite atstatyti gamyklines žaidimo roles ir nustatymus?")) {
-                currentSettings = { ...defaultSettings };
-                saveToStorage();
+                localStorage.removeItem("game_settings");
+                currentSettings = {
+                    mandatory: [...defaultSettings.mandatory],
+                    neutral: [...defaultSettings.neutral],
+                    regular: [...defaultSettings.regular],
+                    playerCount: defaultSettings.playerCount,
+                    badCount: defaultSettings.badCount
+                };
                 prepareNewGame();
                 closeSettings();
             }
@@ -753,12 +746,11 @@
             const actionBtn = document.getElementById("actionBtn");
 
             if (currentState === "READY_TO_GET") {
-                // Jei tai pirmoji atverčiama rolė – užrakiname skaičiaus keitimą ir išsaugome nustatymus
+                // Jei tai pirmoji atverčiama rolė – užrakiname skaičiaus keitimą
                 if (!gameInProgress) {
                     gameInProgress = true;
                     closePicker();
                     setSetupControlsDisabled(true);
-                    saveToStorage();
                 }
 
                 const selectedRole = availableRoles.shift();
