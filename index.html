@@ -18,14 +18,13 @@
         body {
             background: linear-gradient(135deg, #1e1e2f, #2a2a40);
             color: #ffffff;
-            /* Naudojame dynamic viewport height geresniam telefonų ekranų centravimui */
             min-height: 100vh;
             min-height: 100dvh;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 15px; /* Šiek tiek mažesnis body padding tinka mobiliesiems */
+            padding: 15px; 
         }
 
         .container {
@@ -35,7 +34,7 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 20px;
-            padding: 24px; /* Kompaktiškesnis padding išlaiko viską ekrano centre */
+            padding: 24px; 
             text-align: center;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
             display: flex;
@@ -49,15 +48,45 @@
             color: #e0e0e0;
         }
 
-        h2 {
-            font-size: 1.5rem;
+        /* Nustatymų viršutinė juosta */
+        .settings-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             margin-bottom: 20px;
-            color: #e0e0e0;
         }
 
-        h2 i {
-            margin-right: 8px; /* Tarpas tarp nustatymų ikonos ir teksto */
+        .settings-header h2 {
+            font-size: 1.5rem;
+            color: #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .settings-header h2 i {
             color: #aaa;
+        }
+
+        /* [X] Uždarymo mygtukas */
+        .close-icon-btn {
+            background: transparent !important;
+            border: none !important;
+            color: #aaa !important;
+            font-size: 1.5rem !important;
+            cursor: pointer !important;
+            width: auto !important;
+            padding: 5px !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            transition: color 0.2s ease !important;
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-icon-btn:hover {
+            color: #ff4757 !important;
         }
 
         .setup-screen, .game-screen, .settings-screen {
@@ -69,7 +98,6 @@
             display: block;
         }
 
-        /* Sumažinti tarpai nustatymuose, kad tilptų be scroll */
         .input-group {
             margin-bottom: 14px;
             text-align: left;
@@ -159,7 +187,7 @@
 
         textarea {
             resize: none;
-            height: 50px; /* Sumažinta, kad užimtų mažiau vietos telefonu */
+            height: 50px; 
             font-size: 0.85rem;
             line-height: 1.4;
         }
@@ -328,7 +356,11 @@
 
         <!-- 1. Nustatymų ekranas (Be bendro žaidimo h1) -->
         <div id="settingsScreen" class="settings-screen">
-            <h2><i class="fa-solid fa-gear"></i> Nustatymai</h2>
+            <div class="settings-header">
+                <h2><i class="fa-solid fa-gear"></i> Nustatymai</h2>
+                <!-- Viršutinis uždarymo mygtukas -->
+                <button class="close-icon-btn" onclick="closeSettings()" title="Uždaryti"><i class="fa-solid fa-xmark"></i></button>
+            </div>
             
             <div class="input-group">
                 <label>🔴 Blogiečiai (atskirkite kableliais):</label>
@@ -359,6 +391,8 @@
                 <button class="secondary" onclick="resetToFactoryDefaults()">Atstatyti</button>
                 <button onclick="saveSettings()">Išsaugoti</button>
             </div>
+            <!-- Apatinis „Grįžti atgal“ mygtukas nustatymams uždaryti be pokyčių -->
+            <button class="settings-btn" style="margin-top: 5px;" onclick="closeSettings()"><i class="fa-solid fa-arrow-left"></i> Grįžti be išsaugojimo</button>
         </div>
 
         <!-- 2. Pradžios ekranas -->
@@ -441,6 +475,12 @@
 
             document.getElementById("setupScreen").classList.remove("active");
             document.getElementById("settingsScreen").classList.add("active");
+        }
+
+        // Paprasta funkcija uždaryti nustatymus be jokių pokyčių
+        function closeSettings() {
+            document.getElementById("settingsScreen").classList.remove("active");
+            document.getElementById("setupScreen").classList.add("active");
         }
 
         function saveSettings() {
