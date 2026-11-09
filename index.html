@@ -1,9 +1,20 @@
+Tai puiki idėja! Telefonuose ekranai labai siauri, todėl tekstai „Žaidėjai:“, „Liko:“ ir „Blogiečiai:“ priklausomai nuo modelio tiesiog netelpa vienoje eilutėje ir bjauriai lūžta (image_5.png).
+Išsprendžiame šią problemą:
+ * Įkelta „Font Awesome 6“ biblioteka (ikonoms).
+ * Atsisakyta ilgų tekstų – dabar kiekvienas blokelis yra kompaktiškas, su ikona kairėje ir dideliu skaičiumi dešinėje. Jie puikiai tilps net ir pačiame mažiausiame telefone!
+ * Pritaikytos ikonos:
+   * 👥 (žaidėjai) ➔ <i class="fa-solid fa-users"></i> (balta)
+   * 🎴 / 👁️‍🗨️ (liko rolių) ➔ <i class="fa-solid fa-id-card"></i> (balta, rodo rolių korteles / tapatybes)
+   * 😈 (blogiečiai) ➔ <i class="fa-solid fa-skull"></i> (raudona kaukolė, simbolizuojanti pavojų / blogiečius)
+Atnaujintas pilnas žaidimo kodas (index.html):
 <!DOCTYPE html>
 <html lang="lt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kas tu? 🎭</title>
+    <!-- Pridėta Font Awesome 6 ikonos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
         * {
             box-sizing: border-box;
@@ -38,7 +49,7 @@
 
         h1 {
             font-size: 1.8rem;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             color: #e0e0e0;
         }
 
@@ -111,7 +122,6 @@
             -moz-appearance: textfield;
         }
 
-        /* Paslepiame standartines naršyklės rodyklytes */
         input[type="number"]::-webkit-outer-spin-button,
         input[type="number"]::-webkit-inner-spin-button {
             -webkit-appearance: none;
@@ -122,23 +132,32 @@
             outline: none;
         }
 
-        /* Kompaktiška statistikos juosta žaidimo metu */
+        /* ŠIUOLAIKIŠKA IR KOMPAKTIŠKA STATISTIKOS JUOSTA (TIK IKONOS) */
         .stats-bar {
             display: flex;
             justify-content: space-between;
-            gap: 8px;
-            margin-bottom: 20px;
+            gap: 12px;
+            margin-bottom: 25px;
         }
 
         .stat-pill {
             flex: 1;
             background: rgba(0, 0, 0, 0.25);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 8px 6px;
-            font-size: 0.85rem;
-            color: #ccc;
-            font-weight: 600;
+            border-radius: 12px;
+            padding: 10px 8px;
+            font-size: 1.15rem;
+            color: #aaa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px; /* Tarpas tarp ikonos ir skaičiaus */
+        }
+
+        .stat-pill i {
+            font-size: 1.25rem;
+            color: #fff;
+            opacity: 0.95;
         }
 
         .stat-pill span {
@@ -146,9 +165,15 @@
             font-weight: bold;
         }
 
+        /* Raudonas, pavojaus spalvos blogiečių blokas */
         .stat-pill.danger {
-            border-color: rgba(255, 71, 87, 0.35);
-            color: #ff6b81;
+            border-color: rgba(255, 71, 87, 0.25);
+            background: rgba(255, 71, 87, 0.05);
+        }
+
+        .stat-pill.danger i {
+            color: #ff4757;
+            text-shadow: 0 0 8px rgba(255, 71, 87, 0.4);
         }
 
         .stat-pill.danger span {
@@ -256,10 +281,20 @@
 
         <!-- Žaidimo ekranas -->
         <div id="gameScreen" class="game-screen">
+            <!-- Pakeistos statistikos į kompaktiškas ikonas -->
             <div class="stats-bar">
-                <div class="stat-pill">👥 Žaidėjai: <span id="statPlayers">0</span></div>
-                <div class="stat-pill">🎴 Liko: <span id="statLeft">0</span></div>
-                <div class="stat-pill danger">😈 Blogiečiai: <span id="statBad">0</span></div>
+                <div class="stat-pill" title="Žaidėjų skaičius">
+                    <i class="fa-solid fa-users"></i>
+                    <span id="statPlayers">0</span>
+                </div>
+                <div class="stat-pill" title="Liko neatverstų rolių">
+                    <i class="fa-solid fa-id-card"></i>
+                    <span id="statLeft">0</span>
+                </div>
+                <div class="stat-pill danger" title="Blogiečių skaičius">
+                    <i class="fa-solid fa-skull"></i>
+                    <span id="statBad">0</span>
+                </div>
             </div>
             
             <div class="card" id="roleCard">
@@ -281,7 +316,6 @@
         let currentState = "READY_TO_GET"; 
         let cooldownTimer = null;
 
-        // Mygtukų - ir + funkcija
         function changeCount(delta) {
             const countInput = document.getElementById("playerCount");
             let current = parseInt(countInput.value) || 5;
@@ -291,7 +325,6 @@
             }
         }
 
-        // Fisher-Yates masyvo maišymo algoritmas
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -332,7 +365,6 @@
 
             availableRoles = shuffleArray(gameRoles);
 
-            // Užpildome statistikos juostą
             document.getElementById("statPlayers").textContent = playerCount;
             document.getElementById("statBad").textContent = imposterCount;
 
@@ -426,3 +458,4 @@
 
 </body>
 </html>
+
