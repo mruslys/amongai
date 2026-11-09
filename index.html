@@ -148,12 +148,12 @@
             font-weight: 500;
         }
 
-        /* Statistikos / indikatorių juosta */
+        /* Statistikos / neutralių indikatorių juosta */
         .stats-bar {
             display: flex;
             justify-content: space-between;
             gap: 12px;
-            margin-bottom: 18px;
+            margin-bottom: 22px;
         }
 
         .stat-pill {
@@ -170,35 +170,6 @@
             gap: 8px;
             margin-bottom: 0;
             box-shadow: none;
-            transition: all 0.2s ease;
-        }
-
-        /* Interaktyvūs indikatoriai (mygtukai) */
-        button.stat-pill.interactive {
-            cursor: pointer;
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        button.stat-pill.interactive:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.35);
-            transform: translateY(-1px);
-        }
-
-        button.stat-pill.interactive.selected {
-            border-color: #4cd137;
-            background: rgba(76, 209, 55, 0.12);
-        }
-
-        button.stat-pill.danger.interactive.selected {
-            border-color: #ff4757;
-            background: rgba(255, 71, 87, 0.15);
-        }
-
-        button.stat-pill.interactive:disabled {
-            cursor: default;
-            opacity: 0.7;
-            border-color: rgba(255, 255, 255, 0.08);
         }
 
         .stat-pill i {
@@ -226,70 +197,6 @@
             color: #ff4757;
         }
 
-        /* Išskleidžiamas skaičiaus pasirinkimo blokas po indikatoriais */
-        .picker-drawer {
-            display: none;
-            margin-bottom: 20px;
-            padding: 12px;
-            background: rgba(0, 0, 0, 0.22);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 16px;
-            animation: fadeIn 0.15s ease-out;
-        }
-
-        .picker-drawer.open {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .picker-drawer label {
-            text-align: center;
-            margin-bottom: 8px;
-            font-size: 0.9rem;
-            color: #ddd;
-        }
-
-        .number-picker {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: rgba(0, 0, 0, 0.3);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 14px;
-            padding: 6px;
-        }
-
-        .qty-btn {
-            width: 50px;
-            height: 50px;
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-            border: none;
-            border-radius: 10px;
-            font-size: 1.7rem;
-            font-weight: bold;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: none;
-            margin-bottom: 0;
-            padding: 0;
-            transition: background 0.2s ease, transform 0.1s ease;
-        }
-
-        .qty-btn:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .qty-btn:active:not(:disabled) {
-            transform: scale(0.94);
-        }
-
         input[type="number"], input[type="text"], textarea {
             width: 100%;
             background: rgba(0, 0, 0, 0.3);
@@ -303,16 +210,6 @@
         input[type="number"]:focus, input[type="text"]:focus, textarea:focus {
             outline: none;
             border-color: #4cd137;
-        }
-
-        input[type="number"].inline-input {
-            width: 100%;
-            background: transparent;
-            border: none;
-            font-size: 1.6rem;
-            font-weight: bold;
-            text-align: center;
-            padding: 0;
         }
 
         input[type="number"]::-webkit-outer-spin-button,
@@ -402,6 +299,7 @@
             color: #fff;
             box-shadow: none;
             margin-bottom: 0;
+            display: none; /* Pradžioje paslėptas */
         }
 
         button.secondary:hover:not(:disabled) {
@@ -436,6 +334,16 @@
             </div>
             
             <div class="input-group">
+                <label>👥 Žaidėjų skaičius:</label>
+                <input type="number" id="setPlayerCount" min="3" max="20" value="3">
+            </div>
+
+            <div class="input-group">
+                <label>💀 Piktadarių skaičius:</label>
+                <input type="number" id="setBadCount" min="1" max="19" value="1">
+            </div>
+
+            <div class="input-group">
                 <label>🔴 Blogiečiai (atskirkite kableliais):</label>
                 <textarea id="setMandatory"></textarea>
             </div>
@@ -451,7 +359,7 @@
             </div>
 
             <div class="btn-group">
-                <button class="secondary" onclick="resetToFactoryDefaults()">Atstatyti</button>
+                <button class="secondary" style="display: block;" onclick="resetToFactoryDefaults()">Atstatyti</button>
                 <button onclick="saveSettings()">Išsaugoti</button>
             </div>
         </div>
@@ -466,29 +374,19 @@
                 </button>
             </div>
 
-            <!-- Statistikos ir nustatymo indikatoriai -->
+            <!-- Neutralių indikatorių juosta (likusios kortelės, piktadariai, žaidėjai dešinėje) -->
             <div class="stats-bar">
-                <button type="button" class="stat-pill interactive" id="pillPlayers" onclick="togglePicker('players')" title="Keisti žaidėjų skaičių">
-                    <i class="fa-solid fa-users"></i>
-                    <span id="statPlayers">3</span>
-                </button>
                 <div class="stat-pill" title="Liko neatverstų rolių">
                     <i class="fa-solid fa-id-card"></i>
                     <span id="statLeft">3</span>
                 </div>
-                <button type="button" class="stat-pill danger interactive" id="pillBad" onclick="togglePicker('bad')" title="Keisti blogiečių skaičių">
+                <div class="stat-pill danger" title="Piktadarių skaičius">
                     <i class="fa-solid fa-skull"></i>
                     <span id="statBad">1</span>
-                </button>
-            </div>
-
-            <!-- Dinaminis skaičiaus parinkiklis po visais trimis indikatoriais -->
-            <div id="pickerDrawer" class="picker-drawer">
-                <label id="pickerLabel" for="pickerInput">Žaidėjų skaičius:</label>
-                <div class="number-picker">
-                    <button type="button" class="qty-btn" onclick="changePickerValue(-1)">−</button>
-                    <input type="number" id="pickerInput" class="inline-input" value="3" readonly>
-                    <button type="button" class="qty-btn" onclick="changePickerValue(1)">+</button>
+                </div>
+                <div class="stat-pill" title="Žaidėjų skaičius">
+                    <i class="fa-solid fa-users"></i>
+                    <span id="statPlayers">3</span>
                 </div>
             </div>
             
@@ -498,7 +396,7 @@
             </div>
 
             <button id="actionBtn" onclick="handleAction()">Gauti rolę</button>
-            <button class="secondary" onclick="resetGame()">Naujas žaidimas</button>
+            <button id="resetBtn" class="secondary" onclick="resetGame()">Žaisti iš naujo</button>
         </div>
 
     </div>
@@ -518,7 +416,6 @@
         let availableRoles = [];
         let currentState = "READY_TO_GET"; // "READY_TO_GET" | "ROLE_SHOWN"
         let gameInProgress = false;        // true, kai atverčiama bent pirmoji rolė
-        let activePicker = null;           // null | "players" | "bad"
         let cooldownTimer = null;
 
         function initApp() {
@@ -555,78 +452,13 @@
             currentSettings.badCount = Math.max(1, Math.min(maxBad, currentSettings.badCount));
         }
 
-        /* --- Skaičiaus parinkiklio (Picker) valdymas --- */
-
-        function togglePicker(type) {
-            if (gameInProgress) return;
-
-            if (activePicker === type) {
-                closePicker();
-            } else {
-                openPicker(type);
-            }
-        }
-
-        function openPicker(type) {
-            if (gameInProgress) return;
-            activePicker = type;
-
-            const drawer = document.getElementById("pickerDrawer");
-            const label = document.getElementById("pickerLabel");
-            const input = document.getElementById("pickerInput");
-            const pillPlayers = document.getElementById("pillPlayers");
-            const pillBad = document.getElementById("pillBad");
-
-            pillPlayers.classList.toggle("selected", type === "players");
-            pillBad.classList.toggle("selected", type === "bad");
-
-            if (type === "players") {
-                label.textContent = "Žaidėjų skaičius:";
-                input.value = currentSettings.playerCount;
-            } else if (type === "bad") {
-                label.textContent = "Blogiečių skaičius:";
-                input.value = currentSettings.badCount;
-            }
-
-            drawer.classList.add("open");
-        }
-
-        function closePicker() {
-            activePicker = null;
-            document.getElementById("pickerDrawer").classList.remove("open");
-            document.getElementById("pillPlayers").classList.remove("selected");
-            document.getElementById("pillBad").classList.remove("selected");
-        }
-
-        function changePickerValue(delta) {
-            if (!activePicker || gameInProgress) return;
-
-            if (activePicker === "players") {
-                let next = currentSettings.playerCount + delta;
-                if (next >= 3 && next <= 20) {
-                    currentSettings.playerCount = next;
-                    validateCounts();
-                    document.getElementById("pickerInput").value = currentSettings.playerCount;
-                }
-            } else if (activePicker === "bad") {
-                let maxBad = Math.max(1, currentSettings.playerCount - 1);
-                let next = currentSettings.badCount + delta;
-                if (next >= 1 && next <= maxBad) {
-                    currentSettings.badCount = next;
-                    document.getElementById("pickerInput").value = currentSettings.badCount;
-                }
-            }
-
-            saveToStorage();
-            prepareNewGame();
-        }
-
         /* --- Nustatymų lango valdymas --- */
 
         function openSettings() {
             if (gameInProgress) return;
-            closePicker();
 
+            document.getElementById("setPlayerCount").value = currentSettings.playerCount;
+            document.getElementById("setBadCount").value = currentSettings.badCount;
             document.getElementById("setMandatory").value = currentSettings.mandatory.join(", ");
             document.getElementById("setNeutral").value = currentSettings.neutral.join(", ");
             document.getElementById("setRegular").value = currentSettings.regular.join(", ");
@@ -641,6 +473,9 @@
         }
 
         function saveSettings() {
+            const playerCountInput = parseInt(document.getElementById("setPlayerCount").value) || 3;
+            const badCountInput = parseInt(document.getElementById("setBadCount").value) || 1;
+            
             const mandatoryText = document.getElementById("setMandatory").value;
             const neutralText = document.getElementById("setNeutral").value;
             const regularText = document.getElementById("setRegular").value;
@@ -649,10 +484,13 @@
             const parsedNeutral = neutralText.split(",").map(r => r.trim().toLowerCase()).filter(Boolean);
             const parsedRegular = regularText.split(",").map(r => r.trim().toLowerCase()).filter(Boolean);
 
+            currentSettings.playerCount = playerCountInput;
+            currentSettings.badCount = badCountInput;
             currentSettings.mandatory = parsedMandatory.length ? parsedMandatory : [...defaultSettings.mandatory];
             currentSettings.neutral = parsedNeutral;
             currentSettings.regular = parsedRegular.length ? parsedRegular : [...defaultSettings.regular];
 
+            validateCounts();
             saveToStorage();
             prepareNewGame();
             closeSettings();
@@ -684,8 +522,6 @@
         }
 
         function setSetupControlsDisabled(disabled) {
-            document.getElementById("pillPlayers").disabled = disabled;
-            document.getElementById("pillBad").disabled = disabled;
             document.getElementById("settingsBtn").disabled = disabled;
         }
 
@@ -694,10 +530,13 @@
             gameInProgress = false;
             setSetupControlsDisabled(false);
 
+            // Pradžioje "Žaisti iš naujo" mygtukas nerodomas
+            document.getElementById("resetBtn").style.display = "none";
+
             const playerCount = currentSettings.playerCount;
             const badCount = currentSettings.badCount;
 
-            // 1. Paruošiame blogiečių roles
+            // 1. Paruošiame piktadarių roles
             let shuffledMandatory = shuffleArray([...currentSettings.mandatory]);
             let chosenImposters = shuffledMandatory.slice(0, badCount);
             const fallbackBadRole = currentSettings.mandatory[0] || "imposteris";
@@ -765,11 +604,11 @@
             const actionBtn = document.getElementById("actionBtn");
 
             if (currentState === "READY_TO_GET") {
-                // Jei tai pirmoji atverčiama rolė – užrakiname skaičiaus keitimą
+                // Jei tai pirmoji atverčiama rolė – užrakiname nustatymus ir parodykime "Žaisti iš naujo" mygtuką
                 if (!gameInProgress) {
                     gameInProgress = true;
-                    closePicker();
                     setSetupControlsDisabled(true);
+                    document.getElementById("resetBtn").style.display = "block";
                 }
 
                 const selectedRole = availableRoles.shift();
@@ -819,7 +658,6 @@
         }
 
         function resetGame() {
-            closePicker();
             prepareNewGame();
         }
 
