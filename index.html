@@ -11,7 +11,7 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacBmpFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             user-select: none;
         }
 
@@ -362,7 +362,7 @@
             </div>
             
             <div class="stepper-row">
-                <label>👥 Žaidėjų skaičius:</label>
+                <label>Žaidėjų skaičius:</label>
                 <div class="stepper-controls">
                     <button type="button" class="step-btn" onclick="adjustSettingCount('players', -1)">−</button>
                     <span id="setPlayerCount" class="step-value">3</span>
@@ -371,7 +371,7 @@
             </div>
 
             <div class="stepper-row">
-                <label>💀 Piktadarių skaičius:</label>
+                <label>Piktadarių skaičius:</label>
                 <div class="stepper-controls">
                     <button type="button" class="step-btn" onclick="adjustSettingCount('bad', -1)">−</button>
                     <span id="setBadCount" class="step-value">1</span>
@@ -410,9 +410,9 @@
             </div>
 
             <div class="stats-bar">
-                <div class="stat-pill" title="Žaidėjų skaičius ir likusios neatverstos rolės">
+                <div class="stat-pill" title="Žaidėjų skaičius">
                     <i class="fa-solid fa-users"></i>
-                    <span id="statPlayers">3/3</span>
+                    <span id="statPlayers">3</span>
                 </div>
                 <div class="stat-pill danger" title="Piktadarių skaičius">
                     <i class="fa-solid fa-skull"></i>
@@ -425,7 +425,7 @@
                 <div class="role-title" id="roleText"></div>
             </div>
 
-            <button type="button" id="actionBtn" onclick="handleAction()">Gauti rolę (1 žaidėjas)</button>
+            <button type="button" id="actionBtn" onclick="handleAction()">Gauti rolę (1. iš 3)</button>
             <button type="button" id="resetBtn" class="secondary hidden" onclick="resetGame()">Žaisti iš naujo</button>
         </div>
 
@@ -611,15 +611,10 @@
 
             availableRoles = shuffleArray(gameRoles);
 
-            updateCounter();
+            document.getElementById("statPlayers").textContent = totalPlayerCount;
             document.getElementById("statBad").textContent = badCount;
 
             resetToHiddenState(true);
-        }
-
-        function updateCounter() {
-            const leftCount = availableRoles.length;
-            document.getElementById("statPlayers").textContent = `${totalPlayerCount}/${leftCount}`;
         }
 
         function resetToHiddenState(isFirstPlayer = false) {
@@ -632,7 +627,7 @@
             initialText.style.display = "block";
             initialText.textContent = isFirstPlayer
                 ? "Naujas žaidimas paruoštas! Pirmasis žaidėjas ima telefoną ir spaudžia mygtuką"
-                : "Duokite telefoną kitam žaidėjui ir paspauskite mygtuką";
+                : "Duokite telefoną kitam žaidėjui, o jis tegu spaudžia mygtuką";
             
             const roleText = document.getElementById("roleText");
             roleText.style.display = "none";
@@ -641,7 +636,7 @@
             
             const actionBtn = document.getElementById("actionBtn");
             actionBtn.disabled = false;
-            actionBtn.textContent = `Gauti rolę (${nextPlayerNumber} žaidėjas)`;
+            actionBtn.textContent = `Gauti rolę (${nextPlayerNumber}. iš ${totalPlayerCount})`;
         }
 
         function handleAction() {
@@ -670,7 +665,6 @@
                 }
 
                 roleText.style.display = "block";
-                updateCounter();
                 currentState = "ROLE_SHOWN";
 
                 actionBtn.disabled = true;
