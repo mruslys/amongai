@@ -55,6 +55,11 @@
             color: #e0e0e0;
         }
 
+        h2 i {
+            margin-right: 8px; /* Tarpas tarp nustatymų ikonos ir teksto */
+            color: #aaa;
+        }
+
         .setup-screen, .game-screen, .settings-screen {
             display: none;
             width: 100%;
@@ -323,7 +328,7 @@
 
         <!-- 1. Nustatymų ekranas (Be bendro žaidimo h1) -->
         <div id="settingsScreen" class="settings-screen">
-            <h2>Nustatymai ⚙️</h2>
+            <h2><i class="fa-solid fa-gear"></i> Nustatymai</h2>
             
             <div class="input-group">
                 <label>🔴 Blogiečiai (atskirkite kableliais):</label>
@@ -461,7 +466,10 @@
             if (confirm("Ar tikrai norite atstatyti gamyklines žaidimo roles ir taisykles?")) {
                 currentSettings = { ...defaultSettings };
                 localStorage.setItem("game_settings", JSON.stringify(currentSettings));
-                openSettings(); 
+                
+                // Uždaryti nustatymus ir atverti pradinį langą
+                document.getElementById("settingsScreen").classList.remove("active");
+                document.getElementById("setupScreen").classList.add("active");
             }
         }
 
