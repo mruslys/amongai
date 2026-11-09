@@ -46,7 +46,7 @@
 
         h2 {
             font-size: 1.3rem;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             color: #e0e0e0;
         }
 
@@ -145,7 +145,6 @@
             margin: 0;
         }
 
-        /* Nustatymų tekstiniai laukai */
         textarea {
             resize: none;
             height: 65px;
@@ -153,7 +152,7 @@
             line-height: 1.4;
         }
 
-        /* ŠIUOLAIKIŠKA IR KOMPAKTIŠKA STATISTIKOS JUOSTA (TIK IKONOS) */
+        /* Statistikos juosta */
         .stats-bar {
             display: flex;
             justify-content: space-between;
@@ -307,17 +306,13 @@
             background: rgba(255, 255, 255, 0.05);
             color: #fff;
         }
-
-        .small-desc {
-            font-size: 0.75rem;
-            color: #888;
-            margin-top: 4px;
-        }
     </style>
 </head>
 <body>
 
     <div class="container">
+        <h1>Neišsiduok! 🤫</h1>
+
         <!-- Nustatymų ekranas -->
         <div id="settingsScreen" class="settings-screen">
             <h2>Nustatymai ⚙️</h2>
@@ -340,7 +335,6 @@
             <div class="input-group">
                 <label>👿 Piktadarių žingsnis (kas kiek žaidėjų):</label>
                 <input type="number" id="setBadStep" min="1" max="10" value="6">
-                <div class="small-desc">Kuo mažesnis skaičius – tuo greičiau gausėja piktadarių didėjant žaidėjų skaičiui.</div>
             </div>
 
             <div class="input-group">
@@ -354,9 +348,8 @@
             </div>
         </div>
 
-        <!-- Nustatymų ekranas -->
+        <!-- Pradžios ekranas -->
         <div id="setupScreen" class="setup-screen active">
-            <h1>Neišsiduok! 🤫</h1>
             <div class="input-group-center">
                 <label for="playerCount">Žaidėjų skaičius:</label>
                 <div class="number-picker">
@@ -397,7 +390,6 @@
     </div>
 
     <script>
-        // Numatytoji žaidimo taisyklė (jei atmintinėje dar nieko nėra)
         const defaultSettings = {
             mandatory: ["imposteris", "trintukas", "ligonis"],
             neutral: ["džakalas"],
@@ -411,7 +403,6 @@
         let currentState = "READY_TO_GET"; 
         let cooldownTimer = null;
 
-        // Užkraunami nustatymai iš naršyklės localStorage
         function loadSettings() {
             const saved = localStorage.getItem("game_settings");
             if (saved) {
@@ -444,14 +435,12 @@
             const badStep = parseInt(document.getElementById("setBadStep").value) || 6;
             const cooldown = parseFloat(document.getElementById("setCooldown").value) || 1.0;
 
-            // Konvertuojame kableliais atskirtus tekstus į masyvus ir apvalome tarpus
             currentSettings.mandatory = mandatoryText.split(",").map(r => r.trim().toLowerCase()).filter(Boolean);
             currentSettings.neutral = neutralText.split(",").map(r => r.trim().toLowerCase()).filter(Boolean);
             currentSettings.regular = regularText.split(",").map(r => r.trim().toLowerCase()).filter(Boolean);
             currentSettings.badGuyStep = Math.max(1, badStep);
             currentSettings.cooldown = Math.max(0, cooldown);
 
-            // Saugome nustatymus į naršyklę
             localStorage.setItem("game_settings", JSON.stringify(currentSettings));
 
             document.getElementById("settingsScreen").classList.remove("active");
@@ -462,11 +451,10 @@
             if (confirm("Ar tikrai norite atstatyti gamyklines žaidimo roles ir taisykles?")) {
                 currentSettings = { ...defaultSettings };
                 localStorage.setItem("game_settings", JSON.stringify(currentSettings));
-                openSettings(); // perrašome įvesties laukus
+                openSettings(); 
             }
         }
 
-        // Įvesties mygtukų - ir + funkcionalumas
         function changeCount(delta) {
             const countInput = document.getElementById("playerCount");
             let current = parseInt(countInput.value) || 5;
@@ -476,7 +464,6 @@
             }
         }
 
-        // Fisher-Yates masyvo maišymas
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -486,7 +473,7 @@
         }
 
         function startGame() {
-            loadSettings(); // Įsitikiname, kad taisyklės šviežios
+            loadSettings(); 
             const countInput = document.getElementById("playerCount");
             let playerCount = parseInt(countInput.value);
 
@@ -495,34 +482,31 @@
                 return;
             }
 
-            // Apskaičiuojame piktadarių skaičių pagal žingsnio nustatymą
-            // Numatytoji formulė: 1 piktadarys nuo 3 žaidėjų, sekantys didėja kas pasirinktą žingsnį (badGuyStep)
-            let imposterCount = Math.max(1, Math.floor((playerCount - 3) / currentSettings.badGuyStep) + 1);
+            // Atnaujinta: visiškai nepriklausoma piktadarių didėjimo matematika.
+            // pvz., jei žingsnis 6: 1 piktadarys 3-6 žaidėjams, 2 piktadariai nuo 7 žaidėjų, 3 nuo 13 žaidėjų ir t.t.
+            let imposterCount = Math.floor((playerCount - 1) / currentSettings.badGuyStep) + 1;
 
             let shuffledMandatory = shuffleArray([...currentSettings.mandatory]);
+            imposterCount = Math.min(imposterCount, shuffledMandatory.length);
+            
             let chosenImposters = shuffledMandatory.slice(0, imposterCount);
 
-            // Likusias specialias roles
             let otherAvailable = [...currentSettings.neutral, ...currentSettings.regular];
             let shuffledOthers = shuffleArray(otherAvailable);
 
-            // Sudedame išrinktus blogiečius ir turimas kitas vaidmenų roles
             let gameRoles = [...chosenImposters, ...shuffledOthers];
 
-            // Jei žaidėjų daugiau nei specialiųjų vaidmenų krepšelis, užpildome paprastais žmonėmis (arba pirmuoju reguliariu)
             const fillerRole = currentSettings.regular[0] || "žmogus";
             while (gameRoles.length < playerCount) {
                 gameRoles.push(fillerRole);
             }
 
-            // Jei rolių per daug didelėms / mažoms grupėms, nukerpame perteklių, bet paliekame blogiečius
             if (gameRoles.length > playerCount) {
                 gameRoles = gameRoles.slice(0, playerCount);
             }
 
             availableRoles = shuffleArray(gameRoles);
 
-            // Užpildome viršutinę statistiką
             document.getElementById("statPlayers").textContent = playerCount;
             document.getElementById("statBad").textContent = imposterCount;
 
@@ -566,7 +550,6 @@
                 initialText.style.display = "none";
                 roleText.textContent = selectedRole;
                 
-                // Spalviname rolę pagal nustatytas grupes
                 if (currentSettings.mandatory.includes(selectedRole)) {
                     roleText.className = "role-title alert";
                 } else if (currentSettings.neutral.includes(selectedRole)) {
@@ -579,7 +562,6 @@
                 updateCounter();
                 currentState = "ROLE_SHOWN";
 
-                // Užrakiname mygtuką pagal išsaugotą apsaugos sekundžių nustatymą
                 actionBtn.disabled = true;
                 actionBtn.style.opacity = "0.5";
                 actionBtn.textContent = "Įsiminkite rolę...";
@@ -617,7 +599,6 @@
             document.getElementById("setupScreen").classList.add("active");
         }
 
-        // Pirmas užkrovimas: pasirūpiname, kad nustatymai egzistuotų
         loadSettings();
     </script>
 
