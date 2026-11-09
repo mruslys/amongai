@@ -1,3 +1,9 @@
+Ištaisyta! Puslapio dizainas optimizuotas pagal naujus jūsų reikalavimus:
+ * Antraščių pataisymas: „Neišsiduok! 🤫“ dabar visiškai pašalintas iš Nustatymų lango (ten dabar lieka tik stambi, aiški antraštė „Nustatymai ⚙️“). Pavadinimas „Neišsiduok! 🤫“ matomas tik pradžios (setupScreen) ir pačio žaidimo (gameScreen) languose.
+ * Tobulas vertikalus centravimas:
+   * Įdiegtas modernus min-height: 100dvh (Dynamic Viewport Height) taisyklė. Tai užtikrina, kad žaidimas bus idealiai centruojamas telefone, nepriklausomai nuo to, ar naršyklė rodo viršutines/apatines naršymo juostas, ar ne.
+   * Nustatymų langas padarytas kompaktiškesniu (sumažintos laukų paraštės, textarea aukštis ir tarpai). Dėl to visi nustatymai lengvai telpa į telefono ekraną be būtinybės jį skrolinti ir lieka visiškai vertikaliai centruoti.
+Atnaujintas ir sucentruotas žaidimo kodas (index.html):
 <!DOCTYPE html>
 <html lang="lt">
 <head>
@@ -18,12 +24,14 @@
         body {
             background: linear-gradient(135deg, #1e1e2f, #2a2a40);
             color: #ffffff;
+            /* Naudojame dynamic viewport height geresniam telefonų ekranų centravimui */
             min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 20px;
+            padding: 15px; /* Šiek tiek mažesnis body padding tinka mobiliesiems */
         }
 
         .container {
@@ -33,9 +41,12 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 20px;
-            padding: 30px;
+            padding: 24px; /* Kompaktiškesnis padding išlaiko viską ekrano centre */
             text-align: center;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         h1 {
@@ -45,21 +56,23 @@
         }
 
         h2 {
-            font-size: 1.3rem;
+            font-size: 1.5rem;
             margin-bottom: 20px;
             color: #e0e0e0;
         }
 
         .setup-screen, .game-screen, .settings-screen {
             display: none;
+            width: 100%;
         }
 
         .active {
             display: block;
         }
 
+        /* Sumažinti tarpai nustatymuose, kad tilptų be scroll */
         .input-group {
-            margin-bottom: 20px;
+            margin-bottom: 14px;
             text-align: left;
         }
 
@@ -70,9 +83,9 @@
 
         label {
             display: block;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             color: #ccc;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             font-weight: 500;
         }
 
@@ -120,8 +133,8 @@
             border: 2px solid rgba(255, 255, 255, 0.15);
             border-radius: 12px;
             color: #fff;
-            font-size: 1rem;
-            padding: 12px;
+            font-size: 0.95rem;
+            padding: 10px 12px;
         }
 
         input[type="number"]:focus, input[type="text"]:focus, textarea:focus {
@@ -147,8 +160,8 @@
 
         textarea {
             resize: none;
-            height: 65px;
-            font-size: 0.9rem;
+            height: 50px; /* Sumažinta, kad užimtų mažiau vietos telefonu */
+            font-size: 0.85rem;
             line-height: 1.4;
         }
 
@@ -282,12 +295,14 @@
         .btn-group {
             display: flex;
             gap: 10px;
-            margin-bottom: 15px;
+            margin-top: 5px;
+            margin-bottom: 5px;
         }
 
         .btn-group button {
             flex: 1;
             margin-bottom: 0;
+            padding: 14px 10px;
         }
 
         .settings-btn {
@@ -296,7 +311,7 @@
             box-shadow: none;
             font-size: 1rem;
             font-weight: normal;
-            margin-top: 15px;
+            margin-top: 10px;
             margin-bottom: 0;
             padding: 8px;
             border: 1px solid transparent;
@@ -311,9 +326,8 @@
 <body>
 
     <div class="container">
-        <h1>Neišsiduok! 🤫</h1>
 
-        <!-- Nustatymų ekranas -->
+        <!-- 1. Nustatymų ekranas (Be bendro žaidimo h1) -->
         <div id="settingsScreen" class="settings-screen">
             <h2>Nustatymai ⚙️</h2>
             
@@ -348,8 +362,9 @@
             </div>
         </div>
 
-        <!-- Pradžios ekranas -->
+        <!-- 2. Pradžios ekranas -->
         <div id="setupScreen" class="setup-screen active">
+            <h1>Neišsiduok! 🤫</h1>
             <div class="input-group-center">
                 <label for="playerCount">Žaidėjų skaičius:</label>
                 <div class="number-picker">
@@ -362,8 +377,9 @@
             <button class="settings-btn" onclick="openSettings()"><i class="fa-solid fa-gear"></i> Nustatymai</button>
         </div>
 
-        <!-- Žaidimo ekranas -->
+        <!-- 3. Žaidimo ekranas -->
         <div id="gameScreen" class="game-screen">
+            <h1>Neišsiduok! 🤫</h1>
             <div class="stats-bar">
                 <div class="stat-pill" title="Žaidėjų skaičius">
                     <i class="fa-solid fa-users"></i>
@@ -482,8 +498,6 @@
                 return;
             }
 
-            // Atnaujinta: visiškai nepriklausoma piktadarių didėjimo matematika.
-            // pvz., jei žingsnis 6: 1 piktadarys 3-6 žaidėjams, 2 piktadariai nuo 7 žaidėjų, 3 nuo 13 žaidėjų ir t.t.
             let imposterCount = Math.floor((playerCount - 1) / currentSettings.badGuyStep) + 1;
 
             let shuffledMandatory = shuffleArray([...currentSettings.mandatory]);
