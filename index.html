@@ -56,18 +56,15 @@
             display: none !important;
         }
 
-        /* Viršutinės juostos (Žaidimo ir Nustatymų) */
-        .game-header-bar, .settings-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+        /* Viršutinė juosta */
+        .game-header-bar {
             margin-bottom: 22px;
+            text-align: left;
         }
 
         .game-header-bar h1 {
             font-size: 1.6rem;
             color: #e0e0e0;
-            text-align: left;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -78,16 +75,25 @@
             color: #e0e0e0;
         }
 
+        /* Nustatymų lango antraštė su paslinktu dantračiu */
+        .settings-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 22px;
+        }
+
         .settings-header h2 {
             font-size: 1.5rem;
             color: #e0e0e0;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 12px; /* Didesnis tarpas tarp ikonos ir teksto */
         }
 
         .settings-header h2 i {
             color: #aaa;
+            font-size: 1.3rem;
         }
 
         /* Baziniai mygtukai */
@@ -131,11 +137,10 @@
             background: rgba(255, 255, 255, 0.2);
         }
 
-        /* Viršutiniai ikonų mygtukai */
-        .top-settings-btn, .close-icon-btn {
+        .close-icon-btn {
             background: transparent;
             color: #aaa;
-            font-size: 1.4rem;
+            font-size: 1.5rem;
             width: auto;
             padding: 5px;
             margin: 0;
@@ -143,25 +148,10 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+            transition: color 0.2s ease;
         }
 
-        .top-settings-btn:hover:not(:disabled) {
-            background: transparent;
-            color: #fff;
-            transform: rotate(30deg);
-        }
-
-        .top-settings-btn:disabled {
-            opacity: 0.35;
-            cursor: default;
-        }
-
-        .close-icon-btn {
-            font-size: 1.5rem;
-        }
-
-        .close-icon-btn:hover:not(:disabled) {
+        .close-icon-btn:hover {
             background: transparent;
             color: #ff4757;
         }
@@ -276,6 +266,27 @@
             line-height: 1.45;
         }
 
+        /* Apatinė navigacija (Nuorodos) */
+        .footer-nav {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 14px;
+            font-size: 0.95rem;
+        }
+
+        .footer-nav a {
+            color: #aaa;
+            text-decoration: none;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .footer-nav a:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+
         /* Nustatymų įvesties laukai */
         .input-group {
             margin-bottom: 14px;
@@ -321,11 +332,61 @@
             padding: 14px 10px;
         }
 
-        .hint-text {
-            font-size: 0.78rem;
-            color: #888;
+        /* Modalinis langas (Pagalbai) */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 15px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #232336;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 18px;
+            padding: 22px;
+            width: 100%;
+            max-width: 380px;
+            text-align: left;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .modal-header h3 {
+            font-size: 1.25rem;
+            color: #fff;
+        }
+
+        .modal-body {
+            font-size: 0.9rem;
+            color: #ccc;
+            line-height: 1.5;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .modal-body ul {
+            padding-left: 18px;
             margin-top: 8px;
-            line-height: 1.3;
+        }
+
+        .modal-body li {
+            margin-bottom: 8px;
         }
     </style>
 </head>
@@ -336,7 +397,7 @@
         <!-- 1. Nustatymų ekranas -->
         <div id="settingsScreen" class="settings-screen">
             <div class="settings-header">
-                <h2><i class="fa-solid fa-gear"></i> Nustatymai</h2>
+                <h2><i class="fa-solid fa-gear" style="margin-left: 4px;"></i> Nustatymai</h2>
                 <button type="button" class="close-icon-btn" onclick="closeSettings()" title="Uždaryti">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
@@ -367,24 +428,21 @@
         <div id="gameScreen" class="game-screen active">
             <div class="game-header-bar">
                 <h1>Neišsiduok, kas tu <i class="fa-solid fa-masks-theater"></i></h1>
-                <button type="button" class="top-settings-btn" id="settingsBtn" onclick="openSettings()" title="Nustatymai">
-                    <i class="fa-solid fa-gear"></i>
-                </button>
             </div>
 
             <div class="stats-bar">
                 <!-- Žaidėjų skaičius -->
-                <div class="stat-pill players" id="pillPlayers" title="Spausk: didinti | Palaikyk: apnulinti">
+                <div class="stat-pill players" id="pillPlayers" title="Viengubas paspaudimas: +1 | Dvigubas: nulinti">
                     <i class="fa-solid fa-users"></i>
                     <span id="statPlayers">0</span>
                 </div>
                 <!-- Blogiečių skaičius -->
-                <div class="stat-pill danger" id="pillBad" title="Spausk: didinti | Palaikyk: apnulinti">
+                <div class="stat-pill danger" id="pillBad" title="Viengubas paspaudimas: +1 | Dvigubas: nulinti">
                     <i class="fa-solid fa-skull"></i>
                     <span id="statBad">0</span>
                 </div>
                 <!-- Specialių / Neutralių skaičius -->
-                <div class="stat-pill neutral-stat" id="pillNeutral" title="Spausk: didinti | Palaikyk: apnulinti">
+                <div class="stat-pill neutral-stat" id="pillNeutral" title="Viengubas paspaudimas: +1 | Dvigubas: nulinti">
                     <i class="fa-solid fa-star"></i>
                     <span id="statNeutral">0</span>
                 </div>
@@ -398,11 +456,34 @@
             <button type="button" id="actionBtn" onclick="handleAction()">Gauti rolę</button>
             <button type="button" id="resetBtn" class="secondary hidden" onclick="resetGame()">Pradėti iš naujo</button>
             
-            <div class="hint-text">
-                💡 Spausk ant indikatorių, kad didintum skaičių. Palaikyk nuspaustą, kad apnulintum.
+            <div class="footer-nav">
+                <a onclick="openSettings()">Nustatymai</a>
+                <span>•</span>
+                <a onclick="openHelpModal()">Pagalba</a>
             </div>
         </div>
 
+    </div>
+
+    <!-- Pagalbos modalinis langas -->
+    <div id="helpModal" class="modal-overlay" onclick="closeHelpOnOutside(event)">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-circle-question" style="color: #4cd137;"></i> Pagalba</h3>
+                <button type="button" class="close-icon-btn" onclick="closeHelpModal()" title="Uždaryti">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Šis įrankis padeda slaptam rolių paskirstymui žaidėjams:</p>
+                <ul>
+                    <li><strong>Žaidėjų indikatorius (<span style="color:#4cd137;">žalias</span>):</strong> rodo bendrą žaidėjų skaičių. Viengubas paspaudimas prideda 1 žaidėją. Dvigubas bakstelėjimas apnulina visus rodmenis.</li>
+                    <li><strong>Blogiečių indikatorius (<span style="color:#ff4757;">raudonas</span>):</strong> rodo blogųjų rolių kiekį. Negali viršyti bendro žaidėjų skaičiaus (kartu su specialiais).</li>
+                    <li><strong>Specialių / Neutralių indikatorius (<span style="color:#ffa502;">amber</span>):</strong> rodo neutralių arba specialių rolių kiekį.</li>
+                    <li><strong>Valdymas:</strong> Spauskite vieną kartą, kad padidintumėte skaičių vienetu. Bakstelėkite du kartus greitai, kad atitinkamą indikatorių apnulintumėte.</li>
+                </ul>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -502,66 +583,57 @@
             }
         }
 
-        /* --- Indikatorių paspaudimo ir palaikymo logika --- */
+        /* --- Pagalbos modalinis langas --- */
+
+        function openHelpModal() {
+            document.getElementById("helpModal").classList.add("active");
+        }
+
+        function closeHelpModal() {
+            document.getElementById("helpModal").classList.remove("active");
+        }
+
+        function closeHelpOnOutside(e) {
+            if (e.target.id === "helpModal") {
+                closeHelpModal();
+            }
+        }
+
+        /* --- Indikatorių viengubo ir dvigubo paspaudimo logika --- */
 
         function setupIndicatorInteractions() {
-            bindLongPress("pillPlayers", 
+            bindClickAndDoubleClicks("pillPlayers", 
                 () => increaseIndicator('players'), 
                 () => resetIndicator('players')
             );
-            bindLongPress("pillBad", 
+            bindClickAndDoubleClicks("pillBad", 
                 () => increaseIndicator('bad'), 
                 () => resetIndicator('bad')
             );
-            bindLongPress("pillNeutral", 
+            bindClickAndDoubleClicks("pillNeutral", 
                 () => increaseIndicator('neutral'), 
                 () => resetIndicator('neutral')
             );
         }
 
-        function bindLongPress(elementId, onClickCallback, onLongPressCallback) {
+        function bindClickAndDoubleClicks(elementId, onClick, onDoubleClick) {
             const el = document.getElementById(elementId);
-            let pressTimer = null;
-            let isLongPress = false;
+            let clickTimer = null;
 
-            const startPress = (e) => {
+            el.addEventListener("click", (e) => {
                 if (gameInProgress) return;
-                if (e.type === 'touchstart' && e.cancelable) {
-                    // Nebūtina preventDefault, kad nelėtintų paspaudimo, bet galima
+
+                if (clickTimer === null) {
+                    clickTimer = setTimeout(() => {
+                        clickTimer = null;
+                        onClick(); // Viengubas paspaudimas
+                    }, 250); // Laukiame, ar bus antras paspaudimas
+                } else {
+                    clearTimeout(clickTimer);
+                    clickTimer = null;
+                    onDoubleClick(); // Dvigubas paspaudimas
                 }
-                isLongPress = false;
-                pressTimer = setTimeout(() => {
-                    isLongPress = true;
-                    onLongPressCallback();
-                    navigator.vibrate?.(50); // Trumpa vibracija jei palaikyta
-                }, 600); // 600ms palaikymas apnulinimui
-            };
-
-            const cancelPress = () => {
-                if (pressTimer) {
-                    clearTimeout(pressTimer);
-                    pressTimer = null;
-                }
-            };
-
-            const endPress = (e) => {
-                if (gameInProgress) return;
-                if (pressTimer) {
-                    clearTimeout(pressTimer);
-                    pressTimer = null;
-                    if (!isLongPress) {
-                        onClickCallback();
-                    }
-                }
-            };
-
-            el.addEventListener("mousedown", startPress);
-            el.addEventListener("touchstart", startPress, {passive: true});
-
-            el.addEventListener("mouseup", endPress);
-            el.addEventListener("mouseleave", cancelPress);
-            el.addEventListener("touchend", endPress);
-            el.addEventListener("touchcancel", cancelPress);
+            });
         }
 
         function increaseIndicator(type) {
@@ -615,8 +687,6 @@
         }
 
         function setSetupControlsDisabled(disabled) {
-            document.getElementById("settingsBtn").disabled = disabled;
-            // Indikatoriai taip pat išjungiami žaidimo metu
             document.getElementById("pillPlayers").style.opacity = disabled ? "0.5" : "1";
             document.getElementById("pillBad").style.opacity = disabled ? "0.5" : "1";
             document.getElementById("pillNeutral").style.opacity = disabled ? "0.5" : "1";
@@ -682,7 +752,7 @@
             initialText.style.display = "block";
             
             if (total === 0) {
-                initialText.textContent = "Paspausk viršuje ant žaidėjų indikatoriaus, kad nustatytum žaidėjų skaičių!";
+                initialText.textContent = "Paspausk ant žaidėjų indikatoriaus viršuje, kad nustatytum žaidėjų skaičių!";
             } else {
                 initialText.textContent = isFirstPlayer
                     ? "Žaidimas paruoštas! Pirmasis žaidėjas atverčia savo rolę."
