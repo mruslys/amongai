@@ -44,7 +44,7 @@
             justify-content: center;
         }
 
-        .game-screen, .settings-screen {
+        .setup-screen, .game-screen, .settings-screen {
             display: none;
             width: 100%;
         }
@@ -139,6 +139,16 @@
             background: rgba(255, 255, 255, 0.2);
         }
 
+        /* Pradinio ekrano PLAY mygtukas */
+        .play-btn {
+            font-size: 1.4rem;
+            padding: 16px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         .close-icon-btn {
             background: transparent;
             color: #aaa;
@@ -163,7 +173,7 @@
             display: flex;
             justify-content: space-between;
             gap: 8px;
-            margin-bottom: 22px;
+            margin-bottom: 18px;
         }
 
         .stat-pill {
@@ -171,15 +181,15 @@
             background: rgba(0, 0, 0, 0.25);
             border: 2px solid rgba(255, 255, 255, 0.1);
             border-radius: 12px;
-            padding: 10px 6px;
-            font-size: 1.05rem;
+            padding: 12px 6px;
+            font-size: 1.1rem;
             color: #aaa;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 6px;
             cursor: pointer;
-            transition: background 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+            transition: background 0.2s ease, border-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
         }
 
         .stat-pill:active {
@@ -206,6 +216,32 @@
             color: #4cd137;
         }
 
+        /* Signalizuojantis sumirksėjimas žaidėjų indikatoriui */
+        @keyframes blinkSignal {
+            0%, 100% {
+                transform: scale(1);
+                border-color: rgba(76, 209, 55, 0.25);
+                background: rgba(76, 209, 55, 0.05);
+                box-shadow: none;
+            }
+            25%, 75% {
+                transform: scale(1.06);
+                border-color: #4cd137;
+                background: rgba(76, 209, 55, 0.35);
+                box-shadow: 0 0 18px rgba(76, 209, 55, 0.7);
+            }
+            50% {
+                transform: scale(0.98);
+                border-color: rgba(76, 209, 55, 0.4);
+                background: rgba(76, 209, 55, 0.1);
+                box-shadow: none;
+            }
+        }
+
+        .stat-pill.players.blink-alert {
+            animation: blinkSignal 0.6s ease-in-out;
+        }
+
         /* Piktadarių indikatorius */
         .stat-pill.danger {
             border-color: rgba(255, 71, 87, 0.25);
@@ -226,22 +262,36 @@
             text-shadow: 0 0 8px rgba(255, 165, 2, 0.4);
         }
 
-        /* Kortelė */
+        /* Kortelė (paruošta būsimam kortelių dizainui) */
         .card {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 15px;
-            padding: 30px 20px;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 18px;
+            padding: 35px 20px;
             margin-bottom: 22px;
-            min-height: 175px;
+            min-height: 240px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            border: 2px solid rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .card-back-icon {
+            font-size: 4.5rem;
+            color: rgba(255, 255, 255, 0.2);
+            text-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            animation: pulseQuestion 2.5s infinite ease-in-out;
+        }
+
+        @keyframes pulseQuestion {
+            0%, 100% { transform: scale(1); opacity: 0.2; }
+            50% { transform: scale(1.06); opacity: 0.35; }
         }
 
         .role-title {
-            font-size: 2rem;
+            font-size: 2.1rem;
             font-weight: bold;
             text-transform: capitalize;
             letter-spacing: 1px;
@@ -264,8 +314,9 @@
 
         .placeholder-text {
             color: #aaa;
-            font-size: 1.08rem;
+            font-size: 1.15rem;
             line-height: 1.45;
+            display: none;
         }
 
         /* Apatinė navigacija su ikonomis kraštuose */
@@ -362,7 +413,7 @@
             padding: 14px 10px;
         }
 
-        /* Modalinis langas (Pagalbai ir Nustatymams bendras stilius) */
+        /* Modalinis langas (Pagalbai) */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -461,8 +512,8 @@
             </div>
         </div>
 
-        <!-- 2. Pagrindinis žaidimo ekranas -->
-        <div id="gameScreen" class="game-screen active">
+        <!-- 2. Pradinis pasiruošimo ekranas -->
+        <div id="setupScreen" class="setup-screen active">
             <div class="game-header-bar">
                 <h1>Neišsiduok, kas tu <i class="fa-solid fa-masks-theater"></i></h1>
             </div>
@@ -484,14 +535,10 @@
                     <span id="statNeutral">0</span>
                 </div>
             </div>
-            
-            <div class="card">
-                <span class="placeholder-text" id="initialText"></span>
-                <div class="role-title" id="roleText"></div>
-            </div>
 
-            <button type="button" id="actionBtn" onclick="handleAction()">Gauti rolę</button>
-            <button type="button" id="resetBtn" class="secondary hidden" onclick="resetGame()">Pradėti iš naujo</button>
+            <button type="button" class="play-btn" onclick="startGame()" title="Pradėti žaidimą">
+                <i class="fa-solid fa-play"></i>
+            </button>
             
             <div class="footer-nav">
                 <button type="button" class="icon-link" onclick="openHelpModal()" title="Pagalba">
@@ -501,6 +548,18 @@
                     <i class="fa-solid fa-gear"></i>
                 </button>
             </div>
+        </div>
+
+        <!-- 3. Žaidimo (rolių dalinimo) ekranas -->
+        <div id="gameScreen" class="game-screen">
+            <div class="card">
+                <i class="fa-solid fa-question card-back-icon" id="cardBackIcon"></i>
+                <span class="placeholder-text" id="initialText"></span>
+                <div class="role-title" id="roleText"></div>
+            </div>
+
+            <button type="button" id="actionBtn" onclick="handleAction()">Gauti rolę</button>
+            <button type="button" id="resetBtn" class="secondary" onclick="resetGame()">Pradėti iš naujo</button>
         </div>
 
     </div>
@@ -573,7 +632,7 @@
             }
 
             setupIndicatorInteractions();
-            prepareNewGame();
+            updateUIStats();
         }
 
         function saveToStorage() {
@@ -587,19 +646,17 @@
         /* --- Nustatymų lango valdymas --- */
 
         function openSettings() {
-            if (gameInProgress) return;
-
             document.getElementById("setRegular").value = currentSettings.regular.join(", ");
             document.getElementById("setMandatory").value = currentSettings.mandatory.join(", ");
             document.getElementById("setNeutral").value = currentSettings.neutral.join(", ");
 
-            document.getElementById("gameScreen").classList.remove("active");
+            document.getElementById("setupScreen").classList.remove("active");
             document.getElementById("settingsScreen").classList.add("active");
         }
 
         function closeSettings() {
             document.getElementById("settingsScreen").classList.remove("active");
-            document.getElementById("gameScreen").classList.add("active");
+            document.getElementById("setupScreen").classList.add("active");
         }
 
         function saveSettings() {
@@ -612,7 +669,6 @@
             currentSettings.neutral = parsedNeutral;
 
             saveToStorage();
-            prepareNewGame();
             closeSettings();
         }
 
@@ -627,7 +683,7 @@
                     badCount: 0,
                     neutralCount: 0
                 };
-                prepareNewGame();
+                updateUIStats();
                 closeSettings();
             }
         }
@@ -648,7 +704,14 @@
             }
         }
 
-        /* --- Indikatorių viengubo ir dvigubo paspaudimo logika --- */
+        /* --- Indikatorių valdymas ir mirksėjimas --- */
+
+        function triggerPlayersBlink() {
+            const pill = document.getElementById("pillPlayers");
+            pill.classList.remove("blink-alert");
+            void pill.offsetWidth; // Priverstinis reflow animacijos pakartojimui
+            pill.classList.add("blink-alert");
+        }
 
         function setupIndicatorInteractions() {
             bindClickAndDoubleClicks("pillPlayers", 
@@ -669,18 +732,16 @@
             const el = document.getElementById(elementId);
             let clickTimer = null;
 
-            el.addEventListener("click", (e) => {
-                if (gameInProgress) return;
-
+            el.addEventListener("click", () => {
                 if (clickTimer === null) {
                     clickTimer = setTimeout(() => {
                         clickTimer = null;
-                        onClick(); // Viengubas paspaudimas
+                        onClick();
                     }, 250); 
                 } else {
                     clearTimeout(clickTimer);
                     clickTimer = null;
-                    onDoubleClick(); // Dvigubas paspaudimas
+                    onDoubleClick();
                 }
             });
         }
@@ -697,16 +758,21 @@
                 const combined = currentSettings.badCount + currentSettings.neutralCount;
                 if (combined < currentSettings.playerCount) {
                     currentSettings.badCount++;
+                } else {
+                    triggerPlayersBlink();
+                    return;
                 }
             } else if (type === 'neutral') {
                 const combined = currentSettings.badCount + currentSettings.neutralCount;
                 if (combined < currentSettings.playerCount) {
                     currentSettings.neutralCount++;
+                } else {
+                    triggerPlayersBlink();
+                    return;
                 }
             }
             saveToStorage();
             updateUIStats();
-            prepareNewGame();
         }
 
         function resetIndicator(type) {
@@ -721,7 +787,6 @@
             }
             saveToStorage();
             updateUIStats();
-            prepareNewGame();
         }
 
         function updateUIStats() {
@@ -730,7 +795,7 @@
             document.getElementById("statNeutral").textContent = currentSettings.neutralCount;
         }
 
-        /* --- Žaidimo logika --- */
+        /* --- Žaidimo langas ir logika --- */
 
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
@@ -740,21 +805,22 @@
             return array;
         }
 
-        function setSetupControlsDisabled(disabled) {
-            document.getElementById("pillPlayers").style.opacity = disabled ? "0.5" : "1";
-            document.getElementById("pillBad").style.opacity = disabled ? "0.5" : "1";
-            document.getElementById("pillNeutral").style.opacity = disabled ? "0.5" : "1";
+        function startGame() {
+            if (currentSettings.playerCount <= 0) {
+                triggerPlayersBlink();
+                return;
+            }
+
+            prepareNewGame();
+            document.getElementById("setupScreen").classList.remove("active");
+            document.getElementById("gameScreen").classList.add("active");
         }
 
         function prepareNewGame() {
             clearTimeout(cooldownTimer);
-            gameInProgress = false;
-            setSetupControlsDisabled(false);
+            gameInProgress = true;
 
-            document.getElementById("resetBtn").classList.add("hidden");
             document.getElementById("actionBtn").classList.remove("hidden");
-
-            updateUIStats();
 
             const playerCount = currentSettings.playerCount;
             const badCount = currentSettings.badCount;
@@ -792,26 +858,21 @@
 
             availableRoles = shuffleArray(gameRoles);
 
-            resetToHiddenState(true);
+            resetToHiddenState();
         }
 
-        function resetToHiddenState(isFirstPlayer = false) {
+        function resetToHiddenState() {
             clearTimeout(cooldownTimer);
             currentState = "READY_TO_GET";
             
             const total = currentSettings.playerCount;
             const nextPlayerNumber = total - availableRoles.length + 1;
 
-            const initialText = document.getElementById("initialText");
-            initialText.style.display = "block";
+            document.getElementById("cardBackIcon").style.display = "block";
             
-            if (total === 0) {
-                initialText.textContent = "Paspausk ant žaidėjų indikatoriaus viršuje, kad nustatytum žaidėjų skaičių (dvigubas paspaudimas apnulins).";
-            } else {
-                initialText.textContent = isFirstPlayer
-                    ? "Žaidimas paruoštas! Pirmasis žaidėjas gali atversti."
-                    : "Kito žaidėjo eilė.";
-            }
+            const initialText = document.getElementById("initialText");
+            initialText.style.display = "none";
+            initialText.textContent = "";
             
             const roleText = document.getElementById("roleText");
             roleText.style.display = "none";
@@ -819,29 +880,20 @@
             roleText.className = "role-title";
             
             const actionBtn = document.getElementById("actionBtn");
-            actionBtn.disabled = (total === 0);
-            actionBtn.textContent = total === 0 ? "Nurodykite žaidėjus" : `Gauti rolę (${nextPlayerNumber} iš ${total})`;
+            actionBtn.disabled = false;
+            actionBtn.textContent = `Gauti rolę (${nextPlayerNumber} iš ${total})`;
         }
 
         function handleAction() {
-            if (currentSettings.playerCount <= 0) {
-                alert("Pirmiausia paspauskite ant žaidėjų skaičiaus indikatoriaus viršuje ir nustatykite žaidėjų kiekį!");
-                return;
-            }
-
+            const cardBackIcon = document.getElementById("cardBackIcon");
             const roleText = document.getElementById("roleText");
             const initialText = document.getElementById("initialText");
             const actionBtn = document.getElementById("actionBtn");
 
             if (currentState === "READY_TO_GET") {
-                if (!gameInProgress) {
-                    gameInProgress = true;
-                    setSetupControlsDisabled(true);
-                    document.getElementById("resetBtn").classList.remove("hidden");
-                }
-
                 const selectedRole = availableRoles.shift();
 
+                cardBackIcon.style.display = "none";
                 initialText.style.display = "none";
                 roleText.textContent = selectedRole;
                 
@@ -866,16 +918,16 @@
 
             } else {
                 if (availableRoles.length === 0) {
+                    cardBackIcon.style.display = "none";
+                    roleText.style.display = "none";
                     initialText.style.display = "block";
                     initialText.textContent = "Rolės išdalintos! Gero žaidimo!";
-                    roleText.style.display = "none";
                     
                     actionBtn.classList.add("hidden");
                     gameInProgress = false;
-                    setSetupControlsDisabled(false);
                     return;
                 }
-                resetToHiddenState(false);
+                resetToHiddenState();
             }
         }
 
@@ -885,7 +937,10 @@
                     return;
                 }
             }
-            prepareNewGame();
+            clearTimeout(cooldownTimer);
+            gameInProgress = false;
+            document.getElementById("gameScreen").classList.remove("active");
+            document.getElementById("setupScreen").classList.add("active");
         }
 
         initApp();
