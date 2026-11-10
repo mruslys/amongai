@@ -77,15 +77,15 @@
             color: #e0e0e0;
         }
 
-        /* Nustatymų lango antraštė */
-        .settings-header {
+        /* Langų antraštės */
+        .settings-header, .modal-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
             margin-bottom: 22px;
         }
 
-        .settings-header h2 {
+        .settings-header h2, .modal-header h3 {
             font-size: 1.5rem;
             color: #e0e0e0;
             display: flex;
@@ -93,7 +93,7 @@
             gap: 12px;
         }
 
-        .settings-header h2 i {
+        .settings-header h2 i, .modal-header h3 i {
             color: #aaa;
             font-size: 1.3rem;
         }
@@ -328,7 +328,7 @@
         }
 
         .input-group label i.fa-user {
-            color: #3498db; /* Mėlyna spalva komandos ikonai */
+            color: #3498db;
         }
 
         textarea {
@@ -362,7 +362,7 @@
             padding: 14px 10px;
         }
 
-        /* Modalinis langas (Pagalbai) */
+        /* Modalinis langas (Pagalbai ir Nustatymams bendras stilius) */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -390,18 +390,6 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 14px;
-        }
-
-        .modal-header h3 {
-            font-size: 1.25rem;
-            color: #fff;
-        }
-
         .modal-body {
             font-size: 0.9rem;
             color: #ccc;
@@ -410,13 +398,32 @@
             overflow-y: auto;
         }
 
-        .modal-body ul {
-            padding-left: 18px;
-            margin-top: 8px;
+        .help-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+            color: #e0e0e0;
         }
 
-        .modal-body li {
-            margin-bottom: 8px;
+        .help-row i {
+            font-size: 1.1rem;
+            width: 22px;
+            text-align: center;
+        }
+
+        .help-row i.fa-users { color: #4cd137; }
+        .help-row i.fa-skull { color: #ff4757; }
+        .help-row i.fa-star { color: #ffa502; }
+
+        .help-footer-text {
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.85rem;
+            color: #aaa;
+            line-height: 1.4;
         }
     </style>
 </head>
@@ -434,6 +441,11 @@
             </div>
             
             <div class="input-group">
+                <label for="setRegular"><i class="fa-solid fa-user"></i> Komanda</label>
+                <textarea id="setRegular"></textarea>
+            </div>
+
+            <div class="input-group">
                 <label for="setMandatory"><i class="fa-solid fa-skull"></i> Piktadariai</label>
                 <textarea id="setMandatory"></textarea>
             </div>
@@ -441,11 +453,6 @@
             <div class="input-group">
                 <label for="setNeutral"><i class="fa-solid fa-star"></i> Specialios rolės</label>
                 <textarea id="setNeutral"></textarea>
-            </div>
-
-            <div class="input-group">
-                <label for="setRegular"><i class="fa-solid fa-user"></i> Komanda</label>
-                <textarea id="setRegular"></textarea>
             </div>
 
             <div class="btn-group">
@@ -502,19 +509,28 @@
     <div id="helpModal" class="modal-overlay" onclick="closeHelpOnOutside(event)">
         <div class="modal-content">
             <div class="modal-header">
-                <h3><i class="fa-solid fa-circle-question" style="color: #4cd137;"></i> Pagalba</h3>
+                <h3><i class="fa-solid fa-circle-question"></i> Pagalba</h3>
                 <button type="button" class="close-icon-btn" onclick="closeHelpModal()" title="Uždaryti">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
             <div class="modal-body">
-                <p>Šis įrankis padeda slaptam rolių paskirstymui žaidėjams:</p>
-                <ul>
-                    <li><strong>Žaidėjų indikatorius (<span style="color:#4cd137;">žalias</span>):</strong> rodo bendrą žaidėjų skaičių. Viengubas paspaudimas prideda 1 žaidėją (keliant nuo 0 iki 1, automatiškai pridedamas ir 1 piktadarys). Dvigubas bakstelėjimas apnulina visus rodmenis.</li>
-                    <li><strong>Piktadarių indikatorius (<span style="color:#ff4757;">raudonas</span>):</strong> rodo piktadarių rolių kiekį. Negali viršyti bendro žaidėjų skaičiaus (kartu su specialiomis rolėmis).</li>
-                    <li><strong>Specialių rolių indikatorius (<span style="color:#ffa502;">amber</span>):</strong> rodo neutralių arba specialių rolių kiekį.</li>
-                    <li><strong>Valdymas:</strong> Spauskite vieną kartą, kad padidintumėte skaičių vienetu. Bakstelėkite du kartus greitai, kad atitinkamą indikatorių apnulintumėte.</li>
-                </ul>
+                <div class="help-row">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Bendras žaidėjų skaičius</span>
+                </div>
+                <div class="help-row">
+                    <i class="fa-solid fa-skull"></i>
+                    <span>Piktadarių rolių kiekis</span>
+                </div>
+                <div class="help-row">
+                    <i class="fa-solid fa-star"></i>
+                    <span>Specialių / neutralių rolių kiekis</span>
+                </div>
+
+                <div class="help-footer-text">
+                    Spauskite vieną kartą ant indikatorių, kad padidintumėte skaičių vienetu. Bakstelėkite du kartus greitai, kad atitinkamą indikatorių apnulintumėte.
+                </div>
             </div>
         </div>
     </div>
@@ -573,9 +589,9 @@
         function openSettings() {
             if (gameInProgress) return;
 
+            document.getElementById("setRegular").value = currentSettings.regular.join(", ");
             document.getElementById("setMandatory").value = currentSettings.mandatory.join(", ");
             document.getElementById("setNeutral").value = currentSettings.neutral.join(", ");
-            document.getElementById("setRegular").value = currentSettings.regular.join(", ");
 
             document.getElementById("gameScreen").classList.remove("active");
             document.getElementById("settingsScreen").classList.add("active");
@@ -587,13 +603,13 @@
         }
 
         function saveSettings() {
+            const parsedRegular = parseRoleList(document.getElementById("setRegular").value);
             const parsedMandatory = parseRoleList(document.getElementById("setMandatory").value);
             const parsedNeutral = parseRoleList(document.getElementById("setNeutral").value);
-            const parsedRegular = parseRoleList(document.getElementById("setRegular").value);
 
+            currentSettings.regular = parsedRegular.length ? parsedRegular : [...defaultSettings.regular];
             currentSettings.mandatory = parsedMandatory.length ? parsedMandatory : [...defaultSettings.mandatory];
             currentSettings.neutral = parsedNeutral;
-            currentSettings.regular = parsedRegular.length ? parsedRegular : [...defaultSettings.regular];
 
             saveToStorage();
             prepareNewGame();
@@ -674,7 +690,6 @@
                 const oldPlayers = currentSettings.playerCount;
                 currentSettings.playerCount++;
                 
-                // Jei pakėlėme nuo 0 iki 1, automatiškai pridedame 1 piktadarį
                 if (oldPlayers === 0 && currentSettings.playerCount === 1) {
                     currentSettings.badCount = 1;
                 }
