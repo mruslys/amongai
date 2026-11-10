@@ -57,48 +57,56 @@
             display: none !important;
         }
 
-        /* Viršutinė juosta: pagalba kairėje, kaukės centre, nustatymai dešinėje, sulygiuota pagal viršų */
+        /* Viršutinė juosta (tik centruota ikona) */
         .game-header-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 24px;
+            margin-bottom: 22px;
+            text-align: center;
         }
 
         .game-header-bar .hero-icon {
             font-size: 3.2rem;
-            line-height: 0.85; /* Optinis išlyginimas, kad ikonos viršus sutaptų su mygtukų viršumi */
             color: #e0e0e0;
             text-shadow: 0 5px 15px rgba(0, 0, 0, 0.35);
             display: inline-block;
         }
 
-        .icon-link {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #bbb;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
+        /* Apatinės funkcinės ikonos (be fono, minimalistinės) */
+        .footer-actions {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
+            margin-top: 18px;
+            padding: 0 8px;
+        }
+
+        .subtle-icon-btn {
+            background: transparent;
+            border: none;
             cursor: pointer;
+            font-size: 1.3rem;
+            padding: 6px;
+            transition: transform 0.15s ease, opacity 0.2s ease;
             box-shadow: none;
+            width: auto;
             margin: 0;
-            padding: 0;
-            flex-shrink: 0;
-            transition: background 0.2s ease, color 0.2s ease, transform 0.1s ease;
         }
 
-        .icon-link:hover {
-            background: rgba(255, 255, 255, 0.18);
-            color: #fff;
+        .subtle-icon-btn:hover {
+            opacity: 0.8;
+            transform: scale(1.1);
         }
 
-        .icon-link:active {
-            transform: scale(0.92);
+        .subtle-icon-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Atskiros ikonų spalvos */
+        .help-icon-btn {
+            color: #3498db; /* Švelni žydra/mėlyna pagalbai */
+        }
+
+        .settings-icon-btn {
+            color: #888899; /* Neutrali pilkšva nustatymams */
         }
 
         /* Langų antraštės */
@@ -505,13 +513,7 @@
         <!-- 2. Pradinis pasiruošimo ekranas -->
         <div id="setupScreen" class="setup-screen active">
             <div class="game-header-bar">
-                <button type="button" class="icon-link" onclick="openHelpModal()" title="Pagalba">
-                    <i class="fa-solid fa-circle-question"></i>
-                </button>
                 <i class="fa-solid fa-masks-theater hero-icon"></i>
-                <button type="button" class="icon-link" onclick="openSettings()" title="Nustatymai">
-                    <i class="fa-solid fa-gear"></i>
-                </button>
             </div>
 
             <div class="stats-bar">
@@ -535,6 +537,16 @@
             <button type="button" id="playBtn" class="play-btn disabled-look" onclick="startGame()" title="Pradėti žaidimą">
                 <i class="fa-solid fa-play"></i>
             </button>
+
+            <!-- Apatinės minimalistinės ikonos -->
+            <div class="footer-actions">
+                <button type="button" class="subtle-icon-btn help-icon-btn" onclick="openHelpModal()" title="Pagalba">
+                    <i class="fa-solid fa-circle-question"></i>
+                </button>
+                <button type="button" class="subtle-icon-btn settings-icon-btn" onclick="openSettings()" title="Nustatymai">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+            </div>
         </div>
 
         <!-- 3. Žaidimo (rolių dalinimo) ekranas -->
@@ -696,7 +708,7 @@
         function triggerPlayersBlink() {
             const pill = document.getElementById("pillPlayers");
             pill.classList.remove("blink-alert");
-            void pill.offsetWidth; // Priverstinis reflow animacijos pakartojimui
+            void pill.offsetWidth;
             pill.classList.add("blink-alert");
         }
 
