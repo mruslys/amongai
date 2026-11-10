@@ -57,17 +57,48 @@
             display: none !important;
         }
 
-        /* Viršutinė juosta (tik centruota ikona) */
+        /* Viršutinė juosta: pagalba kairėje, kaukės centre, nustatymai dešinėje, sulygiuota pagal viršų */
         .game-header-bar {
-            margin-bottom: 22px;
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
         }
 
         .game-header-bar .hero-icon {
             font-size: 3.2rem;
+            line-height: 0.85; /* Optinis išlyginimas, kad ikonos viršus sutaptų su mygtukų viršumi */
             color: #e0e0e0;
             text-shadow: 0 5px 15px rgba(0, 0, 0, 0.35);
             display: inline-block;
+        }
+
+        .icon-link {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #bbb;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            cursor: pointer;
+            box-shadow: none;
+            margin: 0;
+            padding: 0;
+            flex-shrink: 0;
+            transition: background 0.2s ease, color 0.2s ease, transform 0.1s ease;
+        }
+
+        .icon-link:hover {
+            background: rgba(255, 255, 255, 0.18);
+            color: #fff;
+        }
+
+        .icon-link:active {
+            transform: scale(0.92);
         }
 
         /* Langų antraštės */
@@ -140,7 +171,7 @@
         .play-btn {
             font-size: 1.4rem;
             padding: 16px;
-            margin-bottom: 6px;
+            margin-bottom: 0;
         }
 
         .close-icon-btn {
@@ -313,41 +344,6 @@
             display: none;
         }
 
-        /* Apatinė navigacija su ikonomis kraštuose */
-        .footer-nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 14px;
-        }
-
-        .footer-nav .icon-link {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #bbb;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-            cursor: pointer;
-            box-shadow: none;
-            margin: 0;
-            padding: 0;
-            transition: background 0.2s ease, color 0.2s ease, transform 0.1s ease;
-        }
-
-        .footer-nav .icon-link:hover {
-            background: rgba(255, 255, 255, 0.18);
-            color: #fff;
-        }
-
-        .footer-nav .icon-link:active {
-            transform: scale(0.92);
-        }
-
         /* Nustatymų įvesties laukai */
         .input-group {
             margin-bottom: 14px;
@@ -509,7 +505,13 @@
         <!-- 2. Pradinis pasiruošimo ekranas -->
         <div id="setupScreen" class="setup-screen active">
             <div class="game-header-bar">
+                <button type="button" class="icon-link" onclick="openHelpModal()" title="Pagalba">
+                    <i class="fa-solid fa-circle-question"></i>
+                </button>
                 <i class="fa-solid fa-masks-theater hero-icon"></i>
+                <button type="button" class="icon-link" onclick="openSettings()" title="Nustatymai">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
             </div>
 
             <div class="stats-bar">
@@ -533,15 +535,6 @@
             <button type="button" id="playBtn" class="play-btn disabled-look" onclick="startGame()" title="Pradėti žaidimą">
                 <i class="fa-solid fa-play"></i>
             </button>
-            
-            <div class="footer-nav">
-                <button type="button" class="icon-link" onclick="openHelpModal()" title="Pagalba">
-                    <i class="fa-solid fa-circle-question"></i>
-                </button>
-                <button type="button" class="icon-link" onclick="openSettings()" title="Nustatymai">
-                    <i class="fa-solid fa-gear"></i>
-                </button>
-            </div>
         </div>
 
         <!-- 3. Žaidimo (rolių dalinimo) ekranas -->
@@ -915,7 +908,7 @@
                 cooldownTimer = setTimeout(() => {
                     actionBtn.disabled = false;
                     if (availableRoles.length > 0) {
-                        actionBtn.innerHTML = 'Įsiminiau <i class="fa-solid fa-check"></i> · Kitas žaidėjas <i class="fa-solid fa-arrow-right"></i>';
+                        actionBtn.innerHTML = 'Įsiminiau <i class="fa-solid fa-check"></i> Kitas žaidėjas <i class="fa-solid fa-arrow-right"></i>';
                     } else {
                         actionBtn.innerHTML = 'Įsiminiau <i class="fa-solid fa-check"></i>';
                     }
