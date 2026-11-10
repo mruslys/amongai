@@ -44,7 +44,8 @@
             justify-content: center;
         }
 
-        .setup-screen, .game-screen, .settings-screen {
+        /* Pridėtas .help-screen */
+        .setup-screen, .game-screen, .settings-screen, .help-screen {
             display: none;
             width: 100%;
         }
@@ -102,22 +103,22 @@
 
         /* Atskiros ikonų spalvos */
         .help-icon-btn {
-            color: #888899; /*  */
+            color: #888899; 
         }
 
         .settings-icon-btn {
-            color: #888899; /* Neutrali pilkšva nustatymams */
+            color: #888899;
         }
 
         /* Langų antraštės */
-        .settings-header, .modal-header {
+        .settings-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
             margin-bottom: 22px;
         }
 
-        .settings-header h2, .modal-header h3 {
+        .settings-header h2 {
             font-size: 1.5rem;
             color: #e0e0e0;
             display: flex;
@@ -125,7 +126,7 @@
             gap: 12px;
         }
 
-        .settings-header h2 i, .modal-header h3 i {
+        .settings-header h2 i {
             color: #aaa;
             font-size: 1.3rem;
         }
@@ -285,7 +286,7 @@
             text-shadow: 0 0 8px rgba(255, 71, 87, 0.4);
         }
 
-        /* Specialių rolių indikatorius (Amber spalva) */
+        /* Specialių rolių indikatorius */
         .stat-pill.neutral-stat {
             border-color: rgba(255, 165, 2, 0.25);
             background: rgba(255, 165, 2, 0.05);
@@ -352,7 +353,7 @@
             display: none;
         }
 
-        /* Nustatymų įvesties laukai */
+        /* Nustatymų / Pagalbos elementai */
         .input-group {
             margin-bottom: 14px;
             text-align: left;
@@ -362,23 +363,21 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             color: #ccc;
             margin-bottom: 6px;
             font-weight: 500;
         }
 
-        .input-group label i.fa-skull {
-            color: #ff4757;
+        .input-group label i {
+            width: 20px;
+            text-align: center;
         }
 
-        .input-group label i.fa-star {
-            color: #ffa502;
-        }
-
-        .input-group label i.fa-user {
-            color: #3498db;
-        }
+        .input-group label i.fa-users { color: #4cd137; }
+        .input-group label i.fa-skull { color: #ff4757; }
+        .input-group label i.fa-star { color: #ffa502; }
+        .input-group label i.fa-user { color: #3498db; }
 
         textarea {
             width: 100%;
@@ -411,68 +410,14 @@
             padding: 14px 10px;
         }
 
-        /* Modalinis langas (Pagalbai) */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(5px);
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-            padding: 15px;
-        }
-
-        .modal-overlay.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: #232336;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 18px;
-            padding: 22px;
-            width: 100%;
-            max-width: 380px;
-            text-align: left;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-
-        .modal-body {
-            font-size: 0.9rem;
-            color: #ccc;
-            line-height: 1.5;
-            max-height: 60vh;
-            overflow-y: auto;
-        }
-
-        .help-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 12px;
-            font-size: 0.95rem;
-            color: #e0e0e0;
-        }
-
-        .help-row i {
-            font-size: 1.1rem;
-            width: 22px;
-            text-align: center;
-        }
-
-        .help-row i.fa-users { color: #4cd137; }
-        .help-row i.fa-skull { color: #ff4757; }
-        .help-row i.fa-star { color: #ffa502; }
-
         .help-footer-text {
-            margin-top: 16px;
-            padding-top: 12px;
+            margin-top: 24px;
+            padding-top: 16px;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
             font-size: 0.85rem;
             color: #aaa;
             line-height: 1.4;
+            text-align: left;
         }
     </style>
 </head>
@@ -510,24 +455,45 @@
             </div>
         </div>
 
-        <!-- 2. Pradinis pasiruošimo ekranas -->
+        <!-- 2. Pagalbos ekranas (dabar dalinasi tuo pačiu stiliumi kaip Nustatymai) -->
+        <div id="helpScreen" class="help-screen">
+            <div class="settings-header">
+                <h2><i class="fa-solid fa-circle-question" style="margin-left: 4px;"></i> Pagalba</h2>
+                <button type="button" class="close-icon-btn" onclick="closeHelp()" title="Uždaryti">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <div class="input-group" style="margin-bottom: 20px;">
+                <label><i class="fa-solid fa-users"></i> Bendras žaidėjų skaičius</label>
+            </div>
+            <div class="input-group" style="margin-bottom: 20px;">
+                <label><i class="fa-solid fa-skull"></i> Piktadarių kiekis</label>
+            </div>
+            <div class="input-group" style="margin-bottom: 10px;">
+                <label><i class="fa-solid fa-star"></i> Specialių / neutralių žaidėjų skaičius</label>
+            </div>
+
+            <div class="help-footer-text">
+                Spauskite vieną kartą ant indikatorių, kad padidintumėte skaičių vienetu. Bakstelėkite du kartus greitai, kad atitinkamą indikatorių apnulintumėte.
+            </div>
+        </div>
+
+        <!-- 3. Pradinis pasiruošimo ekranas -->
         <div id="setupScreen" class="setup-screen active">
             <div class="game-header-bar">
                 <i class="fa-solid fa-masks-theater hero-icon"></i>
             </div>
 
             <div class="stats-bar">
-                <!-- Žaidėjų skaičius -->
                 <div class="stat-pill players" id="pillPlayers" title="Viengubas paspaudimas: +1 | Dvigubas: nulinti">
                     <i class="fa-solid fa-users"></i>
                     <span id="statPlayers">0</span>
                 </div>
-                <!-- Piktadarių skaičius -->
                 <div class="stat-pill danger" id="pillBad" title="Viengubas paspaudimas: +1 | Dvigubas: nulinti">
                     <i class="fa-solid fa-skull"></i>
                     <span id="statBad">0</span>
                 </div>
-                <!-- Specialių rolių skaičius -->
                 <div class="stat-pill neutral-stat" id="pillNeutral" title="Viengubas paspaudimas: +1 | Dvigubas: nulinti">
                     <i class="fa-solid fa-star"></i>
                     <span id="statNeutral">0</span>
@@ -540,7 +506,7 @@
 
             <!-- Apatinės minimalistinės ikonos -->
             <div class="footer-actions">
-                <button type="button" class="subtle-icon-btn help-icon-btn" onclick="openHelpModal()" title="Pagalba">
+                <button type="button" class="subtle-icon-btn help-icon-btn" onclick="openHelp()" title="Pagalba">
                     <i class="fa-solid fa-circle-question"></i>
                 </button>
                 <button type="button" class="subtle-icon-btn settings-icon-btn" onclick="openSettings()" title="Nustatymai">
@@ -549,7 +515,7 @@
             </div>
         </div>
 
-        <!-- 3. Žaidimo (rolių dalinimo) ekranas -->
+        <!-- 4. Žaidimo (rolių dalinimo) ekranas -->
         <div id="gameScreen" class="game-screen">
             <div class="card">
                 <i class="fa-solid fa-question card-back-icon" id="cardBackIcon"></i>
@@ -561,36 +527,6 @@
             <button type="button" id="resetBtn" class="secondary" onclick="resetGame()">Pradėti iš naujo</button>
         </div>
 
-    </div>
-
-    <!-- Pagalbos modalinis langas -->
-    <div id="helpModal" class="modal-overlay" onclick="closeHelpOnOutside(event)">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fa-solid fa-circle-question"></i> Pagalba</h3>
-                <button type="button" class="close-icon-btn" onclick="closeHelpModal()" title="Uždaryti">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="help-row">
-                    <i class="fa-solid fa-users"></i>
-                    <span>Bendras žaidėjų skaičius</span>
-                </div>
-                <div class="help-row">
-                    <i class="fa-solid fa-skull"></i>
-                    <span>Piktadarių rolių kiekis</span>
-                </div>
-                <div class="help-row">
-                    <i class="fa-solid fa-star"></i>
-                    <span>Specialių / neutralių rolių kiekis</span>
-                </div>
-
-                <div class="help-footer-text">
-                    Spauskite vieną kartą ant indikatorių, kad padidintumėte skaičių vienetu. Bakstelėkite du kartus greitai, kad atitinkamą indikatorių apnulintumėte.
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -607,7 +543,7 @@
 
         let currentSettings = { ...defaultSettings };
         let availableRoles = [];
-        let currentState = "READY_TO_GET"; // "READY_TO_GET" | "ROLE_SHOWN"
+        let currentState = "READY_TO_GET"; 
         let gameInProgress = false;
         let cooldownTimer = null;
 
@@ -643,7 +579,6 @@
         }
 
         /* --- Nustatymų lango valdymas --- */
-
         function openSettings() {
             document.getElementById("setRegular").value = currentSettings.regular.join(", ");
             document.getElementById("setMandatory").value = currentSettings.mandatory.join(", ");
@@ -687,24 +622,18 @@
             }
         }
 
-        /* --- Pagalbos modalinis langas --- */
-
-        function openHelpModal() {
-            document.getElementById("helpModal").classList.add("active");
+        /* --- Pagalbos lango valdymas --- */
+        function openHelp() {
+            document.getElementById("setupScreen").classList.remove("active");
+            document.getElementById("helpScreen").classList.add("active");
         }
 
-        function closeHelpModal() {
-            document.getElementById("helpModal").classList.remove("active");
+        function closeHelp() {
+            document.getElementById("helpScreen").classList.remove("active");
+            document.getElementById("setupScreen").classList.add("active");
         }
 
-        function closeHelpOnOutside(e) {
-            if (e.target.id === "helpModal") {
-                closeHelpModal();
-            }
-        }
-
-        /* --- Indikatorių valdymas ir mirksėjimas --- */
-
+        /* --- Indikatorių valdymas --- */
         function triggerPlayersBlink() {
             const pill = document.getElementById("pillPlayers");
             pill.classList.remove("blink-alert");
@@ -802,7 +731,6 @@
         }
 
         /* --- Žaidimo langas ir logika --- */
-
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -832,7 +760,6 @@
             const badCount = currentSettings.badCount;
             const neutralCount = currentSettings.neutralCount;
 
-            // 1. Piktadariai
             const shuffledMandatory = shuffleArray([...currentSettings.mandatory]);
             const chosenBad = shuffledMandatory.slice(0, badCount);
             const fallbackBad = currentSettings.mandatory[0] || "imposteris";
@@ -840,7 +767,6 @@
                 chosenBad.push(fallbackBad);
             }
 
-            // 2. Specialios rolės
             const shuffledNeutralPool = shuffleArray([...currentSettings.neutral]);
             const chosenNeutral = shuffledNeutralPool.slice(0, neutralCount);
             const fallbackNeutral = currentSettings.neutral[0] || "džakalas";
@@ -848,7 +774,6 @@
                 chosenNeutral.push(fallbackNeutral);
             }
 
-            // 3. Komanda (Likutis iki playerCount)
             const regularNeeded = Math.max(0, playerCount - chosenBad.length - chosenNeutral.length);
             const shuffledRegular = shuffleArray([...currentSettings.regular]);
             let chosenRegular = shuffledRegular.slice(0, regularNeeded);
@@ -863,7 +788,6 @@
             }
 
             availableRoles = shuffleArray(gameRoles);
-
             resetToHiddenState();
         }
 
@@ -955,6 +879,5 @@
 
         initApp();
     </script>
-
 </body>
 </html>
