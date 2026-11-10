@@ -14,7 +14,7 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             user-select: none;
             -webkit-user-select: none;
-            touch-action: manipulation; /* Apsaugo nuo priartinimo (zoom) darymo dvejingu paspaudimu */
+            touch-action: manipulation;
         }
 
         body {
@@ -57,7 +57,7 @@
             display: none !important;
         }
 
-        /* Viršutinė juosta (centruota antraštė) */
+        /* Viršutinė juosta */
         .game-header-bar {
             margin-bottom: 22px;
             text-align: center;
@@ -77,7 +77,7 @@
             color: #e0e0e0;
         }
 
-        /* Nustatymų lango antraštė su paslinktu dantračiu */
+        /* Nustatymų lango antraštė */
         .settings-header {
             display: flex;
             align-items: center;
@@ -206,7 +206,7 @@
             color: #4cd137;
         }
 
-        /* Blogiečių indikatorius */
+        /* Piktadarių indikatorius */
         .stat-pill.danger {
             border-color: rgba(255, 71, 87, 0.25);
             background: rgba(255, 71, 87, 0.05);
@@ -216,7 +216,7 @@
             text-shadow: 0 0 8px rgba(255, 71, 87, 0.4);
         }
 
-        /* Specialių (neutralių) indikatorius (Amber spalva) */
+        /* Specialių rolių indikatorius (Amber spalva) */
         .stat-pill.neutral-stat {
             border-color: rgba(255, 165, 2, 0.25);
             background: rgba(255, 165, 2, 0.05);
@@ -268,7 +268,7 @@
             line-height: 1.45;
         }
 
-        /* Apatinė navigacija (Nuorodos kraštuose) */
+        /* Apatinė navigacija */
         .footer-nav {
             display: flex;
             justify-content: space-between;
@@ -295,12 +295,26 @@
             text-align: left;
         }
 
-        label {
-            display: block;
+        .input-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
             font-size: 0.9rem;
             color: #ccc;
             margin-bottom: 6px;
             font-weight: 500;
+        }
+
+        .input-group label i.fa-skull {
+            color: #ff4757;
+        }
+
+        .input-group label i.fa-star {
+            color: #ffa502;
+        }
+
+        .input-group label i.fa-users {
+            color: #4cd137;
         }
 
         textarea {
@@ -406,17 +420,17 @@
             </div>
             
             <div class="input-group">
-                <label for="setMandatory">🔴 Blogiečiai (atskirkite kableliais):</label>
+                <label for="setMandatory"><i class="fa-solid fa-skull"></i> Piktadariai</label>
                 <textarea id="setMandatory"></textarea>
             </div>
 
             <div class="input-group">
-                <label for="setNeutral">🟠 Specialūs / Neutralūs (atskirkite kableliais):</label>
+                <label for="setNeutral"><i class="fa-solid fa-star"></i> Specialios rolės</label>
                 <textarea id="setNeutral"></textarea>
             </div>
 
             <div class="input-group">
-                <label for="setRegular">🟢 Geriečiai (atskirkite kableliais):</label>
+                <label for="setRegular"><i class="fa-solid fa-users"></i> Komanda</label>
                 <textarea id="setRegular"></textarea>
             </div>
 
@@ -438,12 +452,12 @@
                     <i class="fa-solid fa-users"></i>
                     <span id="statPlayers">0</span>
                 </div>
-                <!-- Blogiečių skaičius -->
+                <!-- Piktadarių skaičius -->
                 <div class="stat-pill danger" id="pillBad" title="Viengubas paspaudimas: +1 | Dvigubas: nulinti">
                     <i class="fa-solid fa-skull"></i>
                     <span id="statBad">0</span>
                 </div>
-                <!-- Specialių / Neutralių skaičius -->
+                <!-- Specialių rolių skaičius -->
                 <div class="stat-pill neutral-stat" id="pillNeutral" title="Viengubas paspaudimas: +1 | Dvigubas: nulinti">
                     <i class="fa-solid fa-star"></i>
                     <span id="statNeutral">0</span>
@@ -479,8 +493,8 @@
                 <p>Šis įrankis padeda slaptam rolių paskirstymui žaidėjams:</p>
                 <ul>
                     <li><strong>Žaidėjų indikatorius (<span style="color:#4cd137;">žalias</span>):</strong> rodo bendrą žaidėjų skaičių. Viengubas paspaudimas prideda 1 žaidėją. Dvigubas bakstelėjimas apnulina visus rodmenis.</li>
-                    <li><strong>Blogiečių indikatorius (<span style="color:#ff4757;">raudonas</span>):</strong> rodo blogųjų rolių kiekį. Negali viršyti bendro žaidėjų skaičiaus (kartu su specialiais).</li>
-                    <li><strong>Specialių / Neutralių indikatorius (<span style="color:#ffa502;">amber</span>):</strong> rodo neutralių arba specialių rolių kiekį.</li>
+                    <li><strong>Piktadarių indikatorius (<span style="color:#ff4757;">raudonas</span>):</strong> rodo piktadarių rolių kiekį. Negali viršyti bendro žaidėjų skaičiaus (kartu su specialiomis rolėmis).</li>
+                    <li><strong>Specialių rolių indikatorius (<span style="color:#ffa502;">amber</span>):</strong> rodo neutralių arba specialių rolių kiekį.</li>
                     <li><strong>Valdymas:</strong> Spauskite vieną kartą, kad padidintumėte skaičių vienetu. Bakstelėkite du kartus greitai, kad atitinkamą indikatorių apnulintumėte.</li>
                 </ul>
             </div>
@@ -707,7 +721,7 @@
             const badCount = currentSettings.badCount;
             const neutralCount = currentSettings.neutralCount;
 
-            // 1. Blogiečiai
+            // 1. Piktadariai
             const shuffledMandatory = shuffleArray([...currentSettings.mandatory]);
             const chosenBad = shuffledMandatory.slice(0, badCount);
             const fallbackBad = currentSettings.mandatory[0] || "imposteris";
@@ -715,7 +729,7 @@
                 chosenBad.push(fallbackBad);
             }
 
-            // 2. Neutralūs (Specialūs)
+            // 2. Specialios rolės
             const shuffledNeutralPool = shuffleArray([...currentSettings.neutral]);
             const chosenNeutral = shuffledNeutralPool.slice(0, neutralCount);
             const fallbackNeutral = currentSettings.neutral[0] || "džakalas";
@@ -723,7 +737,7 @@
                 chosenNeutral.push(fallbackNeutral);
             }
 
-            // 3. Geriečiai (Likutis iki playerCount)
+            // 3. Komanda (Likutis iki playerCount)
             const regularNeeded = Math.max(0, playerCount - chosenBad.length - chosenNeutral.length);
             const shuffledRegular = shuffleArray([...currentSettings.regular]);
             let chosenRegular = shuffledRegular.slice(0, regularNeeded);
