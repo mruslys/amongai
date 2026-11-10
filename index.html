@@ -14,6 +14,7 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             user-select: none;
             -webkit-user-select: none;
+            touch-action: manipulation; /* Apsaugo nuo priartinimo (zoom) darymo dvejingu paspaudimu */
         }
 
         body {
@@ -56,17 +57,18 @@
             display: none !important;
         }
 
-        /* Viršutinė juosta */
+        /* Viršutinė juosta (centruota antraštė) */
         .game-header-bar {
             margin-bottom: 22px;
-            text-align: left;
+            text-align: center;
         }
 
         .game-header-bar h1 {
             font-size: 1.6rem;
             color: #e0e0e0;
-            display: flex;
+            display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 10px;
         }
 
@@ -88,7 +90,7 @@
             color: #e0e0e0;
             display: flex;
             align-items: center;
-            gap: 12px; /* Didesnis tarpas tarp ikonos ir teksto */
+            gap: 12px;
         }
 
         .settings-header h2 i {
@@ -266,11 +268,11 @@
             line-height: 1.45;
         }
 
-        /* Apatinė navigacija (Nuorodos) */
+        /* Apatinė navigacija (Nuorodos kraštuose) */
         .footer-nav {
             display: flex;
-            justify-content: center;
-            gap: 20px;
+            justify-content: space-between;
+            align-items: center;
             margin-top: 14px;
             font-size: 0.95rem;
         }
@@ -457,9 +459,8 @@
             <button type="button" id="resetBtn" class="secondary hidden" onclick="resetGame()">Pradėti iš naujo</button>
             
             <div class="footer-nav">
-                <a onclick="openSettings()">Nustatymai</a>
-                <span>•</span>
                 <a onclick="openHelpModal()">Pagalba</a>
+                <a onclick="openSettings()">Nustatymai</a>
             </div>
         </div>
 
@@ -627,7 +628,7 @@
                     clickTimer = setTimeout(() => {
                         clickTimer = null;
                         onClick(); // Viengubas paspaudimas
-                    }, 250); // Laukiame, ar bus antras paspaudimas
+                    }, 250); 
                 } else {
                     clearTimeout(clickTimer);
                     clickTimer = null;
@@ -752,10 +753,10 @@
             initialText.style.display = "block";
             
             if (total === 0) {
-                initialText.textContent = "Paspausk ant žaidėjų indikatoriaus viršuje, kad nustatytum žaidėjų skaičių!";
+                initialText.textContent = "Paspausk ant žaidėjų indikatoriaus viršuje, kad nustatytum žaidėjų skaičių (dvigubas paspaudimas apnulins).";
             } else {
                 initialText.textContent = isFirstPlayer
-                    ? "Žaidimas paruoštas! Pirmasis žaidėjas atverčia savo rolę."
+                    ? "Žaidimas paruoštas! Pirmasis žaidėjas gali atversti."
                     : "Kito žaidėjo eilė.";
             }
             
