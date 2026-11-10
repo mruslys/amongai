@@ -57,24 +57,17 @@
             display: none !important;
         }
 
-        /* Viršutinė juosta */
+        /* Viršutinė juosta (tik centruota ikona) */
         .game-header-bar {
             margin-bottom: 22px;
             text-align: center;
         }
 
-        .game-header-bar h1 {
-            font-size: 1.6rem;
+        .game-header-bar .hero-icon {
+            font-size: 3.2rem;
             color: #e0e0e0;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .game-header-bar h1 i {
-            font-size: 1.45rem;
-            color: #e0e0e0;
+            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.35);
+            display: inline-block;
         }
 
         /* Langų antraštės */
@@ -105,25 +98,29 @@
             border: none;
             border-radius: 12px;
             padding: 16px 20px;
-            font-size: 1.15rem;
+            font-size: 1.1rem;
             font-weight: bold;
             cursor: pointer;
             width: 100%;
-            transition: transform 0.1s ease, background 0.2s ease, opacity 0.2s ease;
+            transition: transform 0.1s ease, background 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
             box-shadow: 0 5px 15px rgba(76, 209, 55, 0.4);
             margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
-        button:active:not(:disabled) {
+        button:active:not(:disabled):not(.disabled-look) {
             transform: scale(0.98);
         }
 
-        button:hover:not(:disabled) {
+        button:hover:not(:disabled):not(.disabled-look) {
             background: #44bd32;
         }
 
-        button:disabled {
-            opacity: 0.5;
+        button:disabled, button.disabled-look {
+            opacity: 0.4;
             cursor: not-allowed;
             box-shadow: none;
         }
@@ -144,9 +141,6 @@
             font-size: 1.4rem;
             padding: 16px;
             margin-bottom: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
         .close-icon-btn {
@@ -262,7 +256,7 @@
             text-shadow: 0 0 8px rgba(255, 165, 2, 0.4);
         }
 
-        /* Kortelė (paruošta būsimam kortelių dizainui) */
+        /* Kortelė */
         .card {
             background: rgba(0, 0, 0, 0.25);
             border-radius: 18px;
@@ -515,7 +509,7 @@
         <!-- 2. Pradinis pasiruošimo ekranas -->
         <div id="setupScreen" class="setup-screen active">
             <div class="game-header-bar">
-                <h1>Neišsiduok, kas tu <i class="fa-solid fa-masks-theater"></i></h1>
+                <i class="fa-solid fa-masks-theater hero-icon"></i>
             </div>
 
             <div class="stats-bar">
@@ -536,7 +530,7 @@
                 </div>
             </div>
 
-            <button type="button" class="play-btn" onclick="startGame()" title="Pradėti žaidimą">
+            <button type="button" id="playBtn" class="play-btn disabled-look" onclick="startGame()" title="Pradėti žaidimą">
                 <i class="fa-solid fa-play"></i>
             </button>
             
@@ -793,6 +787,13 @@
             document.getElementById("statPlayers").textContent = currentSettings.playerCount;
             document.getElementById("statBad").textContent = currentSettings.badCount;
             document.getElementById("statNeutral").textContent = currentSettings.neutralCount;
+
+            const playBtn = document.getElementById("playBtn");
+            if (currentSettings.playerCount === 0) {
+                playBtn.classList.add("disabled-look");
+            } else {
+                playBtn.classList.remove("disabled-look");
+            }
         }
 
         /* --- Žaidimo langas ir logika --- */
@@ -913,7 +914,11 @@
 
                 cooldownTimer = setTimeout(() => {
                     actionBtn.disabled = false;
-                    actionBtn.innerHTML = 'Įsiminiau <i class="fa-solid fa-check"></i>';
+                    if (availableRoles.length > 0) {
+                        actionBtn.innerHTML = 'Įsiminiau <i class="fa-solid fa-check"></i> · Kitas žaidėjas <i class="fa-solid fa-arrow-right"></i>';
+                    } else {
+                        actionBtn.innerHTML = 'Įsiminiau <i class="fa-solid fa-check"></i>';
+                    }
                 }, COOLDOWN_SECONDS * 1000);
 
             } else {
