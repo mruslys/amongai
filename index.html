@@ -378,21 +378,43 @@
         .input-group label i.fa-skull { color: #ff4757; }
         .input-group label i.fa-star { color: #ffa502; }
         .input-group label i.fa-user { color: #3498db; }
+        .input-group label i.fa-gamepad { color: #a29bfe; }
 
-        textarea {
+        select, textarea {
             width: 100%;
             background: rgba(0, 0, 0, 0.3);
             border: 2px solid rgba(255, 255, 255, 0.15);
             border-radius: 12px;
             color: #fff;
             padding: 10px 12px;
+            font-size: 0.9rem;
+            transition: border-color 0.2s ease;
+        }
+
+        select {
+            appearance: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23aaaaaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            padding-right: 36px;
+        }
+
+        select option {
+            background: #2a2a40;
+            color: #fff;
+        }
+
+        textarea {
             resize: none;
-            height: 65px;
+            height: 60px;
             font-size: 0.85rem;
             line-height: 1.4;
         }
 
-        textarea:focus {
+        select:focus, textarea:focus {
             outline: none;
             border-color: #4cd137;
         }
@@ -433,6 +455,15 @@
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
+
+            <div class="input-group">
+                <label for="setPreset"><i class="fa-solid fa-gamepad"></i> Žaidimo tipas</label>
+                <select id="setPreset" onchange="handlePresetChange()">
+                    <option value="among_us">Among Us</option>
+                    <option value="mafia">Mafia</option>
+                    <option value="custom">Pasirinktinis</option>
+                </select>
+            </div>
             
             <div class="input-group">
                 <label for="setRegular"><i class="fa-solid fa-user"></i> Komanda</label>
@@ -455,7 +486,7 @@
             </div>
         </div>
 
-        <!-- 2. Pagalbos ekranas (dabar dalinasi tuo pačiu stiliumi kaip Nustatymai) -->
+        <!-- 2. Pagalbos ekranas -->
         <div id="helpScreen" class="help-screen">
             <div class="settings-header">
                 <h2><i class="fa-solid fa-circle-question" style="margin-left: 4px;"></i> Pagalba</h2>
@@ -532,16 +563,36 @@
     <script>
         const COOLDOWN_SECONDS = 1.0;
 
+        // Išankstiniai žaidimų šablonai
+        const PRESETS = {
+            among_us: {
+                regular: ["žmogus", "gydytojas", "teisėjas", "policininkas"],
+                mandatory: ["imposteris", "trintukas", "ligonis"],
+                neutral: ["džakalas"]
+            },
+            mafia: {
+                regular: ["miestietis", "komisaras", "daktaras"],
+                mandatory: ["mafijozas", "donas"],
+                neutral: ["maniakas", "meilužė"]
+            }
+        };
+
         const defaultSettings = {
-            mandatory: ["imposteris", "trintukas", "ligonis"],
-            neutral: ["džakalas"],
-            regular: ["žmogus", "gydytojas", "teisėjas", "policininkas"],
+            preset: "among_us",
+            mandatory: [...PRESETS.among_us.mandatory],
+            neutral: [...PRESETS.among_us.neutral],
+            regular: [...PRESETS.among_us.regular],
+            customRoles: {
+                mandatory: [...PRESETS.among_us.mandatory],
+                neutral: [...PRESETS.among_us.neutral],
+                regular: [...PRESETS.among_us.regular]
+            },
             playerCount: 0,
             badCount: 0,
             neutralCount: 0
         };
 
-        let currentSettings = { ...defaultSettings };
+        let currentSettings = JSON.parse(JSON.stringify(defaultSettings));
         let availableRoles = [];
         let currentState = "READY_TO_GET"; 
         let gameInProgress = false;
@@ -554,19 +605,26 @@
                 try {
                     const parsed = JSON.parse(savedRaw);
                     currentSettings = {
+                        preset: parsed.preset || defaultSettings.preset,
                         mandatory: Array.isArray(parsed.mandatory) && parsed.mandatory.length ? parsed.mandatory : [...defaultSettings.mandatory],
                         neutral: Array.isArray(parsed.neutral) ? parsed.neutral : [...defaultSettings.neutral],
                         regular: Array.isArray(parsed.regular) && parsed.regular.length ? parsed.regular : [...defaultSettings.regular],
+                        customRoles: parsed.customRoles && typeof parsed.customRoles === "object" ? {
+                            mandatory: Array.isArray(parsed.customRoles.mandatory) && parsed.customRoles.mandatory.length ? parsed.customRoles.mandatory : [...defaultSettings.customRoles.mandatory],
+                            neutral: Array.isArray(parsed.customRoles.neutral) ? parsed.customRoles.neutral : [...defaultSettings.customRoles.neutral],
+                            regular: Array.isArray(parsed.customRoles.regular) && parsed.customRoles.regular.length ? parsed.customRoles.regular : [...defaultSettings.customRoles.regular]
+                        } : JSON.parse(JSON.stringify(defaultSettings.customRoles)),
                         playerCount: typeof parsed.playerCount === "number" ? parsed.playerCount : defaultSettings.playerCount,
                         badCount: typeof parsed.badCount === "number" ? parsed.badCount : defaultSettings.badCount,
                         neutralCount: typeof parsed.neutralCount === "number" ? parsed.neutralCount : defaultSettings.neutralCount
                     };
                 } catch (e) {
-                    currentSettings = { ...defaultSettings };
+                    currentSettings = JSON.parse(JSON.stringify(defaultSettings));
                 }
             }
 
             setupIndicatorInteractions();
+            setupSettingsListeners();
             updateUIStats();
         }
 
@@ -578,11 +636,37 @@
             return [...new Set(text.split(",").map(r => r.trim().toLowerCase()).filter(Boolean))];
         }
 
-        /* --- Nustatymų lango valdymas --- */
+        function fillRoleInputs(rolesObj) {
+            document.getElementById("setRegular").value = rolesObj.regular.join(", ");
+            document.getElementById("setMandatory").value = rolesObj.mandatory.join(", ");
+            document.getElementById("setNeutral").value = rolesObj.neutral.join(", ");
+        }
+
+        /* --- Nustatymų lango ir šablonų valdymas --- */
+        function setupSettingsListeners() {
+            const inputs = ["setRegular", "setMandatory", "setNeutral"];
+            inputs.forEach(id => {
+                document.getElementById(id).addEventListener("input", () => {
+                    const presetSelect = document.getElementById("setPreset");
+                    if (presetSelect.value !== "custom") {
+                        presetSelect.value = "custom";
+                    }
+                });
+            });
+        }
+
+        function handlePresetChange() {
+            const chosen = document.getElementById("setPreset").value;
+            if (chosen === "custom") {
+                fillRoleInputs(currentSettings.customRoles);
+            } else if (PRESETS[chosen]) {
+                fillRoleInputs(PRESETS[chosen]);
+            }
+        }
+
         function openSettings() {
-            document.getElementById("setRegular").value = currentSettings.regular.join(", ");
-            document.getElementById("setMandatory").value = currentSettings.mandatory.join(", ");
-            document.getElementById("setNeutral").value = currentSettings.neutral.join(", ");
+            document.getElementById("setPreset").value = currentSettings.preset || "among_us";
+            fillRoleInputs(currentSettings);
 
             document.getElementById("setupScreen").classList.remove("active");
             document.getElementById("settingsScreen").classList.add("active");
@@ -594,13 +678,24 @@
         }
 
         function saveSettings() {
+            const chosenPreset = document.getElementById("setPreset").value;
             const parsedRegular = parseRoleList(document.getElementById("setRegular").value);
             const parsedMandatory = parseRoleList(document.getElementById("setMandatory").value);
             const parsedNeutral = parseRoleList(document.getElementById("setNeutral").value);
 
+            currentSettings.preset = chosenPreset;
             currentSettings.regular = parsedRegular.length ? parsedRegular : [...defaultSettings.regular];
             currentSettings.mandatory = parsedMandatory.length ? parsedMandatory : [...defaultSettings.mandatory];
             currentSettings.neutral = parsedNeutral;
+
+            // Jei išsaugoma esant "Pasirinktinis", atnaujiname ir customRoles atmintį
+            if (chosenPreset === "custom") {
+                currentSettings.customRoles = {
+                    regular: [...currentSettings.regular],
+                    mandatory: [...currentSettings.mandatory],
+                    neutral: [...currentSettings.neutral]
+                };
+            }
 
             saveToStorage();
             closeSettings();
@@ -609,14 +704,7 @@
         function resetToFactoryDefaults() {
             if (confirm("Ar tikrai norite atstatyti gamyklines žaidimo roles ir nustatymus?")) {
                 localStorage.removeItem("game_settings");
-                currentSettings = {
-                    mandatory: [...defaultSettings.mandatory],
-                    neutral: [...defaultSettings.neutral],
-                    regular: [...defaultSettings.regular],
-                    playerCount: 0,
-                    badCount: 0,
-                    neutralCount: 0
-                };
+                currentSettings = JSON.parse(JSON.stringify(defaultSettings));
                 updateUIStats();
                 closeSettings();
             }
