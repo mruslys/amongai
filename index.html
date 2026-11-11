@@ -44,7 +44,6 @@
             justify-content: center;
         }
 
-        /* Pridėtas .help-screen */
         .setup-screen, .game-screen, .settings-screen, .help-screen {
             display: none;
             width: 100%;
@@ -71,66 +70,6 @@
             display: inline-block;
         }
 
-        /* Apatinės funkcinės ikonos (be fono, minimalistinės) */
-        .footer-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 18px;
-            padding: 0 8px;
-        }
-
-        .subtle-icon-btn {
-            background: transparent;
-            border: none;
-            cursor: pointer;
-            font-size: 1.3rem;
-            padding: 6px;
-            transition: transform 0.15s ease, opacity 0.2s ease;
-            box-shadow: none;
-            width: auto;
-            margin: 0;
-        }
-
-        .subtle-icon-btn:hover {
-            opacity: 0.8;
-            transform: scale(1.1);
-        }
-
-        .subtle-icon-btn:active {
-            transform: scale(0.95);
-        }
-
-        /* Atskiros ikonų spalvos */
-        .help-icon-btn {
-            color: #888899; 
-        }
-
-        .settings-icon-btn {
-            color: #888899;
-        }
-
-        /* Langų antraštės */
-        .settings-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 22px;
-        }
-
-        .settings-header h2 {
-            font-size: 1.5rem;
-            color: #e0e0e0;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .settings-header h2 i {
-            color: #aaa;
-            font-size: 1.3rem;
-        }
-
         /* Baziniai mygtukai */
         button {
             background: #4cd137;
@@ -142,7 +81,7 @@
             font-weight: bold;
             cursor: pointer;
             width: 100%;
-            transition: transform 0.1s ease, background 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+            transition: transform 0.1s ease, background 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
             box-shadow: 0 5px 15px rgba(76, 209, 55, 0.4);
             margin-bottom: 12px;
             display: flex;
@@ -183,14 +122,84 @@
             margin-bottom: 0;
         }
 
-        .close-icon-btn {
-            background: transparent;
+        /* Organiška apatinė juosta po PLAY mygtuku (be fonų) */
+        .footer-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 18px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .subtle-btn {
+            background: transparent !important;
+            border: none;
+            box-shadow: none !important;
+            color: #888899;
+            width: auto;
+            margin: 0;
+            padding: 6px 10px;
+            font-size: 1.25rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: color 0.2s ease, transform 0.15s ease;
+        }
+
+        .subtle-btn:hover {
+            background: transparent !important;
+            color: #d0d0e0;
+        }
+
+        .subtle-btn:active {
+            transform: scale(0.94);
+        }
+
+        .preset-indicator-btn {
+            font-size: 0.85rem;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            color: #888899;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .preset-indicator-btn i {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        /* Langų antraštės */
+        .settings-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 22px;
+        }
+
+        .settings-header h2 {
+            font-size: 1.5rem;
+            color: #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .settings-header h2 i {
             color: #aaa;
+            font-size: 1.3rem;
+        }
+
+        .close-icon-btn {
+            background: transparent !important;
+            color: #888899;
             font-size: 1.5rem;
             width: auto;
             padding: 5px;
             margin: 0;
-            box-shadow: none;
+            box-shadow: none !important;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -198,7 +207,7 @@
         }
 
         .close-icon-btn:hover {
-            background: transparent;
+            background: transparent !important;
             color: #ff4757;
         }
 
@@ -378,7 +387,7 @@
         .input-group label i.fa-skull { color: #ff4757; }
         .input-group label i.fa-star { color: #ffa502; }
         .input-group label i.fa-user { color: #3498db; }
-        .input-group label i.fa-gamepad { color: #a29bfe; }
+        .input-group label i.fa-gamepad { color: #ffa502; }
 
         select, textarea {
             width: 100%;
@@ -437,8 +446,9 @@
             padding-top: 16px;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
             font-size: 0.85rem;
-            color: #aaa;
-            line-height: 1.4;
+            color: #ffa502;
+            opacity: 0.9;
+            line-height: 1.45;
             text-align: left;
         }
     </style>
@@ -450,7 +460,7 @@
         <!-- 1. Nustatymų ekranas -->
         <div id="settingsScreen" class="settings-screen">
             <div class="settings-header">
-                <h2><i class="fa-solid fa-gear" style="margin-left: 4px;"></i> Nustatymai</h2>
+                <h2><i class="fa-solid fa-sliders" style="margin-left: 4px;"></i> Nustatymai</h2>
                 <button type="button" class="close-icon-btn" onclick="closeSettings()" title="Uždaryti">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
@@ -489,7 +499,7 @@
         <!-- 2. Pagalbos ekranas -->
         <div id="helpScreen" class="help-screen">
             <div class="settings-header">
-                <h2><i class="fa-solid fa-circle-question" style="margin-left: 4px;"></i> Pagalba</h2>
+                <h2><i class="fa-regular fa-circle-question" style="margin-left: 4px;"></i> Pagalba</h2>
                 <button type="button" class="close-icon-btn" onclick="closeHelp()" title="Uždaryti">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
@@ -535,13 +545,18 @@
                 <i class="fa-solid fa-play"></i>
             </button>
 
-            <!-- Apatinės minimalistinės ikonos -->
-            <div class="footer-actions">
-                <button type="button" class="subtle-icon-btn help-icon-btn" onclick="openHelp()" title="Pagalba">
-                    <i class="fa-solid fa-circle-question"></i>
+            <!-- Organiška apatinė valdymo juosta po PLAY mygtuku -->
+            <div class="footer-bar">
+                <button type="button" class="subtle-btn" onclick="openHelp()" title="Pagalba">
+                    <i class="fa-regular fa-circle-question"></i>
                 </button>
-                <button type="button" class="subtle-icon-btn settings-icon-btn" onclick="openSettings()" title="Nustatymai">
-                    <i class="fa-solid fa-gear"></i>
+
+                <button type="button" class="subtle-btn preset-indicator-btn" onclick="openSettings()" title="Keisti žaidimo tipą">
+                    <span id="activePresetLabel">Among Us</span>
+                </button>
+
+                <button type="button" class="subtle-btn" onclick="openSettings()" title="Nustatymai">
+                    <i class="fa-solid fa-sliders"></i>
                 </button>
             </div>
         </div>
@@ -562,6 +577,12 @@
 
     <script>
         const COOLDOWN_SECONDS = 1.0;
+
+        const PRESET_NAMES = {
+            among_us: "Among Us",
+            mafia: "Mafia",
+            custom: "Pasirinktinis"
+        };
 
         // Išankstiniai žaidimų šablonai
         const PRESETS = {
@@ -688,7 +709,6 @@
             currentSettings.mandatory = parsedMandatory.length ? parsedMandatory : [...defaultSettings.mandatory];
             currentSettings.neutral = parsedNeutral;
 
-            // Jei išsaugoma esant "Pasirinktinis", atnaujiname ir customRoles atmintį
             if (chosenPreset === "custom") {
                 currentSettings.customRoles = {
                     regular: [...currentSettings.regular],
@@ -698,6 +718,7 @@
             }
 
             saveToStorage();
+            updateUIStats();
             closeSettings();
         }
 
@@ -809,6 +830,9 @@
             document.getElementById("statPlayers").textContent = currentSettings.playerCount;
             document.getElementById("statBad").textContent = currentSettings.badCount;
             document.getElementById("statNeutral").textContent = currentSettings.neutralCount;
+
+            const presetKey = currentSettings.preset || "among_us";
+            document.getElementById("activePresetLabel").textContent = PRESET_NAMES[presetKey] || "Among Us";
 
             const playBtn = document.getElementById("playBtn");
             if (currentSettings.playerCount === 0) {
