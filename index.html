@@ -190,20 +190,20 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 22px;
+            margin-bottom: 20px;
         }
 
         .settings-header h2 {
-            font-size: 1.5rem;
+            font-size: 1.45rem;
             color: #e0e0e0;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
         .settings-header h2 i {
             color: #aaa;
-            font-size: 1.3rem;
+            font-size: 1.25rem;
         }
 
         .close-icon-btn {
@@ -376,7 +376,7 @@
             display: none;
         }
 
-        /* Nustatymų / Pagalbos elementai */
+        /* Nustatymų elementai */
         .input-group {
             margin-bottom: 14px;
             text-align: left;
@@ -456,15 +456,106 @@
             padding: 14px 10px;
         }
 
-        .help-footer-text {
-            margin-top: 24px;
-            padding-top: 16px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            font-size: 0.85rem;
-            color: #ffa502;
-            opacity: 0.9;
-            line-height: 1.45;
+        /* --- Atnaujinto Pagalbos lango stiliai --- */
+        .help-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
             text-align: left;
+        }
+
+        .help-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 11px 13px;
+        }
+
+        .help-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .help-icon.green {
+            background: rgba(76, 209, 55, 0.12);
+            color: #4cd137;
+        }
+
+        .help-icon.red {
+            background: rgba(255, 71, 87, 0.12);
+            color: #ff4757;
+        }
+
+        .help-icon.amber {
+            background: rgba(255, 165, 2, 0.12);
+            color: #ffa502;
+        }
+
+        .help-icon.purple {
+            background: rgba(162, 155, 254, 0.12);
+            color: #a29bfe;
+        }
+
+        .help-content {
+            flex: 1;
+        }
+
+        .help-title {
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: #e8e8f0;
+            margin-bottom: 2px;
+        }
+
+        .help-desc {
+            font-size: 0.8rem;
+            color: #9999aa;
+            line-height: 1.38;
+        }
+
+        .help-tip-box {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .help-tip-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.82rem;
+            color: #ffa502;
+            opacity: 0.92;
+            line-height: 1.35;
+        }
+
+        .gesture-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            background: rgba(255, 165, 2, 0.14);
+            border: 1px solid rgba(255, 165, 2, 0.3);
+            color: #ffa502;
+            font-weight: 700;
+            font-size: 0.75rem;
+            flex-shrink: 0;
         }
     </style>
 </head>
@@ -520,21 +611,49 @@
                 </button>
             </div>
             
-            <div class="input-group" style="margin-bottom: 18px;">
-                <label><i class="fa-solid fa-users"></i> Bendras žaidėjų skaičius</label>
-            </div>
-            <div class="input-group" style="margin-bottom: 18px;">
-                <label><i class="fa-solid fa-skull"></i> Piktadarių kiekis</label>
-            </div>
-            <div class="input-group" style="margin-bottom: 18px;">
-                <label><i class="fa-solid fa-star"></i> Specialių / neutralių žaidėjų skaičius</label>
-            </div>
-            <div class="input-group" style="margin-bottom: 10px;">
-                <label><i class="fa-solid fa-repeat"></i> Greitas žaidimo tipo perjungimas apačioje</label>
+            <div class="help-list">
+                <div class="help-item">
+                    <div class="help-icon green"><i class="fa-solid fa-users"></i></div>
+                    <div class="help-content">
+                        <div class="help-title">Bendras žaidėjų skaičius</div>
+                        <div class="help-desc">Visi dalyviai. Likusios vietos (atėmus piktadarius ir spec. roles) automatiškai tenka komandai.</div>
+                    </div>
+                </div>
+
+                <div class="help-item">
+                    <div class="help-icon red"><i class="fa-solid fa-skull"></i></div>
+                    <div class="help-content">
+                        <div class="help-title">Piktadarių kiekis</div>
+                        <div class="help-desc">Slaptoji komanda (imposteriai, mafija), kurią kiti žaidėjai bando išaiškinti.</div>
+                    </div>
+                </div>
+
+                <div class="help-item">
+                    <div class="help-icon amber"><i class="fa-solid fa-star"></i></div>
+                    <div class="help-content">
+                        <div class="help-title">Specialios ir neutralios rolės</div>
+                        <div class="help-desc">Papildomi vaidmenys su atskiromis užduotimis (pvz., džakalas, maniakas).</div>
+                    </div>
+                </div>
+
+                <div class="help-item">
+                    <div class="help-icon purple"><i class="fa-solid fa-repeat"></i></div>
+                    <div class="help-content">
+                        <div class="help-title">Šablonai ir rolių sąrašai</div>
+                        <div class="help-desc">Apačioje greitai perjunkite žaidimo tipą. Nustatymuose pirmasis įrašytas žodis naudojamas kaip pagrindinis likusioms vietoms užpildyti.</div>
+                    </div>
+                </div>
             </div>
 
-            <div class="help-footer-text">
-                Spauskite vieną kartą ant indikatorių, kad padidintumėte skaičių vienetu. Bakstelėkite du kartus greitai, kad atitinkamą indikatorių apnulintumėte.
+            <div class="help-tip-box">
+                <div class="help-tip-row">
+                    <span class="gesture-badge">1×</span>
+                    <span>Bakstelėkite indikatorių vieną kartą, kad padidintumėte skaičių vienetu.</span>
+                </div>
+                <div class="help-tip-row">
+                    <span class="gesture-badge">2×</span>
+                    <span>Bakstelėkite du kartus greitai, kad indikatorių apnulintumėte.</span>
+                </div>
             </div>
         </div>
 
