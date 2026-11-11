@@ -163,12 +163,26 @@
             font-weight: 600;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 7px;
         }
 
         .preset-indicator-btn i {
-            font-size: 0.8rem;
-            opacity: 0.7;
+            font-size: 0.75rem;
+            opacity: 0.6;
+            transition: transform 0.3s ease;
+        }
+
+        .preset-indicator-btn:active i {
+            transform: rotate(180deg);
+        }
+
+        @keyframes popText {
+            0% { transform: scale(0.92); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .preset-pop {
+            animation: popText 0.2s ease-out;
         }
 
         /* Langų antraštės */
@@ -388,6 +402,7 @@
         .input-group label i.fa-star { color: #ffa502; }
         .input-group label i.fa-user { color: #3498db; }
         .input-group label i.fa-gamepad { color: #ffa502; }
+        .input-group label i.fa-repeat { color: #a29bfe; }
 
         select, textarea {
             width: 100%;
@@ -505,14 +520,17 @@
                 </button>
             </div>
             
-            <div class="input-group" style="margin-bottom: 20px;">
+            <div class="input-group" style="margin-bottom: 18px;">
                 <label><i class="fa-solid fa-users"></i> Bendras žaidėjų skaičius</label>
             </div>
-            <div class="input-group" style="margin-bottom: 20px;">
+            <div class="input-group" style="margin-bottom: 18px;">
                 <label><i class="fa-solid fa-skull"></i> Piktadarių kiekis</label>
             </div>
-            <div class="input-group" style="margin-bottom: 10px;">
+            <div class="input-group" style="margin-bottom: 18px;">
                 <label><i class="fa-solid fa-star"></i> Specialių / neutralių žaidėjų skaičius</label>
+            </div>
+            <div class="input-group" style="margin-bottom: 10px;">
+                <label><i class="fa-solid fa-repeat"></i> Greitas žaidimo tipo perjungimas apačioje</label>
             </div>
 
             <div class="help-footer-text">
@@ -551,8 +569,9 @@
                     <i class="fa-regular fa-circle-question"></i>
                 </button>
 
-                <button type="button" class="subtle-btn preset-indicator-btn" onclick="openSettings()" title="Keisti žaidimo tipą">
+                <button type="button" class="subtle-btn preset-indicator-btn" onclick="cyclePreset()" title="Bakstelėkite, kad perjungtumėte žaidimo tipą">
                     <span id="activePresetLabel">Among Us</span>
+                    <i class="fa-solid fa-repeat"></i>
                 </button>
 
                 <button type="button" class="subtle-btn" onclick="openSettings()" title="Nustatymai">
@@ -577,6 +596,8 @@
 
     <script>
         const COOLDOWN_SECONDS = 1.0;
+
+        const PRESET_ORDER = ["among_us", "mafia", "custom"];
 
         const PRESET_NAMES = {
             among_us: "Among Us",
@@ -661,6 +682,33 @@
             document.getElementById("setRegular").value = rolesObj.regular.join(", ");
             document.getElementById("setMandatory").value = rolesObj.mandatory.join(", ");
             document.getElementById("setNeutral").value = rolesObj.neutral.join(", ");
+        }
+
+        /* --- Greitas šablono perjungimas pradiniame ekrane --- */
+        function cyclePreset() {
+            const currentIndex = PRESET_ORDER.indexOf(currentSettings.preset || "among_us");
+            const nextPreset = PRESET_ORDER[(currentIndex + 1) % PRESET_ORDER.length];
+
+            currentSettings.preset = nextPreset;
+
+            if (nextPreset === "custom") {
+                currentSettings.regular = [...currentSettings.customRoles.regular];
+                currentSettings.mandatory = [...currentSettings.customRoles.mandatory];
+                currentSettings.neutral = [...currentSettings.customRoles.neutral];
+            } else if (PRESETS[nextPreset]) {
+                currentSettings.regular = [...PRESETS[nextPreset].regular];
+                currentSettings.mandatory = [...PRESETS[nextPreset].mandatory];
+                currentSettings.neutral = [...PRESETS[nextPreset].neutral];
+            }
+
+            saveToStorage();
+            updateUIStats();
+
+            // Subtili užrašo animacija perjungus
+            const labelEl = document.getElementById("activePresetLabel");
+            labelEl.classList.remove("preset-pop");
+            void labelEl.offsetWidth;
+            labelEl.classList.add("preset-pop");
         }
 
         /* --- Nustatymų lango ir šablonų valdymas --- */
