@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AmongAI — Game Runtime & Editor MVP</title>
+<title>AmongAI — Universalus žaidimų moderatorius</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
   :root {
@@ -94,12 +94,15 @@
   /* Viršutinė ir apatinė juostos */
   .top-bar {
     width: 100%;
-    max-width: 500px;
+    max-width: 540px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     min-height: 48px;
     flex-shrink: 0;
+  }
+  .top-bar.empty-top {
+    min-height: 12px;
   }
   .top-actions {
     display: flex;
@@ -108,7 +111,7 @@
   }
   .bottom-bar {
     width: 100%;
-    max-width: 500px;
+    max-width: 540px;
     display: flex;
     flex-direction: column;
     gap: 14px;
@@ -136,11 +139,12 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: transform 0.1s, border-color 0.2s, background 0.2s;
+    transition: transform 0.1s, border-color 0.2s, background 0.2s, color 0.2s;
     padding: 0;
   }
   button:active { transform: scale(0.92); }
-  button.sm { width: 44px; height: 44px; font-size: 1.1rem; }
+  button.sm { width: 42px; height: 42px; font-size: 1.05rem; }
+  button.xs { width: 36px; height: 36px; font-size: 0.95rem; border-width: 1px; }
   button.lg {
     width: 78px; height: 78px;
     font-size: 1.85rem;
@@ -160,6 +164,91 @@
   @keyframes btnPulse {
     from { transform: scale(1); box-shadow: 0 0 5px var(--accent); }
     to { transform: scale(1.12); box-shadow: 0 0 25px var(--accent); }
+  }
+
+  /* =========================================================================
+     1. HOME KATALOGAS
+     ========================================================================= */
+  .catalog-wrap {
+    width: 100%;
+    max-width: 540px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 4px 2px 24px 2px;
+  }
+  .catalog-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .catalog-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 36px;
+  }
+  .catalog-head-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--muted);
+    letter-spacing: 0.03em;
+  }
+  .catalog-head-title i {
+    color: var(--text);
+    font-size: 1.1rem;
+  }
+  .catalog-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .catalog-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-left: 5px solid var(--card-accent, var(--c-blue));
+    border-radius: 12px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: transform 0.12s, border-color 0.2s;
+    gap: 10px;
+  }
+  .catalog-card:active {
+    transform: scale(0.985);
+  }
+  .catalog-card-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+    word-break: break-word;
+    flex: 1;
+  }
+  .catalog-card-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .star-active {
+    color: var(--c-amber) !important;
+    border-color: rgba(245, 158, 11, 0.45) !important;
+  }
+  .copied-check {
+    color: var(--c-emerald) !important;
+    border-color: rgba(16, 185, 129, 0.45) !important;
   }
 
   /* 3.A Priešžaidiminis langas */
@@ -390,6 +479,10 @@
     color: var(--muted);
     font-weight: 600;
   }
+  .field-icon {
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
   .text-input, .select-input {
     width: 100%;
     background: var(--surface-2);
@@ -522,8 +615,11 @@
 </div>
 
 <script>
-// 9 fiksuotų spalvų paletė
+// 9 fiksuotų spalvų paletė ir pagalbinių reikšmių masyvai
 const COLOR_KEYS = ['red', 'amber', 'emerald', 'cyan', 'blue', 'purple', 'pink', 'gray', 'white'];
+const RETURN_METHODS = ['bottom', 'shuffle', 'middle'];
+const RETURN_CONDS = ['auto', 'dynamic'];
+
 const PALETTE = {
   red: 'var(--c-red)',
   amber: 'var(--c-amber)',
@@ -536,35 +632,258 @@ const PALETTE = {
   white: 'var(--c-white)'
 };
 
-// Numatytasis žaidimas: AmongAI (be Emoji simbolių pavadinimuose)
-const DEFAULT_GAME = {
-  hash: "",
-  title: "AmongAI",
-  color: "blue",
-  dealMode: 1,            // 1: Custom, 2: Full Deck, 3: Random Draw X, 4: Infinite Draw
-  shuffle: true,
-  returnMethod: "bottom", // "bottom" | "shuffle" | "middle"
-  returnCondition: "auto",// "auto" | "dynamic"
-  cards: [
-    { id: "c1", title: "Žmogus", color: "blue", count: 5 },
-    { id: "c2", title: "Gydytojas", color: "blue", count: 1 },
-    { id: "c3", title: "Teisėjas", color: "blue", count: 1 },
-    { id: "c4", title: "Policininkas", color: "blue", count: 1 },
-    { id: "c5", title: "Imposteris", color: "red", count: 2 },
-    { id: "c6", title: "Trintukas", color: "red", count: 1 },
-    { id: "c7", title: "Ligonis", color: "red", count: 1 },
-    { id: "c8", title: "Džakalas", color: "amber", count: 1 }
-  ],
-  phases: [
-    { id: "p1", title: "Susipažinimas", color: "purple", loop: false, duration: 20, fxStart: true, fxEnd: true, fxAlarm: false },
-    { id: "p2", title: "Užduotys ir veiksmas", color: "blue", loop: true, duration: 120, fxStart: true, fxEnd: true, fxAlarm: true },
-    { id: "p3", title: "Skubus susirinkimas", color: "amber", loop: true, duration: 90, fxStart: true, fxEnd: true, fxAlarm: false }
-  ],
-  finals: [
-    { id: "f1", title: "Žmonių pergalė", color: "blue" },
-    { id: "f2", title: "Imposterių pergalė", color: "red" },
-    { id: "f3", title: "Džakalo pergalė", color: "amber" }
-  ]
+// Viešo katalogo baziniai žaidimai (ateityje gali būti keliami iš išorinio catalog.json)
+const PUBLIC_CATALOG_RAW = [
+  {
+    title: "AmongAI",
+    color: "blue",
+    dealMode: 1,
+    shuffle: true,
+    returnMethod: "bottom",
+    returnCondition: "auto",
+    cards: [
+      { id: "c1", title: "Žmogus", color: "blue", count: 5 },
+      { id: "c2", title: "Gydytojas", color: "blue", count: 1 },
+      { id: "c3", title: "Teisėjas", color: "blue", count: 1 },
+      { id: "c4", title: "Policininkas", color: "blue", count: 1 },
+      { id: "c5", title: "Imposteris", color: "red", count: 2 },
+      { id: "c6", title: "Trintukas", color: "red", count: 1 },
+      { id: "c7", title: "Ligonis", color: "red", count: 1 },
+      { id: "c8", title: "Džakalas", color: "amber", count: 1 }
+    ],
+    phases: [
+      { id: "p1", title: "Susipažinimas", color: "purple", loop: false, duration: 20, fxStart: true, fxEnd: true, fxAlarm: false },
+      { id: "p2", title: "Užduotys ir veiksmas", color: "blue", loop: true, duration: 120, fxStart: true, fxEnd: true, fxAlarm: true },
+      { id: "p3", title: "Skubus susirinkimas", color: "amber", loop: true, duration: 90, fxStart: true, fxEnd: true, fxAlarm: false }
+    ],
+    finals: [
+      { id: "f1", title: "Žmonių pergalė", color: "blue" },
+      { id: "f2", title: "Imposterių pergalė", color: "red" },
+      { id: "f3", title: "Džakalo pergalė", color: "amber" }
+    ]
+  },
+  {
+    title: "Mafija",
+    color: "red",
+    dealMode: 1,
+    shuffle: true,
+    returnMethod: "bottom",
+    returnCondition: "auto",
+    cards: [
+      { id: "c1", title: "Mafija", color: "red", count: 2 },
+      { id: "c2", title: "Donas", color: "purple", count: 1 },
+      { id: "c3", title: "Komisaras", color: "cyan", count: 1 },
+      { id: "c4", title: "Gydytojas", color: "emerald", count: 1 },
+      { id: "c5", title: "Miestietis", color: "blue", count: 6 }
+    ],
+    phases: [
+      { id: "p1", title: "Susipažinimo naktis", color: "purple", loop: false, duration: 30, fxStart: true, fxEnd: true, fxAlarm: false },
+      { id: "p2", title: "Diena: Diskusija", color: "amber", loop: true, duration: 180, fxStart: true, fxEnd: true, fxAlarm: true },
+      { id: "p3", title: "Naktis: Medžioklė", color: "blue", loop: true, duration: 45, fxStart: true, fxEnd: true, fxAlarm: false }
+    ],
+    finals: [
+      { id: "f1", title: "Miesto pergalė", color: "emerald" },
+      { id: "f2", title: "Mafijos pergalė", color: "red" }
+    ]
+  },
+  {
+    title: "Šnipas",
+    color: "emerald",
+    dealMode: 1,
+    shuffle: true,
+    returnMethod: "bottom",
+    returnCondition: "auto",
+    cards: [
+      { id: "c1", title: "Šnipas", color: "red", count: 1 },
+      { id: "c2", title: "Agentas", color: "emerald", count: 6 }
+    ],
+    phases: [
+      { id: "p1", title: "Apklausa", color: "emerald", loop: false, duration: 300, fxStart: true, fxEnd: true, fxAlarm: true }
+    ],
+    finals: [
+      { id: "f1", title: "Agentų pergalė", color: "emerald" },
+      { id: "f2", title: "Šnipo pergalė", color: "red" }
+    ]
+  }
+];
+
+// ============================================================================
+// DETERMINISTINIS HASH IR POZICINIO MASYVO SERIALIZACIJA (DEFLATE)
+// ============================================================================
+function computeCanonicalHash(gameObj) {
+  const canonical = {
+    title: (gameObj.title || "").trim(),
+    color: gameObj.color || "blue",
+    dealMode: Number(gameObj.dealMode) || 1,
+    shuffle: Boolean(gameObj.shuffle),
+    returnMethod: gameObj.returnMethod || "bottom",
+    returnCondition: gameObj.returnCondition || "auto",
+    cards: (gameObj.cards || []).map(c => ({
+      title: (c.title || "").trim(),
+      color: c.color || "blue",
+      count: Math.max(0, Number(c.count) || 0)
+    })),
+    phases: (gameObj.phases || []).map(p => ({
+      title: (p.title || "").trim(),
+      color: p.color || "blue",
+      loop: Boolean(p.loop),
+      duration: Math.max(0, Number(p.duration) || 0),
+      fxStart: Boolean(p.fxStart),
+      fxEnd: Boolean(p.fxEnd),
+      fxAlarm: Boolean(p.fxAlarm)
+    })),
+    finals: (gameObj.finals || []).map(f => ({
+      title: (f.title || "").trim(),
+      color: f.color || "blue"
+    }))
+  };
+  const str = JSON.stringify(canonical);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16).padStart(8, '0');
+}
+
+// Žaidimo objektas -> Pozicinis masyvas
+function gameToPositionalArray(g) {
+  return [
+    (g.title || "Žaidimas").trim(),
+    Math.max(0, COLOR_KEYS.indexOf(g.color || "blue")),
+    Number(g.dealMode) || 1,
+    g.shuffle ? 1 : 0,
+    Math.max(0, RETURN_METHODS.indexOf(g.returnMethod || "bottom")),
+    Math.max(0, RETURN_CONDS.indexOf(g.returnCondition || "auto")),
+    (g.cards || []).map(c => [
+      (c.title || "").trim(),
+      Math.max(0, COLOR_KEYS.indexOf(c.color || "blue")),
+      Math.max(0, Number(c.count) || 0)
+    ]),
+    (g.phases || []).map(p => [
+      (p.title || "").trim(),
+      Math.max(0, COLOR_KEYS.indexOf(p.color || "blue")),
+      Math.max(0, Number(p.duration) || 0),
+      (p.loop ? 1 : 0) | (p.fxStart ? 2 : 0) | (p.fxEnd ? 4 : 0) | (p.fxAlarm ? 8 : 0)
+    ]),
+    (g.finals || []).map(f => [
+      (f.title || "").trim(),
+      Math.max(0, COLOR_KEYS.indexOf(f.color || "blue"))
+    ])
+  ];
+}
+
+// Pozicinis masyvas -> Žaidimo objektas
+function positionalArrayToGame(arr) {
+  if (!Array.isArray(arr) || arr.length < 9) throw new Error("Netinkamas masyvas");
+  const game = {
+    title: String(arr[0] || "Žaidimas"),
+    color: COLOR_KEYS[arr[1]] || "blue",
+    dealMode: [1, 2, 3, 4].includes(Number(arr[2])) ? Number(arr[2]) : 1,
+    shuffle: Boolean(arr[3]),
+    returnMethod: RETURN_METHODS[arr[4]] || "bottom",
+    returnCondition: RETURN_CONDS[arr[5]] || "auto",
+    cards: Array.isArray(arr[6]) ? arr[6].map((c, i) => ({
+      id: `c_${i + 1}`,
+      title: String(c[0] || "Korta"),
+      color: COLOR_KEYS[c[1]] || "blue",
+      count: Math.max(0, Number(c[2]) || 0)
+    })) : [],
+    phases: Array.isArray(arr[7]) ? arr[7].map((p, i) => {
+      const mask = Number(p[3]) || 0;
+      return {
+        id: `p_${i + 1}`,
+        title: String(p[0] || "Fazė"),
+        color: COLOR_KEYS[p[1]] || "blue",
+        duration: Math.max(0, Number(p[2]) || 0),
+        loop: Boolean(mask & 1),
+        fxStart: Boolean(mask & 2),
+        fxEnd: Boolean(mask & 4),
+        fxAlarm: Boolean(mask & 8)
+      };
+    }) : [],
+    finals: Array.isArray(arr[8]) ? arr[8].map((f, i) => ({
+      id: `f_${i + 1}`,
+      title: String(f[0] || "Finalas"),
+      color: COLOR_KEYS[f[1]] || "blue"
+    })) : []
+  };
+  game.hash = computeCanonicalHash(game);
+  return game;
+}
+
+// Pozicinis masyvas -> Deflate -> Base64URL
+async function encodeGameToDeflateParam(gameObj) {
+  const posArr = gameToPositionalArray(gameObj);
+  const jsonBytes = new TextEncoder().encode(JSON.stringify(posArr));
+  const stream = new Blob([jsonBytes]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+  const compressedBuf = await new Response(stream).arrayBuffer();
+  const bytes = new Uint8Array(compressedBuf);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// Base64URL -> Inflate -> Pozicinis masyvas -> Žaidimo objektas
+async function decodeGameFromDeflateParam(encodedStr) {
+  const b64 = encodedStr.replace(/-/g, '+').replace(/_/g, '/');
+  const pad = b64.length % 4 ? '='.repeat(4 - (b64.length % 4)) : '';
+  const binary = atob(b64 + pad);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  const text = await new Response(stream).text();
+  return positionalArrayToGame(JSON.parse(text));
+}
+
+// ============================================================================
+// CACHE API SAUGYKLA (MANO ŽAIDIMAI IR MĖGSTAMI ŽAIDIMAI)
+// ============================================================================
+const CacheStore = {
+  MY_CACHE: 'amongai-my-games-v1',
+  FAV_CACHE: 'amongai-fav-games-v1',
+  memMy: new Map(),
+  memFav: new Map(),
+
+  async getAll(cacheName, memFallback) {
+    if ('caches' in window) {
+      try {
+        const cache = await caches.open(cacheName);
+        const keys = await cache.keys();
+        const list = await Promise.all(keys.map(req => cache.match(req).then(r => r ? r.json() : null)));
+        return list.filter(Boolean);
+      } catch (_) {}
+    }
+    return Array.from(memFallback.values());
+  },
+
+  async put(cacheName, memFallback, gameObj) {
+    const clean = JSON.parse(JSON.stringify(gameObj));
+    clean.hash = computeCanonicalHash(clean);
+    memFallback.set(clean.hash, clean);
+    if ('caches' in window) {
+      try {
+        const cache = await caches.open(cacheName);
+        const url = `https://amongai.local/${cacheName}/${clean.hash}.json`;
+        const res = new Response(JSON.stringify(clean), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+        await cache.put(url, res);
+      } catch (_) {}
+    }
+    return clean;
+  },
+
+  async remove(cacheName, memFallback, hash) {
+    memFallback.delete(hash);
+    if ('caches' in window) {
+      try {
+        const cache = await caches.open(cacheName);
+        const url = `https://amongai.local/${cacheName}/${hash}.json`;
+        await cache.delete(url);
+      } catch (_) {}
+    }
+  }
 };
 
 // ============================================================================
@@ -593,7 +912,6 @@ const SoundEngine = {
     render();
   },
 
-  // Trumpas kortos bakstelėjimo / atvertimo garsas
   playCardFlip(faceUp) {
     if (this.muted) return;
     this.init();
@@ -615,7 +933,6 @@ const SoundEngine = {
     osc.stop(now + 0.085);
   },
 
-  // Fazės pradžios dvigubas signalas
   playPhaseStart() {
     if (this.muted) return;
     this.init();
@@ -636,7 +953,6 @@ const SoundEngine = {
     });
   },
 
-  // Paskutinių 5 sekundžių tiksėjimas
   playTick() {
     if (this.muted) return;
     this.init();
@@ -655,7 +971,6 @@ const SoundEngine = {
     osc.stop(now + 0.045);
   },
 
-  // Fazės laiko pabaigos gongas (00:00)
   playPhaseEnd() {
     if (this.muted) return;
     this.init();
@@ -676,7 +991,6 @@ const SoundEngine = {
     });
   },
 
-  // Aliarmo sirena (Among Us / Emergency stiliaus moduliuojama sirena)
   startSiren() {
     this.stopSiren();
     if (this.muted) return;
@@ -726,7 +1040,6 @@ const SoundEngine = {
     }
   },
 
-  // Finalinės kortos akordas
   playFinalFanfare() {
     if (this.muted) return;
     this.init();
@@ -749,79 +1062,33 @@ const SoundEngine = {
   }
 };
 
-// Deterministinis kanoninio JSON hash skaičiavimas (FNV-1a 32-bit)
-function computeCanonicalHash(gameObj) {
-  const canonical = {
-    title: (gameObj.title || "").trim(),
-    color: gameObj.color || "blue",
-    dealMode: Number(gameObj.dealMode) || 1,
-    shuffle: Boolean(gameObj.shuffle),
-    returnMethod: gameObj.returnMethod || "bottom",
-    returnCondition: gameObj.returnCondition || "auto",
-    cards: (gameObj.cards || []).map(c => ({
-      title: (c.title || "").trim(),
-      color: c.color || "blue",
-      count: Math.max(0, Number(c.count) || 0)
-    })),
-    phases: (gameObj.phases || []).map(p => ({
-      title: (p.title || "").trim(),
-      color: p.color || "blue",
-      loop: Boolean(p.loop),
-      duration: Math.max(0, Number(p.duration) || 0),
-      fxStart: Boolean(p.fxStart),
-      fxEnd: Boolean(p.fxEnd),
-      fxAlarm: Boolean(p.fxAlarm)
-    })),
-    finals: (gameObj.finals || []).map(f => ({
-      title: (f.title || "").trim(),
-      color: f.color || "blue"
-    }))
-  };
-  const str = JSON.stringify(canonical);
-  let h = 0x811c9dc5;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 0x01000193);
-  }
-  return (h >>> 0).toString(16).padStart(8, '0');
-}
-
-// Bazinio žaidimo krovimas iš localStorage arba DEFAULT_GAME
-let BASE_GAME = loadGameFromStorage();
-
-function loadGameFromStorage() {
-  try {
-    const saved = localStorage.getItem('amongai_mvp_game');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      parsed.hash = computeCanonicalHash(parsed);
-      return parsed;
-    }
-  } catch (_) {}
-  const copy = JSON.parse(JSON.stringify(DEFAULT_GAME));
+// ============================================================================
+// BŪSENA IR KATALOGO DUOMENYS
+// ============================================================================
+const PUBLIC_GAMES = PUBLIC_CATALOG_RAW.map(g => {
+  const copy = JSON.parse(JSON.stringify(g));
   copy.hash = computeCanonicalHash(copy);
   return copy;
-}
+});
 
-function saveGameToStorage(gameObj) {
-  gameObj.hash = computeCanonicalHash(gameObj);
-  try {
-    localStorage.setItem('amongai_mvp_game', JSON.stringify(gameObj));
-  } catch (_) {}
-}
+let BASE_GAME = PUBLIC_GAMES[0];
 
-// Vykdymo ir sesijos būsena
 const state = {
-  screen: 'PREGAME', // 'PREGAME' | 'EDITOR' | 'DEAL' | 'DEAL_DONE' | 'PHASE' | 'FINAL'
+  screen: 'HOME', // 'HOME' | 'PREGAME' | 'EDITOR' | 'DEAL' | 'DEAL_DONE' | 'PHASE' | 'FINAL'
   locked: false,
   wakeLock: null,
+
+  // Katalogo sąrašai iš Cache API
+  myGames: [],
+  favGames: [],
 
   // 3.A Sesijos atmintis
   customCounts: {},
   randomDrawX: 5,
 
-  // 2. Redaktoriaus laikinas juodraštis
+  // 2. Redaktoriaus laikinas juodraštis ir redaguojamo žaidimo pradinis hash
   editorDraft: null,
+  editingOriginHash: null,
 
   // 3.B Dalijimo būsena
   deck: [],
@@ -842,9 +1109,59 @@ const state = {
   activeFinal: null
 };
 
-function initSession() {
+async function refreshCatalogState() {
+  state.myGames = await CacheStore.getAll(CacheStore.MY_CACHE, CacheStore.memMy);
+  state.favGames = await CacheStore.getAll(CacheStore.FAV_CACHE, CacheStore.memFav);
+}
+
+// Deep-link apdorojimas (#g=... pilnam žaidimui arba #h=... viešo katalogo hash)
+async function handleStartupRouting() {
+  await refreshCatalogState();
+
+  const rawHash = window.location.hash.slice(1);
+  if (rawHash) {
+    const params = new URLSearchParams(rawHash);
+    const fullGameParam = params.get('g');
+    const pubHashParam = params.get('h');
+
+    if (fullGameParam) {
+      try {
+        const decodedGame = await decodeGameFromDeflateParam(fullGameParam);
+        await CacheStore.put(CacheStore.MY_CACHE, CacheStore.memMy, decodedGame);
+        await refreshCatalogState();
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+        openGameSession(decodedGame);
+        return;
+      } catch (e) {
+        console.warn("Nepavyko iškoduoti žaidimo iš URL:", e);
+      }
+    } else if (pubHashParam) {
+      const found = PUBLIC_GAMES.find(g => g.hash === pubHashParam);
+      if (found) {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+        openGameSession(found);
+        return;
+      }
+    }
+  }
+
+  goToHome();
+}
+
+function goToHome() {
+  stopPhaseTimer();
+  SoundEngine.stopSiren();
+  state.alarmActive = false;
+  state.screen = 'HOME';
+  clearAppEffects();
+  setAccent('blue');
+  render();
+}
+
+function openGameSession(gameObj) {
+  BASE_GAME = JSON.parse(JSON.stringify(gameObj));
   state.customCounts = {};
-  BASE_GAME.cards.forEach(c => {
+  (BASE_GAME.cards || []).forEach(c => {
     state.customCounts[c.id] = c.count;
   });
   const total = getBaseDeckSize();
@@ -852,6 +1169,87 @@ function initSession() {
   goToPregame();
 }
 
+// ============================================================================
+// KATALOGO VEIKSMAI (FAVORITE, COPY TO EDIT, SHARE, DELETE)
+// ============================================================================
+function isFavorited(hash) {
+  return state.favGames.some(g => g.hash === hash);
+}
+
+function isInMyGames(hash) {
+  return state.myGames.some(g => g.hash === hash);
+}
+
+async function toggleFavoriteGame(hash, e) {
+  if (e) e.stopPropagation();
+  const exists = isFavorited(hash);
+  if (exists) {
+    await CacheStore.remove(CacheStore.FAV_CACHE, CacheStore.memFav, hash);
+  } else {
+    const game = PUBLIC_GAMES.find(g => g.hash === hash) || state.myGames.find(g => g.hash === hash);
+    if (game) {
+      await CacheStore.put(CacheStore.FAV_CACHE, CacheStore.memFav, game);
+    }
+  }
+  await refreshCatalogState();
+  render();
+}
+
+async function copyGameToMyEditList(hash, e) {
+  if (e) e.stopPropagation();
+  if (isInMyGames(hash)) return;
+  const game = PUBLIC_GAMES.find(g => g.hash === hash) || state.favGames.find(g => g.hash === hash);
+  if (!game) return;
+  await CacheStore.put(CacheStore.MY_CACHE, CacheStore.memMy, game);
+  await refreshCatalogState();
+  render();
+}
+
+function deleteMyGame(hash, e) {
+  if (e) e.stopPropagation();
+  openConfirmModal('<i class="fa-solid fa-trash"></i> ?', async () => {
+    await CacheStore.remove(CacheStore.MY_CACHE, CacheStore.memMy, hash);
+    await refreshCatalogState();
+    render();
+  });
+}
+
+async function shareMyFullGame(hash, e) {
+  if (e) e.stopPropagation();
+  const game = state.myGames.find(g => g.hash === hash);
+  if (!game) return;
+  const deflated = await encodeGameToDeflateParam(game);
+  const url = `${window.location.origin}${window.location.pathname}#g=${deflated}`;
+  await invokeNativeShare(game.title, url);
+}
+
+async function shareCatalogGameHash(hash, e) {
+  if (e) e.stopPropagation();
+  const game = PUBLIC_GAMES.find(g => g.hash === hash) || state.favGames.find(g => g.hash === hash);
+  if (!game) return;
+  const url = `${window.location.origin}${window.location.pathname}#h=${game.hash}`;
+  await invokeNativeShare(game.title, url);
+}
+
+async function invokeNativeShare(title, url) {
+  if (navigator.share) {
+    try {
+      await navigator.share({ title, url });
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+    }
+  }
+  if (navigator.clipboard) {
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch (_) {}
+  }
+}
+
+// ============================================================================
+// PAGALBINĖS FUNKCIJOS IR APSAUGOS BARJERAS
+// ============================================================================
 function getBaseDeckSize() {
   return (BASE_GAME.cards || []).reduce((sum, c) => sum + (Number(c.count) || 0), 0);
 }
@@ -865,7 +1263,6 @@ function setAccent(colorKey) {
   document.documentElement.style.setProperty('--accent', c);
 }
 
-// 0.6s Apsaugos barjeras
 function triggerBarrier() {
   state.locked = true;
   const app = document.getElementById('app');
@@ -881,7 +1278,6 @@ function triggerBarrier() {
   }, 600);
 }
 
-// Screen Wake Lock API
 async function requestWakeLock() {
   if ('wakeLock' in navigator && !state.wakeLock) {
     try {
@@ -891,12 +1287,11 @@ async function requestWakeLock() {
   }
 }
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && state.screen !== 'PREGAME' && state.screen !== 'EDITOR') {
+  if (document.visibilityState === 'visible' && !['HOME', 'PREGAME', 'EDITOR'].includes(state.screen)) {
     requestWakeLock();
   }
 });
 
-// Universalus modalinis patvirtinimo langas
 function openConfirmModal(symbolHtml, onConfirm) {
   const overlay = document.getElementById('modal-overlay');
   const sym = document.getElementById('modal-symbol');
@@ -954,9 +1349,33 @@ function adjustRandomDrawX(delta) {
 // ============================================================================
 // 2. ŽAIDIMO NUSTATYMŲ FORMA (EDITOR)
 // ============================================================================
-function openEditor() {
-  state.editorDraft = JSON.parse(JSON.stringify(BASE_GAME));
+function openEditorForNew() {
+  const emptyGame = {
+    title: "Naujas žaidimas",
+    color: "blue",
+    dealMode: 1,
+    shuffle: true,
+    returnMethod: "bottom",
+    returnCondition: "auto",
+    cards: [],
+    phases: [],
+    finals: []
+  };
+  emptyGame.hash = computeCanonicalHash(emptyGame);
+  state.editorDraft = emptyGame;
+  state.editingOriginHash = null;
+  state.screen = 'EDITOR';
+  setAccent(state.editorDraft.color);
+  render();
+}
+
+function openEditorByHash(hash, e) {
+  if (e) e.stopPropagation();
+  const target = state.myGames.find(g => g.hash === hash);
+  if (!target) return;
+  state.editorDraft = JSON.parse(JSON.stringify(target));
   state.editorDraft.hash = computeCanonicalHash(state.editorDraft);
+  state.editingOriginHash = target.hash;
   state.screen = 'EDITOR';
   setAccent(state.editorDraft.color);
   render();
@@ -980,84 +1399,24 @@ function moveItem(arr, index, dir) {
   const temp = arr[index];
   arr[index] = arr[target];
   arr[target] = temp;
+  updateDraftHashBadge();
   render();
 }
 
-function saveEditorChanges() {
+async function saveEditorChanges() {
   if (!state.editorDraft) return;
   if (!state.editorDraft.title || !state.editorDraft.title.trim()) {
-    state.editorDraft.title = "AmongAI";
+    state.editorDraft.title = "Naujas žaidimas";
   }
-  BASE_GAME = JSON.parse(JSON.stringify(state.editorDraft));
-  saveGameToStorage(BASE_GAME);
-  initSession();
-}
+  const newHash = computeCanonicalHash(state.editorDraft);
+  state.editorDraft.hash = newHash;
 
-function resetToDefaultGame() {
-  openConfirmModal('<i class="fa-solid fa-arrows-rotate"></i> ?', () => {
-    BASE_GAME = JSON.parse(JSON.stringify(DEFAULT_GAME));
-    saveGameToStorage(BASE_GAME);
-    initSession();
-  });
-}
-
-function exportGameJson() {
-  if (!state.editorDraft) return;
-  state.editorDraft.hash = computeCanonicalHash(state.editorDraft);
-  const jsonStr = JSON.stringify(state.editorDraft, null, 2);
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(jsonStr).catch(() => {});
+  if (state.editingOriginHash && state.editingOriginHash !== newHash) {
+    await CacheStore.remove(CacheStore.MY_CACHE, CacheStore.memMy, state.editingOriginHash);
   }
-  const blob = new Blob([jsonStr], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${(state.editorDraft.title || 'game').toLowerCase().replace(/\s+/g, '_')}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function importGameJson() {
-  const input = prompt("Įklijuokite žaidimo JSON kodą:");
-  if (!input) return;
-  try {
-    const parsed = JSON.parse(input);
-    if (!parsed.title) throw new Error("Trūksta pavadinimo");
-    state.editorDraft = {
-      title: String(parsed.title),
-      color: COLOR_KEYS.includes(parsed.color) ? parsed.color : 'blue',
-      dealMode: [1,2,3,4].includes(Number(parsed.dealMode)) ? Number(parsed.dealMode) : 1,
-      shuffle: parsed.shuffle !== false,
-      returnMethod: ['bottom','shuffle','middle'].includes(parsed.returnMethod) ? parsed.returnMethod : 'bottom',
-      returnCondition: ['auto','dynamic'].includes(parsed.returnCondition) ? parsed.returnCondition : 'auto',
-      cards: Array.isArray(parsed.cards) ? parsed.cards.map((c, i) => ({
-        id: c.id || `c_${Date.now()}_${i}`,
-        title: String(c.title || 'Korta'),
-        color: COLOR_KEYS.includes(c.color) ? c.color : 'blue',
-        count: Math.max(0, Number(c.count) || 1)
-      })) : [],
-      phases: Array.isArray(parsed.phases) ? parsed.phases.map((p, i) => ({
-        id: p.id || `p_${Date.now()}_${i}`,
-        title: String(p.title || 'Fazė'),
-        color: COLOR_KEYS.includes(p.color) ? p.color : 'blue',
-        loop: Boolean(p.loop),
-        duration: Math.max(0, Number(p.duration) || 0),
-        fxStart: Boolean(p.fxStart),
-        fxEnd: Boolean(p.fxEnd),
-        fxAlarm: Boolean(p.fxAlarm)
-      })) : [],
-      finals: Array.isArray(parsed.finals) ? parsed.finals.map((f, i) => ({
-        id: f.id || `f_${Date.now()}_${i}`,
-        title: String(f.title || 'Finalas'),
-        color: COLOR_KEYS.includes(f.color) ? f.color : 'blue'
-      })) : []
-    };
-    state.editorDraft.hash = computeCanonicalHash(state.editorDraft);
-    setAccent(state.editorDraft.color);
-    render();
-  } catch (err) {
-    alert("Netinkamas JSON formatas.");
-  }
+  await CacheStore.put(CacheStore.MY_CACHE, CacheStore.memMy, state.editorDraft);
+  await refreshCatalogState();
+  goToHome();
 }
 
 // ============================================================================
@@ -1067,7 +1426,7 @@ function buildSessionDeck() {
   let raw = [];
   const mode = BASE_GAME.dealMode;
 
-  BASE_GAME.cards.forEach(c => {
+  (BASE_GAME.cards || []).forEach(c => {
     const qty = (mode === 1) ? (state.customCounts[c.id] ?? c.count) : c.count;
     for (let i = 0; i < qty; i++) {
       raw.push({ ...c });
@@ -1356,12 +1715,128 @@ function renderTimerOnly() {
   }
 }
 
+function openGameByHashFromList(hash, source) {
+  let g = null;
+  if (source === 'my') g = state.myGames.find(x => x.hash === hash);
+  else if (source === 'fav') g = state.favGames.find(x => x.hash === hash);
+  else g = PUBLIC_GAMES.find(x => x.hash === hash);
+  if (g) openGameSession(g);
+}
+
 function render() {
   const app = document.getElementById('app');
   const mode = BASE_GAME.dealMode;
   const hasCards = BASE_GAME.cards && BASE_GAME.cards.length > 0;
   const hasPhasesOrFinals = (BASE_GAME.phases && BASE_GAME.phases.length > 0) ||
                             (BASE_GAME.finals && BASE_GAME.finals.length > 0);
+
+  // --------------------------------------------------------------------------
+  // 0. HOME KATALOGAS (1 SKYRIUS)
+  // --------------------------------------------------------------------------
+  if (state.screen === 'HOME') {
+    const myRows = state.myGames.map(g => `
+      <div class="catalog-card" style="--card-accent: ${PALETTE[g.color]}" onclick="openGameByHashFromList('${g.hash}', 'my')">
+        <div class="catalog-card-title">${escapeHtml(g.title)}</div>
+        <div class="catalog-card-actions">
+          <button class="xs" onclick="openEditorByHash('${g.hash}', event)">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </button>
+          <button class="xs" onclick="shareMyFullGame('${g.hash}', event)">
+            <i class="fa-solid fa-share-nodes"></i>
+          </button>
+          <button class="xs danger" onclick="deleteMyGame('${g.hash}', event)">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    `).join('');
+
+    const favRows = state.favGames.map(g => {
+      const inMy = isInMyGames(g.hash);
+      return `
+        <div class="catalog-card" style="--card-accent: ${PALETTE[g.color]}" onclick="openGameByHashFromList('${g.hash}', 'fav')">
+          <div class="catalog-card-title">${escapeHtml(g.title)}</div>
+          <div class="catalog-card-actions">
+            <button class="xs star-active" onclick="toggleFavoriteGame('${g.hash}', event)">
+              <i class="fa-solid fa-star"></i>
+            </button>
+            <button class="xs ${inMy ? 'copied-check' : ''}" onclick="copyGameToMyEditList('${g.hash}', event)">
+              <i class="fa-solid ${inMy ? 'fa-check' : 'fa-pen-to-square'}"></i>
+            </button>
+            <button class="xs" onclick="shareCatalogGameHash('${g.hash}', event)">
+              <i class="fa-solid fa-share-nodes"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const pubRows = PUBLIC_GAMES.map(g => {
+      const faved = isFavorited(g.hash);
+      const inMy = isInMyGames(g.hash);
+      return `
+        <div class="catalog-card" style="--card-accent: ${PALETTE[g.color]}" onclick="openGameByHashFromList('${g.hash}', 'pub')">
+          <div class="catalog-card-title">${escapeHtml(g.title)}</div>
+          <div class="catalog-card-actions">
+            <button class="xs ${faved ? 'star-active' : ''}" onclick="toggleFavoriteGame('${g.hash}', event)">
+              <i class="${faved ? 'fa-solid' : 'fa-regular'} fa-star"></i>
+            </button>
+            <button class="xs ${inMy ? 'copied-check' : ''}" onclick="copyGameToMyEditList('${g.hash}', event)">
+              <i class="fa-solid ${inMy ? 'fa-check' : 'fa-pen-to-square'}"></i>
+            </button>
+            <button class="xs" onclick="shareCatalogGameHash('${g.hash}', event)">
+              <i class="fa-solid fa-share-nodes"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    app.innerHTML = `
+      <div class="top-bar empty-top"></div>
+
+      <div class="catalog-wrap">
+        <!-- Mano žaidimai (Edit) -->
+        <div class="catalog-block">
+          <div class="catalog-head">
+            <div class="catalog-head-title">
+              <i class="fa-solid fa-pen-to-square"></i>
+              <span>[${state.myGames.length}]</span>
+            </div>
+            <button class="xs" onclick="openEditorForNew()">
+              <i class="fa-solid fa-plus"></i>
+            </button>
+          </div>
+          ${state.myGames.length > 0 ? `<div class="catalog-list">${myRows}</div>` : ''}
+        </div>
+
+        <!-- Mėgstami žaidimai (Favorites) -->
+        <div class="catalog-block">
+          <div class="catalog-head">
+            <div class="catalog-head-title">
+              <i class="fa-solid fa-star"></i>
+              <span>[${state.favGames.length}]</span>
+            </div>
+          </div>
+          ${state.favGames.length > 0 ? `<div class="catalog-list">${favRows}</div>` : ''}
+        </div>
+
+        <!-- Viešas katalogas -->
+        <div class="catalog-block">
+          <div class="catalog-head">
+            <div class="catalog-head-title">
+              <i class="fa-solid fa-globe"></i>
+              <span>[${PUBLIC_GAMES.length}]</span>
+            </div>
+          </div>
+          <div class="catalog-list">${pubRows}</div>
+        </div>
+      </div>
+
+      <div class="bottom-bar"></div>
+    `;
+    return;
+  }
 
   // --------------------------------------------------------------------------
   // 1. PRIEŠŽAIDIMINIS LANGAS (3.A)
@@ -1417,12 +1892,12 @@ function render() {
 
     app.innerHTML = `
       <div class="top-bar">
-        <button class="sm" onclick="SoundEngine.toggleMute()" title="Garsas">
-          <i class="fa-solid ${SoundEngine.muted ? 'fa-volume-xmark' : 'fa-volume-high'}"></i>
+        <button class="sm" onclick="goToHome()">
+          <i class="fa-solid fa-arrow-left"></i>
         </button>
         <div class="top-actions">
-          <button class="sm" onclick="openEditor()" title="Žaidimo nustatymai">
-            <i class="fa-solid fa-sliders"></i>
+          <button class="sm" onclick="SoundEngine.toggleMute()">
+            <i class="fa-solid ${SoundEngine.muted ? 'fa-volume-xmark' : 'fa-volume-high'}"></i>
           </button>
         </div>
       </div>
@@ -1460,7 +1935,6 @@ function render() {
         <div class="editor-item-main">
           <div class="color-cycle-btn"
                style="background: ${PALETTE[c.color]}"
-               title="Keisti spalvą"
                onclick="state.editorDraft.cards[${i}].color = cycleColor('${c.color}'); updateDraftHashBadge(); render();"></div>
           <input class="text-input"
                  value="${escapeHtml(c.title)}"
@@ -1481,7 +1955,6 @@ function render() {
         <div class="editor-item-main">
           <div class="color-cycle-btn"
                style="background: ${PALETTE[p.color]}"
-               title="Keisti spalvą"
                onclick="state.editorDraft.phases[${i}].color = cycleColor('${p.color}'); updateDraftHashBadge(); render();"></div>
           <input class="text-input"
                  value="${escapeHtml(p.title)}"
@@ -1493,25 +1966,26 @@ function render() {
         </div>
         <div class="phase-subrow">
           <div class="toggle-group">
-            <span class="field-label"><i class="fa-regular fa-clock"></i> Sek.:</span>
+            <i class="fa-solid fa-stopwatch field-icon"></i>
             <input type="number" min="0" class="num-input"
                    value="${p.duration}"
                    oninput="state.editorDraft.phases[${i}].duration = Math.max(0, parseInt(this.value)||0); updateDraftHashBadge();" />
+            <span class="field-label">Sek.</span>
           </div>
           <div class="toggle-group">
-            <button class="icon-btn ${p.loop ? 'active-toggle' : ''}" title="Ciklas (Loop)"
+            <button class="icon-btn ${p.loop ? 'active-toggle' : ''}"
                     onclick="state.editorDraft.phases[${i}].loop = !state.editorDraft.phases[${i}].loop; updateDraftHashBadge(); render();">
               <i class="fa-solid fa-repeat"></i>
             </button>
-            <button class="icon-btn ${p.fxStart ? 'active-toggle' : ''}" title="Pradžios efektas"
+            <button class="icon-btn ${p.fxStart ? 'active-toggle' : ''}"
                     onclick="state.editorDraft.phases[${i}].fxStart = !state.editorDraft.phases[${i}].fxStart; updateDraftHashBadge(); render();">
               <i class="fa-solid fa-bolt"></i>
             </button>
-            <button class="icon-btn ${p.fxEnd ? 'active-toggle' : ''}" title="Pabaigos efektas"
+            <button class="icon-btn ${p.fxEnd ? 'active-toggle' : ''}"
                     onclick="state.editorDraft.phases[${i}].fxEnd = !state.editorDraft.phases[${i}].fxEnd; updateDraftHashBadge(); render();">
               <i class="fa-solid fa-bell"></i>
             </button>
-            <button class="icon-btn ${p.fxAlarm ? 'active-toggle' : ''}" title="Aliarmo mygtukas"
+            <button class="icon-btn ${p.fxAlarm ? 'active-toggle' : ''}"
                     onclick="state.editorDraft.phases[${i}].fxAlarm = !state.editorDraft.phases[${i}].fxAlarm; updateDraftHashBadge(); render();">
               <i class="fa-solid fa-triangle-exclamation"></i>
             </button>
@@ -1525,7 +1999,6 @@ function render() {
         <div class="editor-item-main">
           <div class="color-cycle-btn"
                style="background: ${PALETTE[f.color]}"
-               title="Keisti spalvą"
                onclick="state.editorDraft.finals[${i}].color = cycleColor('${f.color}'); updateDraftHashBadge(); render();"></div>
           <input class="text-input"
                  value="${escapeHtml(f.title)}"
@@ -1538,12 +2011,9 @@ function render() {
 
     app.innerHTML = `
       <div class="top-bar">
-        <button class="sm" onclick="goToPregame()" title="Atšaukti"><i class="fa-solid fa-arrow-left"></i></button>
+        <button class="sm" onclick="goToHome()"><i class="fa-solid fa-arrow-left"></i></button>
         <div class="top-actions">
-          <button class="sm" onclick="importGameJson()" title="Importuoti JSON"><i class="fa-solid fa-file-arrow-down"></i></button>
-          <button class="sm" onclick="exportGameJson()" title="Eksportuoti JSON"><i class="fa-solid fa-file-arrow-up"></i></button>
-          <button class="sm" onclick="resetToDefaultGame()" title="Atstatyti AmongAI"><i class="fa-solid fa-arrows-rotate"></i></button>
-          <button class="sm btn-confirm" onclick="saveEditorChanges()" title="Išsaugoti"><i class="fa-solid fa-check"></i></button>
+          <button class="sm btn-confirm" onclick="saveEditorChanges()"><i class="fa-solid fa-check"></i></button>
         </div>
       </div>
 
@@ -1683,7 +2153,7 @@ function render() {
             <div class="card-face-title">${escapeHtml(state.currentCard.title)}</div>
             ${mode === 4 && BASE_GAME.returnCondition === 'dynamic' ? `
               <div class="return-btn-wrap">
-                <button onclick="handleDynamicReturn(event)" title="Grąžinti į kaladę">
+                <button onclick="handleDynamicReturn(event)">
                   <i class="fa-solid fa-file-import"></i>
                 </button>
               </div>
@@ -1733,7 +2203,6 @@ function render() {
         ${BASE_GAME.finals.map((f, idx) => `
           <button class="final-token"
                   style="--token-color: ${PALETTE[f.color]}"
-                  title="${escapeHtml(f.title)}"
                   onclick="promptFinalCard(BASE_GAME.finals[${idx}])">
             ${extractInitial(f.title)}
           </button>
@@ -1802,7 +2271,7 @@ function render() {
   }
 }
 
-initSession();
+handleStartupRouting();
 </script>
 </body>
 </html>
