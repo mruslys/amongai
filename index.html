@@ -1,1162 +1,1808 @@
 <!DOCTYPE html>
 <html lang="lt">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neišsiduok, kas tu 🎭</title>
-    <!-- Font Awesome 6 ikonos -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            user-select: none;
-            -webkit-user-select: none;
-            touch-action: manipulation;
-        }
-
-        body {
-            background: linear-gradient(135deg, #1e1e2f, #2a2a40);
-            color: #ffffff;
-            min-height: 100vh;
-            min-height: 100dvh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 15px;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 420px;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 24px;
-            text-align: center;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .setup-screen, .game-screen, .settings-screen, .help-screen {
-            display: none;
-            width: 100%;
-        }
-
-        .active {
-            display: block;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        /* Viršutinė juosta (tik centruota ikona) */
-        .game-header-bar {
-            margin-bottom: 22px;
-            text-align: center;
-        }
-
-        .game-header-bar .hero-icon {
-            font-size: 3.2rem;
-            color: #e0e0e0;
-            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.35);
-            display: inline-block;
-        }
-
-        /* Baziniai mygtukai */
-        button {
-            background: #4cd137;
-            color: #1e1e2f;
-            border: none;
-            border-radius: 12px;
-            padding: 16px 20px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-            transition: transform 0.1s ease, background 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
-            box-shadow: 0 5px 15px rgba(76, 209, 55, 0.4);
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        button:active:not(:disabled):not(.disabled-look) {
-            transform: scale(0.98);
-        }
-
-        button:hover:not(:disabled):not(.disabled-look) {
-            background: #44bd32;
-        }
-
-        button:disabled, button.disabled-look {
-            opacity: 0.4;
-            cursor: not-allowed;
-            box-shadow: none;
-        }
-
-        button.secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-            box-shadow: none;
-            margin-bottom: 0;
-        }
-
-        button.secondary:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        /* Pradinio ekrano PLAY mygtukas */
-        .play-btn {
-            font-size: 1.4rem;
-            padding: 16px;
-            margin-bottom: 0;
-        }
-
-        /* Organiška apatinė juosta po PLAY mygtuku (be fonų) */
-        .footer-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 18px;
-            padding-top: 14px;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .subtle-btn {
-            background: transparent !important;
-            border: none;
-            box-shadow: none !important;
-            color: #888899;
-            width: auto;
-            margin: 0;
-            padding: 6px 10px;
-            font-size: 1.25rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: color 0.2s ease, transform 0.15s ease;
-        }
-
-        .subtle-btn:hover {
-            background: transparent !important;
-            color: #d0d0e0;
-        }
-
-        .subtle-btn:active {
-            transform: scale(0.94);
-        }
-
-        .preset-indicator-btn {
-            font-size: 0.85rem;
-            letter-spacing: 1.2px;
-            text-transform: uppercase;
-            color: #888899;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-        }
-
-        .preset-indicator-btn i {
-            font-size: 0.75rem;
-            opacity: 0.6;
-            transition: transform 0.3s ease;
-        }
-
-        .preset-indicator-btn:active i {
-            transform: rotate(180deg);
-        }
-
-        @keyframes popText {
-            0% { transform: scale(0.92); opacity: 0.5; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        .preset-pop {
-            animation: popText 0.2s ease-out;
-        }
-
-        /* Langų antraštės */
-        .settings-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-
-        .settings-header h2 {
-            font-size: 1.45rem;
-            color: #e0e0e0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .settings-header h2 i {
-            color: #aaa;
-            font-size: 1.25rem;
-        }
-
-        .close-icon-btn {
-            background: transparent !important;
-            color: #888899;
-            font-size: 1.5rem;
-            width: auto;
-            padding: 5px;
-            margin: 0;
-            box-shadow: none !important;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: color 0.2s ease;
-        }
-
-        .close-icon-btn:hover {
-            background: transparent !important;
-            color: #ff4757;
-        }
-
-        /* Statistikos / indikatorių juosta */
-        .stats-bar {
-            display: flex;
-            justify-content: space-between;
-            gap: 8px;
-            margin-bottom: 18px;
-        }
-
-        .stat-pill {
-            flex: 1;
-            background: rgba(0, 0, 0, 0.25);
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 12px 6px;
-            font-size: 1.1rem;
-            color: #aaa;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            cursor: pointer;
-            transition: background 0.2s ease, border-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
-        }
-
-        .stat-pill:active {
-            transform: scale(0.96);
-        }
-
-        .stat-pill i {
-            font-size: 1.15rem;
-            color: #fff;
-            opacity: 0.95;
-        }
-
-        .stat-pill span {
-            color: #fff;
-            font-weight: bold;
-        }
-
-        /* Žaidėjų indikatorius */
-        .stat-pill.players {
-            border-color: rgba(76, 209, 55, 0.25);
-            background: rgba(76, 209, 55, 0.05);
-        }
-        .stat-pill.players i, .stat-pill.players span {
-            color: #4cd137;
-        }
-
-        /* Signalizuojantis sumirksėjimas žaidėjų indikatoriui */
-        @keyframes blinkSignal {
-            0%, 100% {
-                transform: scale(1);
-                border-color: rgba(76, 209, 55, 0.25);
-                background: rgba(76, 209, 55, 0.05);
-                box-shadow: none;
-            }
-            25%, 75% {
-                transform: scale(1.06);
-                border-color: #4cd137;
-                background: rgba(76, 209, 55, 0.35);
-                box-shadow: 0 0 18px rgba(76, 209, 55, 0.7);
-            }
-            50% {
-                transform: scale(0.98);
-                border-color: rgba(76, 209, 55, 0.4);
-                background: rgba(76, 209, 55, 0.1);
-                box-shadow: none;
-            }
-        }
-
-        .stat-pill.players.blink-alert {
-            animation: blinkSignal 0.6s ease-in-out;
-        }
-
-        /* Piktadarių indikatorius */
-        .stat-pill.danger {
-            border-color: rgba(255, 71, 87, 0.25);
-            background: rgba(255, 71, 87, 0.05);
-        }
-        .stat-pill.danger i, .stat-pill.danger span {
-            color: #ff4757;
-            text-shadow: 0 0 8px rgba(255, 71, 87, 0.4);
-        }
-
-        /* Specialių rolių indikatorius */
-        .stat-pill.neutral-stat {
-            border-color: rgba(255, 165, 2, 0.25);
-            background: rgba(255, 165, 2, 0.05);
-        }
-        .stat-pill.neutral-stat i, .stat-pill.neutral-stat span {
-            color: #ffa502;
-            text-shadow: 0 0 8px rgba(255, 165, 2, 0.4);
-        }
-
-        /* Kortelė */
-        .card {
-            background: rgba(0, 0, 0, 0.25);
-            border-radius: 18px;
-            padding: 35px 20px;
-            margin-bottom: 22px;
-            min-height: 240px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            border: 2px solid rgba(255, 255, 255, 0.12);
-            box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.3);
-            position: relative;
-        }
-
-        .card-back-icon {
-            font-size: 4.5rem;
-            color: rgba(255, 255, 255, 0.2);
-            text-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-            animation: pulseQuestion 2.5s infinite ease-in-out;
-        }
-
-        @keyframes pulseQuestion {
-            0%, 100% { transform: scale(1); opacity: 0.2; }
-            50% { transform: scale(1.06); opacity: 0.35; }
-        }
-
-        .role-title {
-            font-size: 2.1rem;
-            font-weight: bold;
-            text-transform: capitalize;
-            letter-spacing: 1px;
-            display: none;
-        }
-
-        .role-title.normal {
-            color: #4cd137;
-        }
-
-        .role-title.neutral {
-            color: #ffa502;
-            text-shadow: 0 0 10px rgba(255, 165, 2, 0.4);
-        }
-
-        .role-title.alert {
-            color: #ff4757;
-            text-shadow: 0 0 10px rgba(255, 71, 87, 0.4);
-        }
-
-        .placeholder-text {
-            color: #aaa;
-            font-size: 1.15rem;
-            line-height: 1.45;
-            display: none;
-        }
-
-        /* Nustatymų elementai */
-        .input-group {
-            margin-bottom: 14px;
-            text-align: left;
-        }
-
-        .input-group label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.95rem;
-            color: #ccc;
-            margin-bottom: 6px;
-            font-weight: 500;
-        }
-
-        .input-group label i {
-            width: 20px;
-            text-align: center;
-        }
-
-        .input-group label i.fa-users { color: #4cd137; }
-        .input-group label i.fa-skull { color: #ff4757; }
-        .input-group label i.fa-star { color: #ffa502; }
-        .input-group label i.fa-user { color: #3498db; }
-        .input-group label i.fa-gamepad { color: #ffa502; }
-        .input-group label i.fa-repeat { color: #a29bfe; }
-
-        select, textarea {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.3);
-            border: 2px solid rgba(255, 255, 255, 0.15);
-            border-radius: 12px;
-            color: #fff;
-            padding: 10px 12px;
-            font-size: 0.9rem;
-            transition: border-color 0.2s ease;
-        }
-
-        select {
-            appearance: none;
-            -webkit-appearance: none;
-            cursor: pointer;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23aaaaaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 12px center;
-            background-size: 16px;
-            padding-right: 36px;
-        }
-
-        select option {
-            background: #2a2a40;
-            color: #fff;
-        }
-
-        textarea {
-            resize: none;
-            height: 60px;
-            font-size: 0.85rem;
-            line-height: 1.4;
-        }
-
-        select:focus, textarea:focus {
-            outline: none;
-            border-color: #4cd137;
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-            margin-bottom: 5px;
-        }
-
-        .btn-group button {
-            flex: 1;
-            margin-bottom: 0;
-            padding: 14px 10px;
-        }
-
-        /* --- Atnaujinto Pagalbos lango stiliai --- */
-        .help-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            text-align: left;
-        }
-
-        .help-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
-            padding: 11px 13px;
-        }
-
-        .help-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            flex-shrink: 0;
-            margin-top: 1px;
-        }
-
-        .help-icon.green {
-            background: rgba(76, 209, 55, 0.12);
-            color: #4cd137;
-        }
-
-        .help-icon.red {
-            background: rgba(255, 71, 87, 0.12);
-            color: #ff4757;
-        }
-
-        .help-icon.amber {
-            background: rgba(255, 165, 2, 0.12);
-            color: #ffa502;
-        }
-
-        .help-icon.purple {
-            background: rgba(162, 155, 254, 0.12);
-            color: #a29bfe;
-        }
-
-        .help-content {
-            flex: 1;
-        }
-
-        .help-title {
-            font-size: 0.92rem;
-            font-weight: 600;
-            color: #e8e8f0;
-            margin-bottom: 2px;
-        }
-
-        .help-desc {
-            font-size: 0.8rem;
-            color: #9999aa;
-            line-height: 1.38;
-        }
-
-        .help-tip-box {
-            margin-top: 14px;
-            padding-top: 14px;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-            text-align: left;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .help-tip-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 0.82rem;
-            color: #ffa502;
-            opacity: 0.92;
-            line-height: 1.35;
-        }
-
-        .gesture-badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 28px;
-            padding: 2px 6px;
-            border-radius: 6px;
-            background: rgba(255, 165, 2, 0.14);
-            border: 1px solid rgba(255, 165, 2, 0.3);
-            color: #ffa502;
-            font-weight: 700;
-            font-size: 0.75rem;
-            flex-shrink: 0;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AmongAI — Game Runtime & Editor MVP</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  :root {
+    --bg: #090a0f;
+    --surface: #12151f;
+    --surface-2: #1a1f2e;
+    --border: #262c40;
+    --text: #f3f4f6;
+    --muted: #8b95a5;
+    --c-red: #ef4444;
+    --c-amber: #f59e0b;
+    --c-emerald: #10b981;
+    --c-cyan: #06b6d4;
+    --c-blue: #3b82f6;
+    --c-purple: #a855f7;
+    --c-pink: #ec4899;
+    --c-gray: #9ca3af;
+    --c-white: #ffffff;
+    --accent: var(--c-blue);
+  }
+
+  * {
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  input, textarea, select {
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
+  body, html {
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+  }
+
+  #app {
+    position: relative;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px;
+    transition: box-shadow 0.25s ease;
+  }
+
+  /* Šviesos efektai (FX) */
+  .fx-start { animation: flashEdge 0.9s ease-out; }
+  .fx-end { animation: pulseEdge 0.8s infinite alternate; }
+  .fx-alarm { animation: alarmFlash 0.35s infinite alternate !important; }
+  .fx-final { box-shadow: inset 0 0 90px var(--accent), inset 0 0 30px var(--accent); }
+
+  @keyframes flashEdge {
+    0% { box-shadow: inset 0 0 110px var(--accent), inset 0 0 40px var(--accent); }
+    100% { box-shadow: inset 0 0 0px transparent; }
+  }
+  @keyframes pulseEdge {
+    0% { box-shadow: inset 0 0 25px var(--accent); }
+    100% { box-shadow: inset 0 0 95px var(--accent), inset 0 0 35px var(--accent); }
+  }
+  @keyframes alarmFlash {
+    0% { box-shadow: inset 0 0 30px var(--c-red); background: #1f0909; }
+    100% { box-shadow: inset 0 0 120px var(--c-red); background: #3b0a0a; }
+  }
+
+  /* 0.6s apsaugos barjeras */
+  .locked { pointer-events: none !important; }
+  .lock-bar {
+    position: fixed;
+    top: 0; left: 0; height: 4px;
+    background: var(--accent);
+    width: 0%;
+    z-index: 200;
+  }
+  .lock-bar.active { animation: lockProgress 0.6s linear forwards; }
+  @keyframes lockProgress {
+    0% { width: 100%; opacity: 1; }
+    100% { width: 0%; opacity: 0; }
+  }
+
+  /* Viršutinė ir apatinė juostos */
+  .top-bar {
+    width: 100%;
+    max-width: 500px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 48px;
+    flex-shrink: 0;
+  }
+  .top-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .bottom-bar {
+    width: 100%;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: center;
+    padding-bottom: 6px;
+    flex-shrink: 0;
+  }
+  .action-row {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+  }
+
+  /* Mygtukai */
+  button {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    color: var(--text);
+    border-radius: 50%;
+    width: 62px; height: 62px;
+    font-size: 1.4rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.1s, border-color 0.2s, background 0.2s;
+    padding: 0;
+  }
+  button:active { transform: scale(0.92); }
+  button.sm { width: 44px; height: 44px; font-size: 1.1rem; }
+  button.lg {
+    width: 78px; height: 78px;
+    font-size: 1.85rem;
+    border-color: var(--accent);
+    box-shadow: 0 0 24px -6px var(--accent);
+  }
+  button.danger { border-color: var(--c-red); color: var(--c-red); }
+  button.danger.active-alarm {
+    background: var(--c-red);
+    color: #fff;
+    box-shadow: 0 0 25px var(--c-red);
+  }
+  button.pulse-btn {
+    border-color: var(--accent);
+    animation: btnPulse 0.7s infinite alternate;
+  }
+  @keyframes btnPulse {
+    from { transform: scale(1); box-shadow: 0 0 5px var(--accent); }
+    to { transform: scale(1.12); box-shadow: 0 0 25px var(--accent); }
+  }
+
+  /* 3.A Priešžaidiminis langas */
+  .game-header { text-align: center; margin: 4px 0 8px; }
+  .game-title {
+    font-size: 2.1rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    border-bottom: 3px solid var(--accent);
+    padding-bottom: 6px;
+    display: inline-block;
+  }
+  .counter-pill {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text);
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    padding: 8px 20px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+  }
+  .card-list {
+    width: 100%;
+    max-width: 460px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px 2px;
+    margin: 8px 0;
+  }
+  .card-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--surface);
+    padding: 9px 14px;
+    border-radius: 12px;
+    border-left: 5px solid var(--row-color, var(--accent));
+  }
+  .card-row-title { font-size: 1.08rem; font-weight: 600; }
+  .stepper { display: flex; align-items: center; gap: 10px; }
+  .stepper button { width: 34px; height: 34px; font-size: 0.95rem; }
+  .stepper span { font-size: 1.2rem; font-weight: 700; min-width: 26px; text-align: center; }
+
+  /* 3.B Kortos komponentas */
+  .card-stage {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+  .playing-card {
+    width: min(84vw, 330px);
+    height: min(58vh, 450px);
+    border-radius: 26px;
+    background: var(--surface);
+    border: 4px solid var(--card-color, var(--accent));
+    box-shadow: 0 12px 40px -10px rgba(0,0,0,0.75), 0 0 30px -10px var(--card-color, var(--accent));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.2s;
+  }
+  .playing-card:active { transform: scale(0.97); }
+  .playing-card.face-down {
+    background: repeating-linear-gradient(
+      135deg,
+      #10131c,
+      #10131c 14px,
+      #161a28 14px,
+      #161a28 28px
+    );
+  }
+  .card-back-emblem {
+    width: 82px; height: 82px;
+    border-radius: 50%;
+    border: 3px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.1rem;
+    color: var(--accent);
+    box-shadow: 0 0 22px -4px var(--accent);
+    background: rgba(9, 10, 15, 0.75);
+  }
+  .card-face-title {
+    font-size: 2.2rem;
+    font-weight: 800;
+    line-height: 1.25;
+    word-break: break-word;
+    color: var(--card-color, var(--text));
+  }
+  .return-btn-wrap { position: absolute; bottom: 20px; }
+
+  /* 3.C Fazių moderatorius */
+  .phase-stage {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    text-align: center;
+    width: 100%;
+  }
+  .phase-title {
+    font-size: 1.9rem;
+    font-weight: 700;
+    color: var(--accent);
+    max-width: 90%;
+  }
+  .timer-display {
+    font-size: clamp(4rem, 17vw, 6.2rem);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.03em;
+  }
+  .timer-blink {
+    color: var(--c-red);
+    animation: blinkTxt 0.5s infinite alternate;
+  }
+  @keyframes blinkTxt { from { opacity: 1; } to { opacity: 0.2; } }
+
+  /* 3.D Finaliniai žetonai */
+  .finals-tray {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    width: 100%;
+  }
+  .final-token {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    border: 2px solid var(--token-color);
+    color: var(--token-color);
+    font-size: 1.15rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 14px -3px var(--token-color);
+    background: #141824;
+  }
+
+  /* 4.1 Universalus modalinis patvirtinimas */
+  #modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(6, 7, 11, 0.9);
+    backdrop-filter: blur(6px);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 36px;
+    z-index: 150;
+  }
+  #modal-overlay.open { display: flex; }
+  .modal-symbol { font-size: 3.6rem; font-weight: 800; display: flex; align-items: center; gap: 14px; }
+  .modal-actions { display: flex; gap: 40px; }
+  .btn-confirm { border-color: var(--c-emerald); color: var(--c-emerald); }
+  .btn-cancel { border-color: var(--c-amber); color: var(--c-amber); }
+
+  /* =========================================================================
+     2. REDAKTORIUS (EDITOR FORMA)
+     ========================================================================= */
+  .editor-wrap {
+    width: 100%;
+    max-width: 540px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 4px 4px 24px 4px;
+  }
+  .editor-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .hash-badge {
+    font-family: monospace;
+    font-size: 0.8rem;
+    background: var(--surface-2);
+    padding: 3px 8px;
+    border-radius: 6px;
+    color: var(--c-cyan);
+    border: 1px solid var(--border);
+  }
+  .field-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .field-label {
+    font-size: 0.82rem;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .text-input, .select-input {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 12px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    outline: none;
+  }
+  .text-input:focus, .select-input:focus {
+    border-color: var(--accent);
+  }
+  .palette-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .color-swatch {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.15s;
+  }
+  .color-swatch.selected {
+    border-color: #fff;
+    transform: scale(1.18);
+    box-shadow: 0 0 10px currentColor;
+  }
+  .editor-item-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .editor-item {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--item-color, var(--accent));
+    border-radius: 10px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .editor-item-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .color-cycle-btn {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.45);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .num-input {
+    width: 64px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 8px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    text-align: center;
+  }
+  .icon-btn {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  .icon-btn:hover { color: var(--text); }
+  .icon-btn.del:hover { color: var(--c-red); border-color: var(--c-red); }
+  .icon-btn.active-toggle {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: rgba(59, 130, 246, 0.12);
+  }
+  .phase-subrow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding-top: 4px;
+    border-top: 1px dashed var(--border);
+  }
+  .toggle-group {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .pill-btn {
+    width: auto; height: 34px;
+    border-radius: 8px;
+    padding: 0 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    gap: 6px;
+    background: var(--surface-2);
+  }
+  .inline-switch {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface-2);
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+  }
+</style>
 </head>
 <body>
 
-    <div class="container">
+<div class="lock-bar" id="lock-bar"></div>
+<div id="app"></div>
 
-        <!-- 1. Nustatymų ekranas -->
-        <div id="settingsScreen" class="settings-screen">
-            <div class="settings-header">
-                <h2><i class="fa-solid fa-sliders" style="margin-left: 4px;"></i> Nustatymai</h2>
-                <button type="button" class="close-icon-btn" onclick="closeSettings()" title="Uždaryti">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
+<!-- Universalus modalinis langas -->
+<div id="modal-overlay">
+  <div class="modal-symbol" id="modal-symbol"></div>
+  <div class="modal-actions">
+    <button class="lg btn-confirm" id="modal-yes"><i class="fa-solid fa-check"></i></button>
+    <button class="lg btn-cancel" id="modal-no"><i class="fa-solid fa-rotate-left"></i></button>
+  </div>
+</div>
 
-            <div class="input-group">
-                <label for="setPreset"><i class="fa-solid fa-gamepad"></i> Žaidimo tipas</label>
-                <select id="setPreset" onchange="handlePresetChange()">
-                    <option value="among_us">Among Us</option>
-                    <option value="mafia">Mafia</option>
-                    <option value="custom">Pasirinktinis</option>
-                </select>
-            </div>
-            
-            <div class="input-group">
-                <label for="setRegular"><i class="fa-solid fa-user"></i> Komanda</label>
-                <textarea id="setRegular"></textarea>
-            </div>
+<script>
+// 9 fiksuotų spalvų paletė
+const COLOR_KEYS = ['red', 'amber', 'emerald', 'cyan', 'blue', 'purple', 'pink', 'gray', 'white'];
+const PALETTE = {
+  red: 'var(--c-red)',
+  amber: 'var(--c-amber)',
+  emerald: 'var(--c-emerald)',
+  cyan: 'var(--c-cyan)',
+  blue: 'var(--c-blue)',
+  purple: 'var(--c-purple)',
+  pink: 'var(--c-pink)',
+  gray: 'var(--c-gray)',
+  white: 'var(--c-white)'
+};
 
-            <div class="input-group">
-                <label for="setMandatory"><i class="fa-solid fa-skull"></i> Piktadariai</label>
-                <textarea id="setMandatory"></textarea>
-            </div>
+// Numatytasis žaidimas: AmongAI (be Emoji simbolių pavadinimuose)
+const DEFAULT_GAME = {
+  hash: "",
+  title: "AmongAI",
+  color: "blue",
+  dealMode: 1,            // 1: Custom, 2: Full Deck, 3: Random Draw X, 4: Infinite Draw
+  shuffle: true,
+  returnMethod: "bottom", // "bottom" | "shuffle" | "middle"
+  returnCondition: "auto",// "auto" | "dynamic"
+  cards: [
+    { id: "c1", title: "Žmogus", color: "blue", count: 5 },
+    { id: "c2", title: "Gydytojas", color: "blue", count: 1 },
+    { id: "c3", title: "Teisėjas", color: "blue", count: 1 },
+    { id: "c4", title: "Policininkas", color: "blue", count: 1 },
+    { id: "c5", title: "Imposteris", color: "red", count: 2 },
+    { id: "c6", title: "Trintukas", color: "red", count: 1 },
+    { id: "c7", title: "Ligonis", color: "red", count: 1 },
+    { id: "c8", title: "Džakalas", color: "amber", count: 1 }
+  ],
+  phases: [
+    { id: "p1", title: "Susipažinimas", color: "purple", loop: false, duration: 20, fxStart: true, fxEnd: true, fxAlarm: false },
+    { id: "p2", title: "Užduotys ir veiksmas", color: "blue", loop: true, duration: 120, fxStart: true, fxEnd: true, fxAlarm: true },
+    { id: "p3", title: "Skubus susirinkimas", color: "amber", loop: true, duration: 90, fxStart: true, fxEnd: true, fxAlarm: false }
+  ],
+  finals: [
+    { id: "f1", title: "Žmonių pergalė", color: "blue" },
+    { id: "f2", title: "Imposterių pergalė", color: "red" },
+    { id: "f3", title: "Džakalo pergalė", color: "amber" }
+  ]
+};
 
-            <div class="input-group">
-                <label for="setNeutral"><i class="fa-solid fa-star"></i> Specialios rolės</label>
-                <textarea id="setNeutral"></textarea>
-            </div>
+// ============================================================================
+// WEB AUDIO API GARSO VARIKLIS (Zero-Asset)
+// ============================================================================
+const SoundEngine = {
+  ctx: null,
+  muted: false,
+  sirenInterval: null,
+  sirenOsc: null,
+  sirenGain: null,
 
-            <div class="btn-group">
-                <button type="button" class="secondary" onclick="resetToFactoryDefaults()">Atstatyti</button>
-                <button type="button" onclick="saveSettings()">Išsaugoti</button>
+  init() {
+    if (!this.ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) this.ctx = new AudioCtx();
+    }
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  },
+
+  toggleMute() {
+    this.muted = !this.muted;
+    if (this.muted) this.stopSiren();
+    render();
+  },
+
+  // Trumpas kortos bakstelėjimo / atvertimo garsas
+  playCardFlip(faceUp) {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(faceUp ? 280 : 420, now);
+    osc.frequency.exponentialRampToValueAtTime(faceUp ? 520 : 180, now + 0.08);
+
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.085);
+  },
+
+  // Fazės pradžios dvigubas signalas
+  playPhaseStart() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    [440, 659.25].forEach((freq, i) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + i * 0.1);
+      gain.gain.setValueAtTime(0.15, now + i * 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.35);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now + i * 0.1);
+      osc.stop(now + i * 0.1 + 0.36);
+    });
+  },
+
+  // Paskutinių 5 sekundžių tiksėjimas
+  playTick() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, now);
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.045);
+  },
+
+  // Fazės laiko pabaigos gongas (00:00)
+  playPhaseEnd() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    [220, 330, 440].forEach(freq => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(0.1, now);
+      gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.9);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.92);
+    });
+  },
+
+  // Aliarmo sirena (Among Us / Emergency stiliaus moduliuojama sirena)
+  startSiren() {
+    this.stopSiren();
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(440, now);
+    gain.gain.setValueAtTime(0.16, now);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+
+    this.sirenOsc = osc;
+    this.sirenGain = gain;
+
+    let high = true;
+    const sweep = () => {
+      if (!this.sirenOsc || !this.ctx) return;
+      const t = this.ctx.currentTime;
+      this.sirenOsc.frequency.cancelScheduledValues(t);
+      this.sirenOsc.frequency.setValueAtTime(this.sirenOsc.frequency.value, t);
+      this.sirenOsc.frequency.linearRampToValueAtTime(high ? 860 : 420, t + 0.38);
+      high = !high;
+    };
+    sweep();
+    this.sirenInterval = setInterval(sweep, 400);
+  },
+
+  stopSiren() {
+    if (this.sirenInterval) {
+      clearInterval(this.sirenInterval);
+      this.sirenInterval = null;
+    }
+    if (this.sirenOsc) {
+      try { this.sirenOsc.stop(); this.sirenOsc.disconnect(); } catch (_) {}
+      this.sirenOsc = null;
+    }
+    if (this.sirenGain) {
+      try { this.sirenGain.disconnect(); } catch (_) {}
+      this.sirenGain = null;
+    }
+  },
+
+  // Finalinės kortos akordas
+  playFinalFanfare() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const notes = [261.63, 329.63, 392.00, 523.25];
+    notes.forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+      gain.gain.setValueAtTime(0.16, now + idx * 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 1.1);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now + idx * 0.08);
+      osc.stop(now + idx * 0.08 + 1.15);
+    });
+  }
+};
+
+// Deterministinis kanoninio JSON hash skaičiavimas (FNV-1a 32-bit)
+function computeCanonicalHash(gameObj) {
+  const canonical = {
+    title: (gameObj.title || "").trim(),
+    color: gameObj.color || "blue",
+    dealMode: Number(gameObj.dealMode) || 1,
+    shuffle: Boolean(gameObj.shuffle),
+    returnMethod: gameObj.returnMethod || "bottom",
+    returnCondition: gameObj.returnCondition || "auto",
+    cards: (gameObj.cards || []).map(c => ({
+      title: (c.title || "").trim(),
+      color: c.color || "blue",
+      count: Math.max(0, Number(c.count) || 0)
+    })),
+    phases: (gameObj.phases || []).map(p => ({
+      title: (p.title || "").trim(),
+      color: p.color || "blue",
+      loop: Boolean(p.loop),
+      duration: Math.max(0, Number(p.duration) || 0),
+      fxStart: Boolean(p.fxStart),
+      fxEnd: Boolean(p.fxEnd),
+      fxAlarm: Boolean(p.fxAlarm)
+    })),
+    finals: (gameObj.finals || []).map(f => ({
+      title: (f.title || "").trim(),
+      color: f.color || "blue"
+    }))
+  };
+  const str = JSON.stringify(canonical);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16).padStart(8, '0');
+}
+
+// Bazinio žaidimo krovimas iš localStorage arba DEFAULT_GAME
+let BASE_GAME = loadGameFromStorage();
+
+function loadGameFromStorage() {
+  try {
+    const saved = localStorage.getItem('amongai_mvp_game');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      parsed.hash = computeCanonicalHash(parsed);
+      return parsed;
+    }
+  } catch (_) {}
+  const copy = JSON.parse(JSON.stringify(DEFAULT_GAME));
+  copy.hash = computeCanonicalHash(copy);
+  return copy;
+}
+
+function saveGameToStorage(gameObj) {
+  gameObj.hash = computeCanonicalHash(gameObj);
+  try {
+    localStorage.setItem('amongai_mvp_game', JSON.stringify(gameObj));
+  } catch (_) {}
+}
+
+// Vykdymo ir sesijos būsena
+const state = {
+  screen: 'PREGAME', // 'PREGAME' | 'EDITOR' | 'DEAL' | 'DEAL_DONE' | 'PHASE' | 'FINAL'
+  locked: false,
+  wakeLock: null,
+
+  // 3.A Sesijos atmintis
+  customCounts: {},
+  randomDrawX: 5,
+
+  // 2. Redaktoriaus laikinas juodraštis
+  editorDraft: null,
+
+  // 3.B Dalijimo būsena
+  deck: [],
+  dealIndex: 0,
+  drawCounter: 1,
+  cardFaceUp: false,
+  currentCard: null,
+
+  // 3.C Fazių būsena
+  phaseIndex: 0,
+  firstLap: true,
+  timeLeft: 0,
+  timerRunning: false,
+  timerInterval: null,
+  alarmActive: false,
+
+  // 3.D Finalinė korta
+  activeFinal: null
+};
+
+function initSession() {
+  state.customCounts = {};
+  BASE_GAME.cards.forEach(c => {
+    state.customCounts[c.id] = c.count;
+  });
+  const total = getBaseDeckSize();
+  state.randomDrawX = Math.min(5, Math.max(1, total));
+  goToPregame();
+}
+
+function getBaseDeckSize() {
+  return (BASE_GAME.cards || []).reduce((sum, c) => sum + (Number(c.count) || 0), 0);
+}
+
+function getCustomDeckSize() {
+  return (BASE_GAME.cards || []).reduce((sum, c) => sum + (state.customCounts[c.id] ?? c.count), 0);
+}
+
+function setAccent(colorKey) {
+  const c = PALETTE[colorKey] || PALETTE.blue;
+  document.documentElement.style.setProperty('--accent', c);
+}
+
+// 0.6s Apsaugos barjeras
+function triggerBarrier() {
+  state.locked = true;
+  const app = document.getElementById('app');
+  const bar = document.getElementById('lock-bar');
+  app.classList.add('locked');
+  bar.classList.remove('active');
+  void bar.offsetWidth;
+  bar.classList.add('active');
+
+  setTimeout(() => {
+    state.locked = false;
+    app.classList.remove('locked');
+  }, 600);
+}
+
+// Screen Wake Lock API
+async function requestWakeLock() {
+  if ('wakeLock' in navigator && !state.wakeLock) {
+    try {
+      state.wakeLock = await navigator.wakeLock.request('screen');
+      state.wakeLock.addEventListener('release', () => { state.wakeLock = null; });
+    } catch (_) {}
+  }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && state.screen !== 'PREGAME' && state.screen !== 'EDITOR') {
+    requestWakeLock();
+  }
+});
+
+// Universalus modalinis patvirtinimo langas
+function openConfirmModal(symbolHtml, onConfirm) {
+  const overlay = document.getElementById('modal-overlay');
+  const sym = document.getElementById('modal-symbol');
+  const yes = document.getElementById('modal-yes');
+  const no = document.getElementById('modal-no');
+
+  sym.innerHTML = symbolHtml;
+  overlay.classList.add('open');
+
+  yes.onclick = () => {
+    overlay.classList.remove('open');
+    onConfirm();
+  };
+  no.onclick = () => {
+    overlay.classList.remove('open');
+  };
+}
+
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ============================================================================
+// 3.A PRIEŠŽAIDIMINIS LANGAS
+// ============================================================================
+function goToPregame() {
+  stopPhaseTimer();
+  SoundEngine.stopSiren();
+  state.alarmActive = false;
+  state.screen = 'PREGAME';
+  clearAppEffects();
+  setAccent(BASE_GAME.color);
+  render();
+}
+
+function adjustCustomCount(cardId, delta) {
+  SoundEngine.playCardFlip(true);
+  const current = state.customCounts[cardId] ?? 0;
+  state.customCounts[cardId] = Math.max(0, current + delta);
+  render();
+}
+
+function adjustRandomDrawX(delta) {
+  SoundEngine.playCardFlip(true);
+  const max = getBaseDeckSize();
+  state.randomDrawX = Math.min(max, Math.max(1, state.randomDrawX + delta));
+  render();
+}
+
+// ============================================================================
+// 2. ŽAIDIMO NUSTATYMŲ FORMA (EDITOR)
+// ============================================================================
+function openEditor() {
+  state.editorDraft = JSON.parse(JSON.stringify(BASE_GAME));
+  state.editorDraft.hash = computeCanonicalHash(state.editorDraft);
+  state.screen = 'EDITOR';
+  setAccent(state.editorDraft.color);
+  render();
+}
+
+function updateDraftHashBadge() {
+  if (!state.editorDraft) return;
+  state.editorDraft.hash = computeCanonicalHash(state.editorDraft);
+  const badge = document.getElementById('draft-hash-badge');
+  if (badge) badge.textContent = `#${state.editorDraft.hash}`;
+}
+
+function cycleColor(currentKey) {
+  const idx = COLOR_KEYS.indexOf(currentKey);
+  return COLOR_KEYS[(idx + 1) % COLOR_KEYS.length];
+}
+
+function moveItem(arr, index, dir) {
+  const target = index + dir;
+  if (target < 0 || target >= arr.length) return;
+  const temp = arr[index];
+  arr[index] = arr[target];
+  arr[target] = temp;
+  render();
+}
+
+function saveEditorChanges() {
+  if (!state.editorDraft) return;
+  if (!state.editorDraft.title || !state.editorDraft.title.trim()) {
+    state.editorDraft.title = "AmongAI";
+  }
+  BASE_GAME = JSON.parse(JSON.stringify(state.editorDraft));
+  saveGameToStorage(BASE_GAME);
+  initSession();
+}
+
+function resetToDefaultGame() {
+  openConfirmModal('<i class="fa-solid fa-arrows-rotate"></i> ?', () => {
+    BASE_GAME = JSON.parse(JSON.stringify(DEFAULT_GAME));
+    saveGameToStorage(BASE_GAME);
+    initSession();
+  });
+}
+
+function exportGameJson() {
+  if (!state.editorDraft) return;
+  state.editorDraft.hash = computeCanonicalHash(state.editorDraft);
+  const jsonStr = JSON.stringify(state.editorDraft, null, 2);
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(jsonStr).catch(() => {});
+  }
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${(state.editorDraft.title || 'game').toLowerCase().replace(/\s+/g, '_')}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importGameJson() {
+  const input = prompt("Įklijuokite žaidimo JSON kodą:");
+  if (!input) return;
+  try {
+    const parsed = JSON.parse(input);
+    if (!parsed.title) throw new Error("Trūksta pavadinimo");
+    state.editorDraft = {
+      title: String(parsed.title),
+      color: COLOR_KEYS.includes(parsed.color) ? parsed.color : 'blue',
+      dealMode: [1,2,3,4].includes(Number(parsed.dealMode)) ? Number(parsed.dealMode) : 1,
+      shuffle: parsed.shuffle !== false,
+      returnMethod: ['bottom','shuffle','middle'].includes(parsed.returnMethod) ? parsed.returnMethod : 'bottom',
+      returnCondition: ['auto','dynamic'].includes(parsed.returnCondition) ? parsed.returnCondition : 'auto',
+      cards: Array.isArray(parsed.cards) ? parsed.cards.map((c, i) => ({
+        id: c.id || `c_${Date.now()}_${i}`,
+        title: String(c.title || 'Korta'),
+        color: COLOR_KEYS.includes(c.color) ? c.color : 'blue',
+        count: Math.max(0, Number(c.count) || 1)
+      })) : [],
+      phases: Array.isArray(parsed.phases) ? parsed.phases.map((p, i) => ({
+        id: p.id || `p_${Date.now()}_${i}`,
+        title: String(p.title || 'Fazė'),
+        color: COLOR_KEYS.includes(p.color) ? p.color : 'blue',
+        loop: Boolean(p.loop),
+        duration: Math.max(0, Number(p.duration) || 0),
+        fxStart: Boolean(p.fxStart),
+        fxEnd: Boolean(p.fxEnd),
+        fxAlarm: Boolean(p.fxAlarm)
+      })) : [],
+      finals: Array.isArray(parsed.finals) ? parsed.finals.map((f, i) => ({
+        id: f.id || `f_${Date.now()}_${i}`,
+        title: String(f.title || 'Finalas'),
+        color: COLOR_KEYS.includes(f.color) ? f.color : 'blue'
+      })) : []
+    };
+    state.editorDraft.hash = computeCanonicalHash(state.editorDraft);
+    setAccent(state.editorDraft.color);
+    render();
+  } catch (err) {
+    alert("Netinkamas JSON formatas.");
+  }
+}
+
+// ============================================================================
+// 3.B KORTŲ DALIJIMO PROCESAS
+// ============================================================================
+function buildSessionDeck() {
+  let raw = [];
+  const mode = BASE_GAME.dealMode;
+
+  BASE_GAME.cards.forEach(c => {
+    const qty = (mode === 1) ? (state.customCounts[c.id] ?? c.count) : c.count;
+    for (let i = 0; i < qty; i++) {
+      raw.push({ ...c });
+    }
+  });
+
+  if (mode === 1) return shuffleArray(raw);
+  if (mode === 2) return BASE_GAME.shuffle ? shuffleArray(raw) : raw;
+  if (mode === 3) return shuffleArray(raw).slice(0, state.randomDrawX);
+  if (mode === 4) return shuffleArray(raw);
+  return raw;
+}
+
+function startDealing() {
+  SoundEngine.init();
+  requestWakeLock();
+  clearAppEffects();
+  setAccent(BASE_GAME.color);
+
+  state.deck = buildSessionDeck();
+  state.dealIndex = 0;
+  state.drawCounter = 1;
+  state.cardFaceUp = false;
+  state.currentCard = null;
+
+  state.screen = (state.deck.length === 0) ? 'DEAL_DONE' : 'DEAL';
+  render();
+}
+
+function handleCardTap() {
+  if (state.locked) return;
+
+  if (!state.cardFaceUp) {
+    state.cardFaceUp = true;
+    state.currentCard = (BASE_GAME.dealMode === 4) ? state.deck[0] : state.deck[state.dealIndex];
+    setAccent(state.currentCard.color);
+    SoundEngine.playCardFlip(true);
+    render();
+  } else {
+    SoundEngine.playCardFlip(false);
+    if (BASE_GAME.dealMode === 4) {
+      const drawn = state.deck.shift();
+      if (BASE_GAME.returnCondition === 'auto') {
+        returnCardToDeck(drawn);
+      }
+      state.drawCounter++;
+      state.cardFaceUp = false;
+      state.currentCard = null;
+      setAccent(BASE_GAME.color);
+
+      if (state.deck.length === 0) state.screen = 'DEAL_DONE';
+      render();
+      triggerBarrier();
+    } else {
+      state.dealIndex++;
+      state.cardFaceUp = false;
+      state.currentCard = null;
+      setAccent(BASE_GAME.color);
+
+      if (state.dealIndex >= state.deck.length) state.screen = 'DEAL_DONE';
+      render();
+      triggerBarrier();
+    }
+  }
+}
+
+function handleDynamicReturn(e) {
+  e.stopPropagation();
+  if (state.locked || !state.cardFaceUp) return;
+
+  SoundEngine.playCardFlip(false);
+  const drawn = state.deck.shift();
+  returnCardToDeck(drawn);
+  state.drawCounter++;
+  state.cardFaceUp = false;
+  state.currentCard = null;
+  setAccent(BASE_GAME.color);
+  render();
+  triggerBarrier();
+}
+
+function returnCardToDeck(card) {
+  const method = BASE_GAME.returnMethod;
+  if (method === 'bottom') {
+    state.deck.push(card);
+  } else if (method === 'shuffle') {
+    state.deck.push(card);
+    state.deck = shuffleArray(state.deck);
+  } else if (method === 'middle') {
+    const halfStart = Math.floor(state.deck.length / 2);
+    const randPos = halfStart + Math.floor(Math.random() * (state.deck.length - halfStart + 1));
+    state.deck.splice(randPos, 0, card);
+  }
+}
+
+// ============================================================================
+// 3.C FAZIŲ VALDYMAS IR ŽAIDIMO EIGA
+// ============================================================================
+function startPhases() {
+  SoundEngine.init();
+  requestWakeLock();
+  state.screen = 'PHASE';
+  state.phaseIndex = 0;
+  state.firstLap = true;
+  state.alarmActive = false;
+  loadCurrentPhase();
+}
+
+function loadCurrentPhase() {
+  stopPhaseTimer();
+  SoundEngine.stopSiren();
+  clearAppEffects();
+  state.alarmActive = false;
+
+  const hasPhases = BASE_GAME.phases && BASE_GAME.phases.length > 0;
+  if (!hasPhases) {
+    setAccent(BASE_GAME.color);
+    state.timeLeft = 0;
+    state.timerRunning = true;
+    startPhaseTimer(false);
+    render();
+    return;
+  }
+
+  const phase = BASE_GAME.phases[state.phaseIndex];
+  setAccent(phase.color);
+
+  if (phase.fxStart) {
+    document.getElementById('app').classList.add('fx-start');
+    SoundEngine.playPhaseStart();
+  }
+
+  const isCountdown = phase.duration && phase.duration > 0;
+  state.timeLeft = isCountdown ? phase.duration : 0;
+  state.timerRunning = true;
+  startPhaseTimer(isCountdown);
+  render();
+}
+
+function startPhaseTimer(isCountdown) {
+  stopPhaseTimer();
+  state.timerInterval = setInterval(() => {
+    if (!state.timerRunning) return;
+
+    if (isCountdown) {
+      if (state.timeLeft > 0) {
+        state.timeLeft--;
+        if (state.timeLeft > 0 && state.timeLeft <= 5) {
+          SoundEngine.playTick();
+        }
+        if (state.timeLeft === 0) {
+          const phase = BASE_GAME.phases[state.phaseIndex];
+          if (phase && phase.fxEnd) {
+            document.getElementById('app').classList.add('fx-end');
+            SoundEngine.playPhaseEnd();
+          }
+        }
+        renderTimerOnly();
+      }
+    } else {
+      state.timeLeft++;
+      renderTimerOnly();
+    }
+  }, 1000);
+}
+
+function stopPhaseTimer() {
+  if (state.timerInterval) {
+    clearInterval(state.timerInterval);
+    state.timerInterval = null;
+  }
+}
+
+function togglePausePhase() {
+  state.timerRunning = !state.timerRunning;
+  render();
+}
+
+function triggerAlarm() {
+  state.alarmActive = !state.alarmActive;
+  const app = document.getElementById('app');
+  app.classList.toggle('fx-alarm', state.alarmActive);
+  if (state.alarmActive) {
+    SoundEngine.startSiren();
+  } else {
+    SoundEngine.stopSiren();
+  }
+  render();
+}
+
+function getNextPhaseIndex() {
+  const phases = BASE_GAME.phases || [];
+  if (phases.length === 0) return -1;
+
+  if (state.firstLap) {
+    if (state.phaseIndex + 1 < phases.length) return state.phaseIndex + 1;
+    return phases.findIndex(p => p.loop);
+  } else {
+    for (let i = state.phaseIndex + 1; i < phases.length; i++) {
+      if (phases[i].loop) return i;
+    }
+    for (let i = 0; i <= state.phaseIndex; i++) {
+      if (phases[i].loop) return i;
+    }
+    return -1;
+  }
+}
+
+function nextPhase() {
+  const phases = BASE_GAME.phases || [];
+  if (state.firstLap && state.phaseIndex + 1 >= phases.length) {
+    state.firstLap = false;
+  }
+  const nextIdx = getNextPhaseIndex();
+  if (nextIdx !== -1) {
+    state.phaseIndex = nextIdx;
+    loadCurrentPhase();
+  }
+}
+
+// ============================================================================
+// 3.D ŽAIDIMO PABAIGA (FINALINĖS KORTOS)
+// ============================================================================
+function promptFinalCard(finalObj) {
+  const initial = extractInitial(finalObj.title);
+  openConfirmModal(
+    `<span style="color:${PALETTE[finalObj.color]}"><i class="fa-solid fa-trophy"></i> ${initial}</span>`,
+    () => {
+      stopPhaseTimer();
+      SoundEngine.stopSiren();
+      clearAppEffects();
+      state.activeFinal = finalObj;
+      state.screen = 'FINAL';
+      setAccent(finalObj.color);
+      document.getElementById('app').classList.add('fx-final');
+      SoundEngine.playFinalFanfare();
+      render();
+      triggerBarrier();
+    }
+  );
+}
+
+function closeFinalCard() {
+  if (state.locked) return;
+  goToPregame();
+}
+
+function clearAppEffects() {
+  const app = document.getElementById('app');
+  app.classList.remove('fx-start', 'fx-end', 'fx-alarm', 'fx-final');
+}
+
+function formatTime(sec) {
+  const m = String(Math.floor(sec / 60)).padStart(2, '0');
+  const s = String(sec % 60).padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+function extractInitial(str) {
+  const clean = (str || "").trim();
+  return clean ? clean[0].toUpperCase() : 'F';
+}
+
+function escapeHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ============================================================================
+// ATVAIZDAVIMAS (RENDER)
+// ============================================================================
+function renderTimerOnly() {
+  const el = document.getElementById('timer-val');
+  const nextBtn = document.getElementById('next-phase-btn');
+  if (!el) { render(); return; }
+
+  const phase = (BASE_GAME.phases || [])[state.phaseIndex];
+  const isZero = phase && phase.duration > 0 && state.timeLeft === 0;
+  el.textContent = formatTime(state.timeLeft);
+  el.classList.toggle('timer-blink', Boolean(isZero));
+  if (nextBtn) {
+    nextBtn.classList.toggle('pulse-btn', Boolean(isZero));
+  }
+}
+
+function render() {
+  const app = document.getElementById('app');
+  const mode = BASE_GAME.dealMode;
+  const hasCards = BASE_GAME.cards && BASE_GAME.cards.length > 0;
+  const hasPhasesOrFinals = (BASE_GAME.phases && BASE_GAME.phases.length > 0) ||
+                            (BASE_GAME.finals && BASE_GAME.finals.length > 0);
+
+  // --------------------------------------------------------------------------
+  // 1. PRIEŠŽAIDIMINIS LANGAS (3.A)
+  // --------------------------------------------------------------------------
+  if (state.screen === 'PREGAME') {
+    let deckCount = 0;
+    let modeControlsHtml = '';
+
+    if (hasCards) {
+      if (mode === 1) {
+        deckCount = getCustomDeckSize();
+        const rows = BASE_GAME.cards.map(c => `
+          <div class="card-row" style="--row-color: ${PALETTE[c.color]}">
+            <span class="card-row-title">${escapeHtml(c.title)}</span>
+            <div class="stepper">
+              <button class="sm" onclick="adjustCustomCount('${c.id}', -1)"><i class="fa-solid fa-minus"></i></button>
+              <span>${state.customCounts[c.id] ?? c.count}</span>
+              <button class="sm" onclick="adjustCustomCount('${c.id}', 1)"><i class="fa-solid fa-plus"></i></button>
             </div>
+          </div>
+        `).join('');
+        modeControlsHtml = `
+          <div class="counter-pill"><i class="fa-solid fa-users"></i> ${deckCount}</div>
+          <div class="card-list">${rows}</div>
+        `;
+      } else if (mode === 2) {
+        deckCount = getBaseDeckSize();
+        modeControlsHtml = `
+          <div class="counter-pill">
+            <i class="fa-solid fa-users"></i> ${deckCount}
+            ${BASE_GAME.shuffle ? '<i class="fa-solid fa-shuffle"></i>' : '<i class="fa-solid fa-arrow-down-1-9"></i>'}
+          </div>
+        `;
+      } else if (mode === 3) {
+        deckCount = state.randomDrawX;
+        modeControlsHtml = `
+          <div class="counter-pill">
+            <button class="sm" onclick="adjustRandomDrawX(-1)"><i class="fa-solid fa-minus"></i></button>
+            <span><i class="fa-solid fa-users"></i> ${state.randomDrawX} / ${getBaseDeckSize()}</span>
+            <button class="sm" onclick="adjustRandomDrawX(1)"><i class="fa-solid fa-plus"></i></button>
+          </div>
+        `;
+      } else if (mode === 4) {
+        deckCount = getBaseDeckSize();
+        modeControlsHtml = `
+          <div class="counter-pill">
+            <i class="fa-solid fa-users"></i> ${deckCount}
+            <i class="fa-solid fa-infinity"></i>
+          </div>
+        `;
+      }
+    }
+
+    app.innerHTML = `
+      <div class="top-bar">
+        <button class="sm" onclick="SoundEngine.toggleMute()" title="Garsas">
+          <i class="fa-solid ${SoundEngine.muted ? 'fa-volume-xmark' : 'fa-volume-high'}"></i>
+        </button>
+        <div class="top-actions">
+          <button class="sm" onclick="openEditor()" title="Žaidimo nustatymai">
+            <i class="fa-solid fa-sliders"></i>
+          </button>
         </div>
+      </div>
 
-        <!-- 2. Pagalbos ekranas -->
-        <div id="helpScreen" class="help-screen">
-            <div class="settings-header">
-                <h2><i class="fa-regular fa-circle-question" style="margin-left: 4px;"></i> Pagalba</h2>
-                <button type="button" class="close-icon-btn" onclick="closeHelp()" title="Uždaryti">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            
-            <div class="help-list">
-                <div class="help-item">
-                    <div class="help-icon green"><i class="fa-solid fa-users"></i></div>
-                    <div class="help-content">
-                        <div class="help-title">Bendras žaidėjų skaičius</div>
-                        <div class="help-desc">Visi dalyviai. Likusios vietos (atėmus piktadarius ir spec. roles) automatiškai tenka komandai.</div>
-                    </div>
-                </div>
+      <div class="game-header">
+        <div class="game-title">${escapeHtml(BASE_GAME.title)}</div>
+      </div>
 
-                <div class="help-item">
-                    <div class="help-icon red"><i class="fa-solid fa-skull"></i></div>
-                    <div class="help-content">
-                        <div class="help-title">Piktadarių kiekis</div>
-                        <div class="help-desc">Slaptoji komanda (imposteriai, mafija), kurią kiti žaidėjai bando išaiškinti.</div>
-                    </div>
-                </div>
+      ${modeControlsHtml}
 
-                <div class="help-item">
-                    <div class="help-icon amber"><i class="fa-solid fa-star"></i></div>
-                    <div class="help-content">
-                        <div class="help-title">Specialios ir neutralios rolės</div>
-                        <div class="help-desc">Papildomi vaidmenys su atskiromis užduotimis (pvz., džakalas, maniakas).</div>
-                    </div>
-                </div>
-
-                <div class="help-item">
-                    <div class="help-icon purple"><i class="fa-solid fa-repeat"></i></div>
-                    <div class="help-content">
-                        <div class="help-title">Šablonai ir rolių sąrašai</div>
-                        <div class="help-desc">Apačioje greitai perjunkite žaidimo tipą. Nustatymuose pirmasis įrašytas žodis naudojamas kaip pagrindinis likusioms vietoms užpildyti.</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="help-tip-box">
-                <div class="help-tip-row">
-                    <span class="gesture-badge">1×</span>
-                    <span>Bakstelėkite indikatorių vieną kartą, kad padidintumėte skaičių vienetu.</span>
-                </div>
-                <div class="help-tip-row">
-                    <span class="gesture-badge">2×</span>
-                    <span>Bakstelėkite du kartus greitai, kad indikatorių apnulintumėte.</span>
-                </div>
-            </div>
+      <div class="bottom-bar">
+        <div class="action-row">
+          ${hasCards && deckCount > 0 ? `<button class="lg" onclick="startDealing()"><i class="fa-solid fa-clone"></i></button>` : ''}
+          ${hasPhasesOrFinals ? `<button class="lg" onclick="startPhases()"><i class="fa-solid fa-play"></i></button>` : ''}
         </div>
+      </div>
+    `;
+    return;
+  }
 
-        <!-- 3. Pradinis pasiruošimo ekranas -->
-        <div id="setupScreen" class="setup-screen active">
-            <div class="game-header-bar">
-                <i class="fa-solid fa-masks-theater hero-icon"></i>
-            </div>
+  // --------------------------------------------------------------------------
+  // 2. REDAKTORIAUS FORMA (EDITOR)
+  // --------------------------------------------------------------------------
+  if (state.screen === 'EDITOR' && state.editorDraft) {
+    const d = state.editorDraft;
 
-            <div class="stats-bar">
-                <div class="stat-pill players" id="pillPlayers" title="Viengubas paspaudimas: +1 | Dvigubas: nulinti">
-                    <i class="fa-solid fa-users"></i>
-                    <span id="statPlayers">0</span>
-                </div>
-                <div class="stat-pill danger" id="pillBad" title="Viengubas paspaudimas: +1 | Dvigubas: nulinti">
-                    <i class="fa-solid fa-skull"></i>
-                    <span id="statBad">0</span>
-                </div>
-                <div class="stat-pill neutral-stat" id="pillNeutral" title="Viengubas paspaudimas: +1 | Dvigubas: nulinti">
-                    <i class="fa-solid fa-star"></i>
-                    <span id="statNeutral">0</span>
-                </div>
-            </div>
+    const paletteHtml = COLOR_KEYS.map(ck => `
+      <div class="color-swatch ${d.color === ck ? 'selected' : ''}"
+           style="background: ${PALETTE[ck]}; color: ${PALETTE[ck]}"
+           onclick="state.editorDraft.color='${ck}'; setAccent('${ck}'); updateDraftHashBadge(); render();"></div>
+    `).join('');
 
-            <button type="button" id="playBtn" class="play-btn disabled-look" onclick="startGame()" title="Pradėti žaidimą">
-                <i class="fa-solid fa-play"></i>
+    const cardsHtml = d.cards.map((c, i) => `
+      <div class="editor-item" style="--item-color: ${PALETTE[c.color]}">
+        <div class="editor-item-main">
+          <div class="color-cycle-btn"
+               style="background: ${PALETTE[c.color]}"
+               title="Keisti spalvą"
+               onclick="state.editorDraft.cards[${i}].color = cycleColor('${c.color}'); updateDraftHashBadge(); render();"></div>
+          <input class="text-input"
+                 value="${escapeHtml(c.title)}"
+                 placeholder="Kortos pavadinimas"
+                 oninput="state.editorDraft.cards[${i}].title = this.value; updateDraftHashBadge();" />
+          <input type="number" min="0" class="num-input"
+                 value="${c.count}"
+                 oninput="state.editorDraft.cards[${i}].count = Math.max(0, parseInt(this.value)||0); updateDraftHashBadge();" />
+          <button class="icon-btn" onclick="moveItem(state.editorDraft.cards, ${i}, -1)"><i class="fa-solid fa-chevron-up"></i></button>
+          <button class="icon-btn" onclick="moveItem(state.editorDraft.cards, ${i}, 1)"><i class="fa-solid fa-chevron-down"></i></button>
+          <button class="icon-btn del" onclick="state.editorDraft.cards.splice(${i}, 1); updateDraftHashBadge(); render();"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      </div>
+    `).join('');
+
+    const phasesHtml = d.phases.map((p, i) => `
+      <div class="editor-item" style="--item-color: ${PALETTE[p.color]}">
+        <div class="editor-item-main">
+          <div class="color-cycle-btn"
+               style="background: ${PALETTE[p.color]}"
+               title="Keisti spalvą"
+               onclick="state.editorDraft.phases[${i}].color = cycleColor('${p.color}'); updateDraftHashBadge(); render();"></div>
+          <input class="text-input"
+                 value="${escapeHtml(p.title)}"
+                 placeholder="Fazės pavadinimas"
+                 oninput="state.editorDraft.phases[${i}].title = this.value; updateDraftHashBadge();" />
+          <button class="icon-btn" onclick="moveItem(state.editorDraft.phases, ${i}, -1)"><i class="fa-solid fa-chevron-up"></i></button>
+          <button class="icon-btn" onclick="moveItem(state.editorDraft.phases, ${i}, 1)"><i class="fa-solid fa-chevron-down"></i></button>
+          <button class="icon-btn del" onclick="state.editorDraft.phases.splice(${i}, 1); updateDraftHashBadge(); render();"><i class="fa-solid fa-trash"></i></button>
+        </div>
+        <div class="phase-subrow">
+          <div class="toggle-group">
+            <span class="field-label"><i class="fa-regular fa-clock"></i> Sek.:</span>
+            <input type="number" min="0" class="num-input"
+                   value="${p.duration}"
+                   oninput="state.editorDraft.phases[${i}].duration = Math.max(0, parseInt(this.value)||0); updateDraftHashBadge();" />
+          </div>
+          <div class="toggle-group">
+            <button class="icon-btn ${p.loop ? 'active-toggle' : ''}" title="Ciklas (Loop)"
+                    onclick="state.editorDraft.phases[${i}].loop = !state.editorDraft.phases[${i}].loop; updateDraftHashBadge(); render();">
+              <i class="fa-solid fa-repeat"></i>
             </button>
+            <button class="icon-btn ${p.fxStart ? 'active-toggle' : ''}" title="Pradžios efektas"
+                    onclick="state.editorDraft.phases[${i}].fxStart = !state.editorDraft.phases[${i}].fxStart; updateDraftHashBadge(); render();">
+              <i class="fa-solid fa-bolt"></i>
+            </button>
+            <button class="icon-btn ${p.fxEnd ? 'active-toggle' : ''}" title="Pabaigos efektas"
+                    onclick="state.editorDraft.phases[${i}].fxEnd = !state.editorDraft.phases[${i}].fxEnd; updateDraftHashBadge(); render();">
+              <i class="fa-solid fa-bell"></i>
+            </button>
+            <button class="icon-btn ${p.fxAlarm ? 'active-toggle' : ''}" title="Aliarmo mygtukas"
+                    onclick="state.editorDraft.phases[${i}].fxAlarm = !state.editorDraft.phases[${i}].fxAlarm; updateDraftHashBadge(); render();">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    `).join('');
 
-            <!-- Organiška apatinė valdymo juosta po PLAY mygtuku -->
-            <div class="footer-bar">
-                <button type="button" class="subtle-btn" onclick="openHelp()" title="Pagalba">
-                    <i class="fa-regular fa-circle-question"></i>
-                </button>
+    const finalsHtml = d.finals.map((f, i) => `
+      <div class="editor-item" style="--item-color: ${PALETTE[f.color]}">
+        <div class="editor-item-main">
+          <div class="color-cycle-btn"
+               style="background: ${PALETTE[f.color]}"
+               title="Keisti spalvą"
+               onclick="state.editorDraft.finals[${i}].color = cycleColor('${f.color}'); updateDraftHashBadge(); render();"></div>
+          <input class="text-input"
+                 value="${escapeHtml(f.title)}"
+                 placeholder="Finalo pavadinimas"
+                 oninput="state.editorDraft.finals[${i}].title = this.value; updateDraftHashBadge();" />
+          <button class="icon-btn del" onclick="state.editorDraft.finals.splice(${i}, 1); updateDraftHashBadge(); render();"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      </div>
+    `).join('');
 
-                <button type="button" class="subtle-btn preset-indicator-btn" onclick="cyclePreset()" title="Bakstelėkite, kad perjungtumėte žaidimo tipą">
-                    <span id="activePresetLabel">Among Us</span>
-                    <i class="fa-solid fa-repeat"></i>
-                </button>
+    app.innerHTML = `
+      <div class="top-bar">
+        <button class="sm" onclick="goToPregame()" title="Atšaukti"><i class="fa-solid fa-arrow-left"></i></button>
+        <div class="top-actions">
+          <button class="sm" onclick="importGameJson()" title="Importuoti JSON"><i class="fa-solid fa-file-arrow-down"></i></button>
+          <button class="sm" onclick="exportGameJson()" title="Eksportuoti JSON"><i class="fa-solid fa-file-arrow-up"></i></button>
+          <button class="sm" onclick="resetToDefaultGame()" title="Atstatyti AmongAI"><i class="fa-solid fa-arrows-rotate"></i></button>
+          <button class="sm btn-confirm" onclick="saveEditorChanges()" title="Išsaugoti"><i class="fa-solid fa-check"></i></button>
+        </div>
+      </div>
 
-                <button type="button" class="subtle-btn" onclick="openSettings()" title="Nustatymai">
-                    <i class="fa-solid fa-sliders"></i>
-                </button>
+      <div class="editor-wrap">
+        <!-- I. Bendrieji nustatymai -->
+        <div class="editor-section">
+          <div class="section-head">
+            <span>I. Bendrieji nustatymai</span>
+            <span class="hash-badge" id="draft-hash-badge">#${d.hash}</span>
+          </div>
+
+          <div class="field-row">
+            <label class="field-label">Žaidimo pavadinimas</label>
+            <input class="text-input" value="${escapeHtml(d.title)}"
+                   oninput="state.editorDraft.title = this.value; updateDraftHashBadge();" />
+          </div>
+
+          <div class="field-row">
+            <label class="field-label">Akcentinė spalva</label>
+            <div class="palette-row">${paletteHtml}</div>
+          </div>
+
+          <div class="field-row">
+            <label class="field-label">Kortų dalijimo režimas</label>
+            <select class="select-input"
+                    onchange="state.editorDraft.dealMode = parseInt(this.value); updateDraftHashBadge(); render();">
+              <option value="1" ${d.dealMode === 1 ? 'selected' : ''}>1. Pritaikomas kiekis (Custom +/-)</option>
+              <option value="2" ${d.dealMode === 2 ? 'selected' : ''}>2. Visa kaladė (Full Deck)</option>
+              <option value="3" ${d.dealMode === 3 ? 'selected' : ''}>3. Atsitiktinis X kortų traukimas</option>
+              <option value="4" ${d.dealMode === 4 ? 'selected' : ''}>4. Traukimas su grąžinimu (Infinite)</option>
+            </select>
+          </div>
+
+          ${d.dealMode === 2 ? `
+            <div class="inline-switch">
+              <span>Maišyti kaladę prieš dalijimą</span>
+              <button class="icon-btn ${d.shuffle ? 'active-toggle' : ''}"
+                      onclick="state.editorDraft.shuffle = !state.editorDraft.shuffle; updateDraftHashBadge(); render();">
+                <i class="fa-solid fa-shuffle"></i>
+              </button>
             </div>
+          ` : ''}
+
+          ${d.dealMode === 4 ? `
+            <div class="field-row">
+              <label class="field-label">Grąžinimo būdas</label>
+              <select class="select-input"
+                      onchange="state.editorDraft.returnMethod = this.value; updateDraftHashBadge();">
+                <option value="bottom" ${d.returnMethod === 'bottom' ? 'selected' : ''}>Į kaladės apačią</option>
+                <option value="shuffle" ${d.returnMethod === 'shuffle' ? 'selected' : ''}>Su visos kaladės permaišymu</option>
+                <option value="middle" ${d.returnMethod === 'middle' ? 'selected' : ''}>Atsitiktinai į antrąją pusę</option>
+              </select>
+            </div>
+            <div class="field-row">
+              <label class="field-label">Grąžinimo sąlyga</label>
+              <select class="select-input"
+                      onchange="state.editorDraft.returnCondition = this.value; updateDraftHashBadge();">
+                <option value="auto" ${d.returnCondition === 'auto' ? 'selected' : ''}>Automatinis (užvertus kortą)</option>
+                <option value="dynamic" ${d.returnCondition === 'dynamic' ? 'selected' : ''}>Pasirenkamas (mygtukas atvertus)</option>
+              </select>
+            </div>
+          ` : ''}
         </div>
 
-        <!-- 4. Žaidimo (rolių dalinimo) ekranas -->
-        <div id="gameScreen" class="game-screen">
-            <div class="card">
-                <i class="fa-solid fa-question card-back-icon" id="cardBackIcon"></i>
-                <span class="placeholder-text" id="initialText"></span>
-                <div class="role-title" id="roleText"></div>
-            </div>
-
-            <button type="button" id="actionBtn" onclick="handleAction()">Gauti rolę</button>
-            <button type="button" id="resetBtn" class="secondary" onclick="resetGame()">Pradėti iš naujo</button>
+        <!-- II. Kortelių kaladė -->
+        <div class="editor-section">
+          <div class="section-head">
+            <span>II. Kortelių (Rolių) kaladė (${d.cards.length})</span>
+            <button class="pill-btn" onclick="state.editorDraft.cards.push({id:'c_'+Date.now(), title:'Nauja rolė', color:'blue', count:1}); updateDraftHashBadge(); render();">
+              <i class="fa-solid fa-plus"></i> Pridėti
+            </button>
+          </div>
+          <div class="editor-item-list">${cardsHtml}</div>
         </div>
 
-    </div>
+        <!-- III. Fazių variklis -->
+        <div class="editor-section">
+          <div class="section-head">
+            <span>III. Fazių variklis (${d.phases.length})</span>
+            <button class="pill-btn" onclick="state.editorDraft.phases.push({id:'p_'+Date.now(), title:'Nauja fazė', color:'amber', loop:true, duration:60, fxStart:true, fxEnd:true, fxAlarm:false}); updateDraftHashBadge(); render();">
+              <i class="fa-solid fa-plus"></i> Pridėti
+            </button>
+          </div>
+          <div class="editor-item-list">${phasesHtml}</div>
+        </div>
 
-    <script>
-        const COOLDOWN_SECONDS = 1.0;
+        <!-- IV. Finalinės kortos -->
+        <div class="editor-section">
+          <div class="section-head">
+            <span>IV. Finalinės kortos (${d.finals.length})</span>
+            <button class="pill-btn" onclick="state.editorDraft.finals.push({id:'f_'+Date.now(), title:'Nauja baigtis', color:'emerald'}); updateDraftHashBadge(); render();">
+              <i class="fa-solid fa-plus"></i> Pridėti
+            </button>
+          </div>
+          <div class="editor-item-list">${finalsHtml}</div>
+        </div>
+      </div>
+    `;
+    return;
+  }
 
-        const PRESET_ORDER = ["among_us", "mafia", "custom"];
+  // --------------------------------------------------------------------------
+  // 3. KORTŲ DALIJIMO LANGAS (3.B)
+  // --------------------------------------------------------------------------
+  if (state.screen === 'DEAL') {
+    const progressText = (mode === 4)
+      ? `#${state.drawCounter}`
+      : `${state.dealIndex + 1} / ${state.deck.length}`;
 
-        const PRESET_NAMES = {
-            among_us: "Among Us",
-            mafia: "Mafia",
-            custom: "Pasirinktinis"
-        };
+    const topRightActions = (mode === 4 && !state.cardFaceUp) ? `
+      <div class="top-actions">
+        <button class="sm" onclick="openConfirmModal('<i class=\\'fa-solid fa-arrows-rotate\\'></i> ?', startDealing)">
+          <i class="fa-solid fa-arrows-rotate"></i>
+        </button>
+        ${hasPhasesOrFinals ? `<button class="sm" onclick="startPhases()"><i class="fa-solid fa-play"></i></button>` : ''}
+      </div>
+    ` : `<div></div>`;
 
-        // Išankstiniai žaidimų šablonai
-        const PRESETS = {
-            among_us: {
-                regular: ["žmogus", "gydytojas", "teisėjas", "policininkas"],
-                mandatory: ["imposteris", "trintukas", "ligonis"],
-                neutral: ["džakalas"]
-            },
-            mafia: {
-                regular: ["miestietis", "komisaras", "daktaras"],
-                mandatory: ["mafijozas", "donas"],
-                neutral: ["maniakas", "meilužė"]
-            }
-        };
+    const cardColor = state.cardFaceUp && state.currentCard
+      ? PALETTE[state.currentCard.color]
+      : PALETTE[BASE_GAME.color];
 
-        const defaultSettings = {
-            preset: "among_us",
-            mandatory: [...PRESETS.among_us.mandatory],
-            neutral: [...PRESETS.among_us.neutral],
-            regular: [...PRESETS.among_us.regular],
-            customRoles: {
-                mandatory: [...PRESETS.among_us.mandatory],
-                neutral: [...PRESETS.among_us.neutral],
-                regular: [...PRESETS.among_us.regular]
-            },
-            playerCount: 0,
-            badCount: 0,
-            neutralCount: 0
-        };
+    app.innerHTML = `
+      <div class="top-bar">
+        <button class="sm" onclick="openConfirmModal('<i class=\\'fa-solid fa-xmark\\'></i> ?', goToPregame)">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="counter-pill" style="font-size:1.05rem; padding:6px 16px;">${progressText}</div>
+        ${topRightActions}
+      </div>
 
-        let currentSettings = JSON.parse(JSON.stringify(defaultSettings));
-        let availableRoles = [];
-        let currentState = "READY_TO_GET"; 
-        let gameInProgress = false;
-        let cooldownTimer = null;
+      <div class="card-stage">
+        <div class="playing-card ${state.cardFaceUp ? '' : 'face-down'}"
+             style="--card-color: ${cardColor}"
+             onclick="handleCardTap()">
+          ${state.cardFaceUp ? `
+            <div class="card-face-title">${escapeHtml(state.currentCard.title)}</div>
+            ${mode === 4 && BASE_GAME.returnCondition === 'dynamic' ? `
+              <div class="return-btn-wrap">
+                <button onclick="handleDynamicReturn(event)" title="Grąžinti į kaladę">
+                  <i class="fa-solid fa-file-import"></i>
+                </button>
+              </div>
+            ` : ''}
+          ` : `
+            <div class="card-back-emblem"><i class="fa-solid fa-user-astronaut"></i></div>
+          `}
+        </div>
+      </div>
 
-        function initApp() {
-            const savedRaw = localStorage.getItem("game_settings");
+      <div class="bottom-bar"></div>
+    `;
+    return;
+  }
 
-            if (savedRaw) {
-                try {
-                    const parsed = JSON.parse(savedRaw);
-                    currentSettings = {
-                        preset: parsed.preset || defaultSettings.preset,
-                        mandatory: Array.isArray(parsed.mandatory) && parsed.mandatory.length ? parsed.mandatory : [...defaultSettings.mandatory],
-                        neutral: Array.isArray(parsed.neutral) ? parsed.neutral : [...defaultSettings.neutral],
-                        regular: Array.isArray(parsed.regular) && parsed.regular.length ? parsed.regular : [...defaultSettings.regular],
-                        customRoles: parsed.customRoles && typeof parsed.customRoles === "object" ? {
-                            mandatory: Array.isArray(parsed.customRoles.mandatory) && parsed.customRoles.mandatory.length ? parsed.customRoles.mandatory : [...defaultSettings.customRoles.mandatory],
-                            neutral: Array.isArray(parsed.customRoles.neutral) ? parsed.customRoles.neutral : [...defaultSettings.customRoles.neutral],
-                            regular: Array.isArray(parsed.customRoles.regular) && parsed.customRoles.regular.length ? parsed.customRoles.regular : [...defaultSettings.customRoles.regular]
-                        } : JSON.parse(JSON.stringify(defaultSettings.customRoles)),
-                        playerCount: typeof parsed.playerCount === "number" ? parsed.playerCount : defaultSettings.playerCount,
-                        badCount: typeof parsed.badCount === "number" ? parsed.badCount : defaultSettings.badCount,
-                        neutralCount: typeof parsed.neutralCount === "number" ? parsed.neutralCount : defaultSettings.neutralCount
-                    };
-                } catch (e) {
-                    currentSettings = JSON.parse(JSON.stringify(defaultSettings));
-                }
-            }
+  // --------------------------------------------------------------------------
+  // 4. IŠDALINUS VISAS KORTAS (3.B.5)
+  // --------------------------------------------------------------------------
+  if (state.screen === 'DEAL_DONE') {
+    app.innerHTML = `
+      <div class="top-bar"></div>
+      <div class="card-stage">
+        <div class="action-row">
+          <button class="lg" onclick="startDealing()"><i class="fa-solid fa-arrows-rotate"></i></button>
+          ${hasPhasesOrFinals ? `<button class="lg" onclick="startPhases()"><i class="fa-solid fa-play"></i></button>` : ''}
+          <button class="lg" onclick="goToPregame()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </div>
+      <div class="bottom-bar"></div>
+    `;
+    return;
+  }
 
-            setupIndicatorInteractions();
-            setupSettingsListeners();
-            updateUIStats();
-        }
+  // --------------------------------------------------------------------------
+  // 5. FAZIŲ MODERATORIUS (3.C)
+  // --------------------------------------------------------------------------
+  if (state.screen === 'PHASE') {
+    const phases = BASE_GAME.phases || [];
+    const hasPhases = phases.length > 0;
+    const currentPhase = hasPhases ? phases[state.phaseIndex] : null;
+    const title = currentPhase ? currentPhase.title : BASE_GAME.title;
+    const isZero = currentPhase && currentPhase.duration > 0 && state.timeLeft === 0;
+    const canAdvance = hasPhases && getNextPhaseIndex() !== -1;
 
-        function saveToStorage() {
-            localStorage.setItem("game_settings", JSON.stringify(currentSettings));
-        }
+    const finalsHtml = (BASE_GAME.finals && BASE_GAME.finals.length > 0) ? `
+      <div class="finals-tray">
+        ${BASE_GAME.finals.map((f, idx) => `
+          <button class="final-token"
+                  style="--token-color: ${PALETTE[f.color]}"
+                  title="${escapeHtml(f.title)}"
+                  onclick="promptFinalCard(BASE_GAME.finals[${idx}])">
+            ${extractInitial(f.title)}
+          </button>
+        `).join('')}
+      </div>
+    ` : '';
 
-        function parseRoleList(text) {
-            return [...new Set(text.split(",").map(r => r.trim().toLowerCase()).filter(Boolean))];
-        }
+    app.innerHTML = `
+      <div class="top-bar">
+        <button class="sm" onclick="openConfirmModal('<i class=\\'fa-solid fa-xmark\\'></i> ?', goToPregame)">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <button class="sm" onclick="SoundEngine.toggleMute()">
+          <i class="fa-solid ${SoundEngine.muted ? 'fa-volume-xmark' : 'fa-volume-high'}"></i>
+        </button>
+      </div>
 
-        function fillRoleInputs(rolesObj) {
-            document.getElementById("setRegular").value = rolesObj.regular.join(", ");
-            document.getElementById("setMandatory").value = rolesObj.mandatory.join(", ");
-            document.getElementById("setNeutral").value = rolesObj.neutral.join(", ");
-        }
+      <div class="phase-stage">
+        <div class="phase-title">${escapeHtml(title)}</div>
+        <div id="timer-val" class="timer-display ${isZero ? 'timer-blink' : ''}">
+          ${formatTime(state.timeLeft)}
+        </div>
+      </div>
 
-        /* --- Greitas šablono perjungimas pradiniame ekrane --- */
-        function cyclePreset() {
-            const currentIndex = PRESET_ORDER.indexOf(currentSettings.preset || "among_us");
-            const nextPreset = PRESET_ORDER[(currentIndex + 1) % PRESET_ORDER.length];
+      <div class="bottom-bar">
+        <div class="action-row">
+          <button onclick="togglePausePhase()">
+            <i class="fa-solid ${state.timerRunning ? 'fa-pause' : 'fa-play'}"></i>
+          </button>
+          ${currentPhase && currentPhase.fxAlarm ? `
+            <button class="danger ${state.alarmActive ? 'active-alarm' : ''}" onclick="triggerAlarm()">
+              <i class="fa-solid fa-bullhorn"></i>
+            </button>
+          ` : ''}
+          ${canAdvance ? `
+            <button id="next-phase-btn" class="${isZero ? 'pulse-btn' : ''}" onclick="nextPhase()">
+              <i class="fa-solid fa-forward-step"></i>
+            </button>
+          ` : ''}
+        </div>
+        ${finalsHtml}
+      </div>
+    `;
+    return;
+  }
 
-            currentSettings.preset = nextPreset;
+  // --------------------------------------------------------------------------
+  // 6. FINALINĖ KORTA (3.D)
+  // --------------------------------------------------------------------------
+  if (state.screen === 'FINAL' && state.activeFinal) {
+    const f = state.activeFinal;
+    app.innerHTML = `
+      <div class="top-bar"></div>
+      <div class="card-stage">
+        <div class="playing-card"
+             style="--card-color: ${PALETTE[f.color]}"
+             onclick="closeFinalCard()">
+          <div style="font-size: 3rem; color: ${PALETTE[f.color]}; margin-bottom: 14px;">
+            <i class="fa-solid fa-trophy"></i>
+          </div>
+          <div class="card-face-title">${escapeHtml(f.title)}</div>
+        </div>
+      </div>
+      <div class="bottom-bar"></div>
+    `;
+  }
+}
 
-            if (nextPreset === "custom") {
-                currentSettings.regular = [...currentSettings.customRoles.regular];
-                currentSettings.mandatory = [...currentSettings.customRoles.mandatory];
-                currentSettings.neutral = [...currentSettings.customRoles.neutral];
-            } else if (PRESETS[nextPreset]) {
-                currentSettings.regular = [...PRESETS[nextPreset].regular];
-                currentSettings.mandatory = [...PRESETS[nextPreset].mandatory];
-                currentSettings.neutral = [...PRESETS[nextPreset].neutral];
-            }
-
-            saveToStorage();
-            updateUIStats();
-
-            // Subtili užrašo animacija perjungus
-            const labelEl = document.getElementById("activePresetLabel");
-            labelEl.classList.remove("preset-pop");
-            void labelEl.offsetWidth;
-            labelEl.classList.add("preset-pop");
-        }
-
-        /* --- Nustatymų lango ir šablonų valdymas --- */
-        function setupSettingsListeners() {
-            const inputs = ["setRegular", "setMandatory", "setNeutral"];
-            inputs.forEach(id => {
-                document.getElementById(id).addEventListener("input", () => {
-                    const presetSelect = document.getElementById("setPreset");
-                    if (presetSelect.value !== "custom") {
-                        presetSelect.value = "custom";
-                    }
-                });
-            });
-        }
-
-        function handlePresetChange() {
-            const chosen = document.getElementById("setPreset").value;
-            if (chosen === "custom") {
-                fillRoleInputs(currentSettings.customRoles);
-            } else if (PRESETS[chosen]) {
-                fillRoleInputs(PRESETS[chosen]);
-            }
-        }
-
-        function openSettings() {
-            document.getElementById("setPreset").value = currentSettings.preset || "among_us";
-            fillRoleInputs(currentSettings);
-
-            document.getElementById("setupScreen").classList.remove("active");
-            document.getElementById("settingsScreen").classList.add("active");
-        }
-
-        function closeSettings() {
-            document.getElementById("settingsScreen").classList.remove("active");
-            document.getElementById("setupScreen").classList.add("active");
-        }
-
-        function saveSettings() {
-            const chosenPreset = document.getElementById("setPreset").value;
-            const parsedRegular = parseRoleList(document.getElementById("setRegular").value);
-            const parsedMandatory = parseRoleList(document.getElementById("setMandatory").value);
-            const parsedNeutral = parseRoleList(document.getElementById("setNeutral").value);
-
-            currentSettings.preset = chosenPreset;
-            currentSettings.regular = parsedRegular.length ? parsedRegular : [...defaultSettings.regular];
-            currentSettings.mandatory = parsedMandatory.length ? parsedMandatory : [...defaultSettings.mandatory];
-            currentSettings.neutral = parsedNeutral;
-
-            if (chosenPreset === "custom") {
-                currentSettings.customRoles = {
-                    regular: [...currentSettings.regular],
-                    mandatory: [...currentSettings.mandatory],
-                    neutral: [...currentSettings.neutral]
-                };
-            }
-
-            saveToStorage();
-            updateUIStats();
-            closeSettings();
-        }
-
-        function resetToFactoryDefaults() {
-            if (confirm("Ar tikrai norite atstatyti gamyklines žaidimo roles ir nustatymus?")) {
-                localStorage.removeItem("game_settings");
-                currentSettings = JSON.parse(JSON.stringify(defaultSettings));
-                updateUIStats();
-                closeSettings();
-            }
-        }
-
-        /* --- Pagalbos lango valdymas --- */
-        function openHelp() {
-            document.getElementById("setupScreen").classList.remove("active");
-            document.getElementById("helpScreen").classList.add("active");
-        }
-
-        function closeHelp() {
-            document.getElementById("helpScreen").classList.remove("active");
-            document.getElementById("setupScreen").classList.add("active");
-        }
-
-        /* --- Indikatorių valdymas --- */
-        function triggerPlayersBlink() {
-            const pill = document.getElementById("pillPlayers");
-            pill.classList.remove("blink-alert");
-            void pill.offsetWidth;
-            pill.classList.add("blink-alert");
-        }
-
-        function setupIndicatorInteractions() {
-            bindClickAndDoubleClicks("pillPlayers", 
-                () => increaseIndicator('players'), 
-                () => resetIndicator('players')
-            );
-            bindClickAndDoubleClicks("pillBad", 
-                () => increaseIndicator('bad'), 
-                () => resetIndicator('bad')
-            );
-            bindClickAndDoubleClicks("pillNeutral", 
-                () => increaseIndicator('neutral'), 
-                () => resetIndicator('neutral')
-            );
-        }
-
-        function bindClickAndDoubleClicks(elementId, onClick, onDoubleClick) {
-            const el = document.getElementById(elementId);
-            let clickTimer = null;
-
-            el.addEventListener("click", () => {
-                if (clickTimer === null) {
-                    clickTimer = setTimeout(() => {
-                        clickTimer = null;
-                        onClick();
-                    }, 250); 
-                } else {
-                    clearTimeout(clickTimer);
-                    clickTimer = null;
-                    onDoubleClick();
-                }
-            });
-        }
-
-        function increaseIndicator(type) {
-            if (type === 'players') {
-                const oldPlayers = currentSettings.playerCount;
-                currentSettings.playerCount++;
-                
-                if (oldPlayers === 0 && currentSettings.playerCount === 1) {
-                    currentSettings.badCount = 1;
-                }
-            } else if (type === 'bad') {
-                const combined = currentSettings.badCount + currentSettings.neutralCount;
-                if (combined < currentSettings.playerCount) {
-                    currentSettings.badCount++;
-                } else {
-                    triggerPlayersBlink();
-                    return;
-                }
-            } else if (type === 'neutral') {
-                const combined = currentSettings.badCount + currentSettings.neutralCount;
-                if (combined < currentSettings.playerCount) {
-                    currentSettings.neutralCount++;
-                } else {
-                    triggerPlayersBlink();
-                    return;
-                }
-            }
-            saveToStorage();
-            updateUIStats();
-        }
-
-        function resetIndicator(type) {
-            if (type === 'players') {
-                currentSettings.playerCount = 0;
-                currentSettings.badCount = 0;
-                currentSettings.neutralCount = 0;
-            } else if (type === 'bad') {
-                currentSettings.badCount = 0;
-            } else if (type === 'neutral') {
-                currentSettings.neutralCount = 0;
-            }
-            saveToStorage();
-            updateUIStats();
-        }
-
-        function updateUIStats() {
-            document.getElementById("statPlayers").textContent = currentSettings.playerCount;
-            document.getElementById("statBad").textContent = currentSettings.badCount;
-            document.getElementById("statNeutral").textContent = currentSettings.neutralCount;
-
-            const presetKey = currentSettings.preset || "among_us";
-            document.getElementById("activePresetLabel").textContent = PRESET_NAMES[presetKey] || "Among Us";
-
-            const playBtn = document.getElementById("playBtn");
-            if (currentSettings.playerCount === 0) {
-                playBtn.classList.add("disabled-look");
-            } else {
-                playBtn.classList.remove("disabled-look");
-            }
-        }
-
-        /* --- Žaidimo langas ir logika --- */
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
-        }
-
-        function startGame() {
-            if (currentSettings.playerCount <= 0) {
-                triggerPlayersBlink();
-                return;
-            }
-
-            prepareNewGame();
-            document.getElementById("setupScreen").classList.remove("active");
-            document.getElementById("gameScreen").classList.add("active");
-        }
-
-        function prepareNewGame() {
-            clearTimeout(cooldownTimer);
-            gameInProgress = true;
-
-            document.getElementById("actionBtn").classList.remove("hidden");
-
-            const playerCount = currentSettings.playerCount;
-            const badCount = currentSettings.badCount;
-            const neutralCount = currentSettings.neutralCount;
-
-            const shuffledMandatory = shuffleArray([...currentSettings.mandatory]);
-            const chosenBad = shuffledMandatory.slice(0, badCount);
-            const fallbackBad = currentSettings.mandatory[0] || "imposteris";
-            while (chosenBad.length < badCount) {
-                chosenBad.push(fallbackBad);
-            }
-
-            const shuffledNeutralPool = shuffleArray([...currentSettings.neutral]);
-            const chosenNeutral = shuffledNeutralPool.slice(0, neutralCount);
-            const fallbackNeutral = currentSettings.neutral[0] || "džakalas";
-            while (chosenNeutral.length < neutralCount) {
-                chosenNeutral.push(fallbackNeutral);
-            }
-
-            const regularNeeded = Math.max(0, playerCount - chosenBad.length - chosenNeutral.length);
-            const shuffledRegular = shuffleArray([...currentSettings.regular]);
-            let chosenRegular = shuffledRegular.slice(0, regularNeeded);
-            const fallbackRegular = currentSettings.regular[0] || "žmogus";
-            while (chosenRegular.length < regularNeeded) {
-                chosenRegular.push(fallbackRegular);
-            }
-
-            let gameRoles = [...chosenBad, ...chosenNeutral, ...chosenRegular];
-            if (gameRoles.length > playerCount) {
-                gameRoles = gameRoles.slice(0, playerCount);
-            }
-
-            availableRoles = shuffleArray(gameRoles);
-            resetToHiddenState();
-        }
-
-        function resetToHiddenState() {
-            clearTimeout(cooldownTimer);
-            currentState = "READY_TO_GET";
-            
-            const total = currentSettings.playerCount;
-            const nextPlayerNumber = total - availableRoles.length + 1;
-
-            document.getElementById("cardBackIcon").style.display = "block";
-            
-            const initialText = document.getElementById("initialText");
-            initialText.style.display = "none";
-            initialText.textContent = "";
-            
-            const roleText = document.getElementById("roleText");
-            roleText.style.display = "none";
-            roleText.textContent = "";
-            roleText.className = "role-title";
-            
-            const actionBtn = document.getElementById("actionBtn");
-            actionBtn.disabled = false;
-            actionBtn.textContent = `Gauti rolę (${nextPlayerNumber} iš ${total})`;
-        }
-
-        function handleAction() {
-            const cardBackIcon = document.getElementById("cardBackIcon");
-            const roleText = document.getElementById("roleText");
-            const initialText = document.getElementById("initialText");
-            const actionBtn = document.getElementById("actionBtn");
-
-            if (currentState === "READY_TO_GET") {
-                const selectedRole = availableRoles.shift();
-
-                cardBackIcon.style.display = "none";
-                initialText.style.display = "none";
-                roleText.textContent = selectedRole;
-                
-                if (currentSettings.mandatory.includes(selectedRole)) {
-                    roleText.className = "role-title alert";
-                } else if (currentSettings.neutral.includes(selectedRole)) {
-                    roleText.className = "role-title neutral";
-                } else {
-                    roleText.className = "role-title normal";
-                }
-
-                roleText.style.display = "block";
-                currentState = "ROLE_SHOWN";
-
-                actionBtn.disabled = true;
-                actionBtn.textContent = "Įsiminkite rolę...";
-
-                cooldownTimer = setTimeout(() => {
-                    actionBtn.disabled = false;
-                    if (availableRoles.length > 0) {
-                        actionBtn.innerHTML = 'Įsiminiau <i class="fa-solid fa-check"></i> Kitas žaidėjas <i class="fa-solid fa-arrow-right"></i>';
-                    } else {
-                        actionBtn.innerHTML = 'Įsiminiau <i class="fa-solid fa-check"></i>';
-                    }
-                }, COOLDOWN_SECONDS * 1000);
-
-            } else {
-                if (availableRoles.length === 0) {
-                    cardBackIcon.style.display = "none";
-                    roleText.style.display = "none";
-                    initialText.style.display = "block";
-                    initialText.textContent = "Rolės išdalintos! Gero žaidimo!";
-                    
-                    actionBtn.classList.add("hidden");
-                    gameInProgress = false;
-                    return;
-                }
-                resetToHiddenState();
-            }
-        }
-
-        function resetGame() {
-            if (gameInProgress) {
-                if (!confirm("Ar tikrai norite nutraukti rolių dalinimą ir pradėti iš naujo?")) {
-                    return;
-                }
-            }
-            clearTimeout(cooldownTimer);
-            gameInProgress = false;
-            document.getElementById("gameScreen").classList.remove("active");
-            document.getElementById("setupScreen").classList.add("active");
-        }
-
-        initApp();
-    </script>
+initSession();
+</script>
 </body>
 </html>
