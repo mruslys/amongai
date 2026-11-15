@@ -710,8 +710,11 @@
 
 <script>
 // ============================================================================
-// BENDRA UŽLAIKYMO (HOLD-TO-CONFIRM) KONFIGŪRACIJA IR VARIKLIS
+// SISTEMOS KONSTANTOS IR UŽLAIKYMO (HOLD-TO-CONFIRM) KONFIGŪRACIJA
 // ============================================================================
+const MAX_RECENT_GAMES = 8;                  // Maksimalus paskutinių žaistų žaidimų skaičius
+const SESSION_TTL_MS = 6 * 60 * 60 * 1000;   // Sesijos kortų kiekių galiojimo laikas (6 val. nuo paskutinio Play/keitimo)
+
 const HOLD_CONFIG = {
   FILL_MS: 1300,        // Laikas iki pilno veiksmo įvykdymo laikant paspaudus (ms)
   DECAY_MS: 650,        // Išblėsimo (fade-out) laikas atleidus mygtuką (ms)
@@ -821,7 +824,6 @@ const HoldEngine = {
     this.rafId = requestAnimationFrame(t => this.step(t));
   },
 
-  // Pagalbinis metodas visiems veiksmams, kurie pamažu ryškėja (#hold-overlay)
   startOverlayHold({ key, btnId, colorCss, innerHtml, isDanger = false, onComplete }) {
     this.start(key, {
       isDanger,
@@ -1024,6 +1026,9 @@ function normalizeGameObject(g) {
     title: f.title ?? "Finalas",
     color: ITEM_COLOR_KEYS.includes(f.color) ? f.color : "emerald"
   })) : [];
+  if (g && g._recentTs) {
+    copy._recentTs = Number(g._recentTs) || Date.now();
+  }
   copy.hash = computeCanonicalHash(copy);
   return copy;
 }
@@ -1210,13 +1215,15 @@ async function decodeGameFromDeflateParam(encodedStr) {
 }
 
 // ============================================================================
-// CACHE API SAUGYKLA PAGAL HASH (SAVE IR FAVORITES BLOKAI)
+// CACHE API SAUGYKLA PAGAL HASH (SAVE, FAVORITES IR MOST RECENT BLOKAI)
 // ============================================================================
 const CacheStore = {
   MY_CACHE: 'amongai-my-games-v2',
   FAV_CACHE: 'amongai-fav-games-v2',
+  RECENT_CACHE: 'amongai-recent-games-v2',
   memMy: new Map(),
   memFav: new Map(),
+  memRecent: new Map(),
 
   async getAll(cacheName, memFallback) {
     if ('caches' in window) {
@@ -1260,6 +1267,72 @@ const CacheStore = {
         await cache.delete(`https://amongai.local/${cacheName}/${hash}.json`);
       } catch (_) {}
     }
+  }
+};
+
+// ============================================================================
+// SESIJOS ATMINTIES (CUSTOM COUNTS) SAUGYKLA SU SLENKANČIU TTL (LOCALSTORAGE)
+// ============================================================================
+const SessionStore = {
+  STORAGE_KEY: 'amongai-session-counts-v1',
+
+  _readAll() {
+    try {
+      const raw = localStorage.getItem(this.STORAGE_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      const now = Date.now();
+      let changed = false;
+      for (const h of Object.keys(parsed)) {
+        if (!parsed[h] || (now - (parsed[h].updatedAt || 0) > SESSION_TTL_MS)) {
+          delete parsed[h];
+          changed = true;
+        }
+      }
+      if (changed) {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(parsed));
+      }
+      return parsed;
+    } catch (_) {
+      return {};
+    }
+  },
+
+  loadForGame(gameObj) {
+    const all = this._readAll();
+    const entry = all[gameObj.hash];
+    const counts = {};
+    const totalBase = (gameObj.cards || []).reduce((sum, c) => sum + (Number(c.count) || 0), 0);
+    const defaultDrawX = Math.min(5, Math.max(1, totalBase));
+
+    if (entry && entry.customCounts) {
+      (gameObj.cards || []).forEach(c => {
+        const val = entry.customCounts[c.id];
+        counts[c.id] = (typeof val === 'number' && val >= 0) ? val : c.count;
+      });
+      const drawX = (typeof entry.randomDrawX === 'number')
+        ? Math.min(Math.max(1, totalBase), Math.max(1, entry.randomDrawX))
+        : defaultDrawX;
+      return { customCounts: counts, randomDrawX: drawX };
+    }
+
+    (gameObj.cards || []).forEach(c => {
+      counts[c.id] = c.count;
+    });
+    return { customCounts: counts, randomDrawX: defaultDrawX };
+  },
+
+  saveForGame(hash, customCounts, randomDrawX) {
+    if (!hash) return;
+    try {
+      const all = this._readAll();
+      all[hash] = {
+        customCounts: { ...customCounts },
+        randomDrawX: Number(randomDrawX) || 1,
+        updatedAt: Date.now()
+      };
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(all));
+    } catch (_) {}
   }
 };
 
@@ -1491,12 +1564,13 @@ const state = {
   // Katalogo sąrašai iš Cache API (identifikuojami pagal hash)
   myGames: [],
   favGames: [],
+  recentGames: [],
 
-  // 3.A Sesijos atmintis
+  // 3.A Sesijos atmintis (atstatoma iš localStorage su TTL)
   customCounts: {},
   randomDrawX: 5,
 
-  // 2. Redaktoriaus laikinas juodraštis, pradinis hash ir grįžimo ekranas
+  // 2. Redaktoriaus laikinas juodraštis, pradinis hash ir grįžimo ekranas atšaukus
   editorDraft: null,
   editingOriginHash: null,
   editorReturnScreen: 'HOME',
@@ -1523,9 +1597,30 @@ const state = {
 async function refreshCatalogState() {
   state.myGames = await CacheStore.getAll(CacheStore.MY_CACHE, CacheStore.memMy);
   state.favGames = await CacheStore.getAll(CacheStore.FAV_CACHE, CacheStore.memFav);
+  const recentRaw = await CacheStore.getAll(CacheStore.RECENT_CACHE, CacheStore.memRecent);
+  recentRaw.sort((a, b) => (b._recentTs || 0) - (a._recentTs || 0));
+  state.recentGames = recentRaw.slice(0, MAX_RECENT_GAMES);
 }
 
-// Deep-link apdorojimas: /#/kodas atveria žaidimo pradinį langą (PREGAME)
+// Įrašo žaidimą į Most Recent (RECENT_CACHE) viršų ir apriboja sąrašą iki 8 žaidimų
+async function recordRecentGame(gameObj) {
+  const copy = normalizeGameObject(gameObj);
+  copy._recentTs = Date.now();
+  await CacheStore.put(CacheStore.RECENT_CACHE, CacheStore.memRecent, copy);
+
+  const allRecent = await CacheStore.getAll(CacheStore.RECENT_CACHE, CacheStore.memRecent);
+  allRecent.sort((a, b) => (b._recentTs || 0) - (a._recentTs || 0));
+
+  if (allRecent.length > MAX_RECENT_GAMES) {
+    const overflow = allRecent.slice(MAX_RECENT_GAMES);
+    for (const oldGame of overflow) {
+      await CacheStore.remove(CacheStore.RECENT_CACHE, CacheStore.memRecent, oldGame.hash);
+    }
+  }
+  await refreshCatalogState();
+}
+
+// Deep-link apdorojimas: /#/kodas pirmiausia išsaugo žaidimą į Most Recent ir atveria PREGAME
 async function handleStartupRouting() {
   await refreshCatalogState();
 
@@ -1546,7 +1641,7 @@ async function handleStartupRouting() {
       try {
         const decodedGame = await decodeGameFromDeflateParam(encodedPayload);
         history.replaceState(null, '', window.location.pathname + window.location.search);
-        openGameSession(decodedGame);
+        await openGameSession(decodedGame);
         return;
       } catch (e) {
         console.warn("Nepavyko iškoduoti žaidimo iš URL:", e);
@@ -1555,7 +1650,7 @@ async function handleStartupRouting() {
       const found = findGameAnySourceByHash(pubHashParam);
       if (found) {
         history.replaceState(null, '', window.location.pathname + window.location.search);
-        openGameSession(found);
+        await openGameSession(found);
         return;
       }
     }
@@ -1582,14 +1677,14 @@ function goToHome() {
   render();
 }
 
-function openGameSession(gameObj) {
+async function openGameSession(gameObj) {
   BASE_GAME = normalizeGameObject(gameObj);
-  state.customCounts = {};
-  (BASE_GAME.cards || []).forEach(c => {
-    state.customCounts[c.id] = c.count;
-  });
-  const total = getBaseDeckSize();
-  state.randomDrawX = Math.min(5, Math.max(1, total));
+  await recordRecentGame(BASE_GAME);
+
+  const restored = SessionStore.loadForGame(BASE_GAME);
+  state.customCounts = restored.customCounts;
+  state.randomDrawX = restored.randomDrawX;
+
   goToPregame();
 }
 
@@ -1744,6 +1839,7 @@ function startFinalHold(idx, e) {
 function findGameAnySourceByHash(hash) {
   return state.myGames.find(g => g.hash === hash) ||
          state.favGames.find(g => g.hash === hash) ||
+         state.recentGames.find(g => g.hash === hash) ||
          PUBLIC_GAMES.find(g => g.hash === hash) ||
          null;
 }
@@ -1895,6 +1991,7 @@ function adjustCustomCount(cardId, delta) {
   SoundEngine.playCardFlip(true);
   const current = state.customCounts[cardId] ?? 0;
   state.customCounts[cardId] = Math.max(0, current + delta);
+  SessionStore.saveForGame(BASE_GAME.hash, state.customCounts, state.randomDrawX);
   render();
 }
 
@@ -1902,6 +1999,7 @@ function adjustRandomDrawX(delta) {
   SoundEngine.playCardFlip(true);
   const max = getBaseDeckSize();
   state.randomDrawX = Math.min(max, Math.max(1, state.randomDrawX + delta));
+  SessionStore.saveForGame(BASE_GAME.hash, state.customCounts, state.randomDrawX);
   render();
 }
 
@@ -2006,6 +2104,7 @@ function moveItem(arr, index, dir) {
   render();
 }
 
+// Išsaugojus žaidimą redaktoriuje VISADA patenkama į žaidimo Play režimą (PREGAME)
 async function saveEditorChanges() {
   if (!state.editorDraft) return;
   if (!state.editorDraft.title || !state.editorDraft.title.trim()) {
@@ -2017,13 +2116,7 @@ async function saveEditorChanges() {
     await CacheStore.remove(CacheStore.MY_CACHE, CacheStore.memMy, state.editingOriginHash);
   }
   await CacheStore.put(CacheStore.MY_CACHE, CacheStore.memMy, savedGame);
-  await refreshCatalogState();
-
-  if (state.editorReturnScreen === 'PREGAME') {
-    openGameSession(savedGame);
-  } else {
-    goToHome();
-  }
+  await openGameSession(savedGame);
 }
 
 // ============================================================================
@@ -2054,6 +2147,9 @@ function startDealing() {
   requestWakeLock();
   clearAppEffects();
   setAccent(BASE_GAME.color);
+
+  // Atnaujiname sesijos nustatymų galiojimo laiką (TTL) po Play/Deal paspaudimo
+  SessionStore.saveForGame(BASE_GAME.hash, state.customCounts, state.randomDrawX);
 
   state.deck = buildSessionDeck();
   state.dealIndex = 0;
@@ -2140,6 +2236,10 @@ function startPhases() {
   SoundEngine.unlock();
   SoundEngine.startKeepAlive();
   requestWakeLock();
+
+  // Atnaujiname sesijos nustatymų galiojimo laiką (TTL) po Play paspaudimo
+  SessionStore.saveForGame(BASE_GAME.hash, state.customCounts, state.randomDrawX);
+
   state.screen = 'PHASE';
   state.phaseIndex = 0;
   state.firstLap = true;
@@ -2322,13 +2422,31 @@ function renderTimerOnly() {
   }
 }
 
-function openGameByHashFromList(hash, source) {
+function openGameByHashFromList(hash) {
   if (HoldEngine.activeKey === `del:${hash}` && HoldEngine.progress > 0.05) return;
-  let g = null;
-  if (source === 'my') g = state.myGames.find(x => x.hash === hash);
-  else if (source === 'fav') g = state.favGames.find(x => x.hash === hash);
-  else g = PUBLIC_GAMES.find(x => x.hash === hash);
+  const g = findGameAnySourceByHash(hash);
   if (g) openGameSession(g);
+}
+
+function renderCatalogRowWithStarSaveShare(g, forceStarActive = false) {
+  const faved = forceStarActive || isFavorited(g.hash);
+  const inMy = isInMyGames(g.hash);
+  return `
+    <div class="catalog-card" style="--card-accent: ${getColorCss(g.color)}" onclick="openGameByHashFromList('${g.hash}')">
+      <div class="catalog-card-title">${escapeHtml(g.title)}</div>
+      <div class="catalog-card-actions">
+        <button class="xs ${faved ? 'star-active' : ''}" onclick="toggleFavoriteGame('${g.hash}', event)">
+          <i class="${faved ? 'fa-solid' : 'fa-regular'} fa-star"></i>
+        </button>
+        <button class="xs ${inMy ? 'copied-check' : ''}" onclick="saveGameToMyList('${g.hash}', event)">
+          <i class="fa-solid fa-floppy-disk"></i>
+        </button>
+        <button class="xs" onclick="shareGameByHash('${g.hash}', event)">
+          <i class="fa-solid fa-share-nodes"></i>
+        </button>
+      </div>
+    </div>
+  `;
 }
 
 function render() {
@@ -2346,7 +2464,7 @@ function render() {
       <div id="my-card-${g.hash}"
            class="catalog-card"
            style="--card-accent: ${getColorCss(g.color)}"
-           onclick="openGameByHashFromList('${g.hash}', 'my')">
+           onclick="openGameByHashFromList('${g.hash}')">
         <div class="catalog-card-title">${escapeHtml(g.title)}</div>
         <div class="catalog-card-actions">
           <button id="del-btn-${g.hash}"
@@ -2366,46 +2484,9 @@ function render() {
       </div>
     `).join('');
 
-    const favRows = state.favGames.map(g => {
-      const inMy = isInMyGames(g.hash);
-      return `
-        <div class="catalog-card" style="--card-accent: ${getColorCss(g.color)}" onclick="openGameByHashFromList('${g.hash}', 'fav')">
-          <div class="catalog-card-title">${escapeHtml(g.title)}</div>
-          <div class="catalog-card-actions">
-            <button class="xs star-active" onclick="toggleFavoriteGame('${g.hash}', event)">
-              <i class="fa-solid fa-star"></i>
-            </button>
-            <button class="xs ${inMy ? 'copied-check' : ''}" onclick="saveGameToMyList('${g.hash}', event)">
-              <i class="fa-solid fa-floppy-disk"></i>
-            </button>
-            <button class="xs" onclick="shareGameByHash('${g.hash}', event)">
-              <i class="fa-solid fa-share-nodes"></i>
-            </button>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    const pubRows = PUBLIC_GAMES.map(g => {
-      const faved = isFavorited(g.hash);
-      const inMy = isInMyGames(g.hash);
-      return `
-        <div class="catalog-card" style="--card-accent: ${getColorCss(g.color)}" onclick="openGameByHashFromList('${g.hash}', 'pub')">
-          <div class="catalog-card-title">${escapeHtml(g.title)}</div>
-          <div class="catalog-card-actions">
-            <button class="xs ${faved ? 'star-active' : ''}" onclick="toggleFavoriteGame('${g.hash}', event)">
-              <i class="${faved ? 'fa-solid' : 'fa-regular'} fa-star"></i>
-            </button>
-            <button class="xs ${inMy ? 'copied-check' : ''}" onclick="saveGameToMyList('${g.hash}', event)">
-              <i class="fa-solid fa-floppy-disk"></i>
-            </button>
-            <button class="xs" onclick="shareGameByHash('${g.hash}', event)">
-              <i class="fa-solid fa-share-nodes"></i>
-            </button>
-          </div>
-        </div>
-      `;
-    }).join('');
+    const favRows = state.favGames.map(g => renderCatalogRowWithStarSaveShare(g, true)).join('');
+    const recentRows = state.recentGames.map(g => renderCatalogRowWithStarSaveShare(g, false)).join('');
+    const pubRows = PUBLIC_GAMES.map(g => renderCatalogRowWithStarSaveShare(g, false)).join('');
 
     app.innerHTML = `
       <div class="top-bar empty-top"></div>
@@ -2434,6 +2515,17 @@ function render() {
             </div>
           </div>
           ${state.favGames.length > 0 ? `<div class="catalog-list">${favRows}</div>` : ''}
+        </div>
+
+        <!-- Paskutiniai žaisti žaidimai (Most Recent, iki 8) -->
+        <div class="catalog-block">
+          <div class="catalog-head">
+            <div class="catalog-head-title">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+              <span>[${state.recentGames.length}]</span>
+            </div>
+          </div>
+          ${state.recentGames.length > 0 ? `<div class="catalog-list">${recentRows}</div>` : ''}
         </div>
 
         <!-- Viešas katalogas -->
