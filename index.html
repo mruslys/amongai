@@ -111,12 +111,9 @@
     z-index: 130;
   }
   .top-bar.catalog-brand-bar {
-    flex-direction: column;
     justify-content: center;
-    align-items: center;
-    gap: 5px;
     min-height: 48px;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
   }
   .catalog-brand-logo {
     width: 96px;
@@ -124,14 +121,6 @@
     display: block;
     border-radius: 50%;
     object-fit: contain;
-  }
-  .catalog-brand-title {
-    font-size: 0.78rem;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    color: var(--muted);
-    opacity: 0.75;
-    line-height: 1;
   }
   .top-actions {
     display: flex;
@@ -2827,7 +2816,6 @@ function render() {
     app.innerHTML = `
       <div class="top-bar catalog-brand-bar">
         <img src="https://mruslys.github.io/amongai/f/favicon-96x96.png" alt="C4RDx5" class="catalog-brand-logo" />
-        <div class="catalog-brand-title">C4RDx5</div>
       </div>
 
       <div class="catalog-wrap">
