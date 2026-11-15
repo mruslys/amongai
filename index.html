@@ -625,9 +625,6 @@
     background: var(--bg) !important;
     color: var(--muted);
   }
-  .color-cycle-btn.is-inherited {
-    border: 2px dashed rgba(255,255,255,0.9);
-  }
   .num-input {
     width: 68px;
     background: var(--bg);
@@ -1095,142 +1092,175 @@ const CacheStore = {
 };
 
 // ============================================================================
-// WEB AUDIO API GARSO VARIKLIS (Zero-Asset)
+// WEB AUDIO API GARSO VARIKLIS (Zero-Asset, Mobile / iOS Silent-Switch Ready)
 // ============================================================================
 const SoundEngine = {
   ctx: null,
   muted: false,
+  unlocked: false,
   sirenInterval: null,
   sirenOsc: null,
   sirenGain: null,
 
   init() {
+    // iOS 17+ leidžia groti garsą net kai įjungtas fizinis telefono Silent jungiklis
+    if ('audioSession' in navigator) {
+      try { navigator.audioSession.type = 'playback'; } catch (_) {}
+    }
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (AudioCtx) this.ctx = new AudioCtx();
     }
-    if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+    if (this.ctx && this.ctx.state !== 'running') {
+      this.ctx.resume().catch(() => {});
+    }
+  },
+
+  unlock() {
+    this.init();
+    if (!this.ctx || this.unlocked) return;
+    try {
+      const buffer = this.ctx.createBuffer(1, 1, 22050);
+      const source = this.ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(this.ctx.destination);
+      source.start(0);
+      if (this.ctx.state === 'running') {
+        this.unlocked = true;
+      }
+    } catch (_) {}
+  },
+
+  _run(callback) {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+
+    if (this.ctx.state === 'running') {
+      callback(this.ctx);
+    } else {
+      this.ctx.resume().then(() => {
+        if (!this.muted && this.ctx) callback(this.ctx);
+      }).catch(() => {});
     }
   },
 
   toggleMute() {
     this.muted = !this.muted;
-    if (this.muted) this.stopSiren();
+    if (this.muted) {
+      this.stopSiren();
+    } else {
+      this.unlock();
+      this.playCardFlip(true);
+    }
     render();
   },
 
   playCardFlip(faceUp) {
-    if (this.muted) return;
-    this.init();
-    if (!this.ctx) return;
+    this._run(ctx => {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(faceUp ? 300 : 440, now);
+      osc.frequency.exponentialRampToValueAtTime(faceUp ? 580 : 200, now + 0.09);
 
-    const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(faceUp ? 280 : 420, now);
-    osc.frequency.exponentialRampToValueAtTime(faceUp ? 520 : 180, now + 0.08);
+      gain.gain.setValueAtTime(0.28, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
 
-    gain.gain.setValueAtTime(0.18, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.085);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.095);
+    });
   },
 
   playPhaseStart() {
-    if (this.muted) return;
-    this.init();
-    if (!this.ctx) return;
-
-    const now = this.ctx.currentTime;
-    [440, 659.25].forEach((freq, i) => {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, now + i * 0.1);
-      gain.gain.setValueAtTime(0.15, now + i * 0.1);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.35);
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(now + i * 0.1);
-      osc.stop(now + i * 0.1 + 0.36);
+    this._run(ctx => {
+      const now = ctx.currentTime;
+      [440, 659.25].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + i * 0.11);
+        gain.gain.setValueAtTime(0.28, now + i * 0.11);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.11 + 0.38);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + i * 0.11);
+        osc.stop(now + i * 0.11 + 0.4);
+      });
     });
   },
 
   playTick() {
-    if (this.muted) return;
-    this.init();
-    if (!this.ctx) return;
-
-    const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, now);
-    gain.gain.setValueAtTime(0.08, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.045);
+    this._run(ctx => {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(920, now);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.055);
+    });
   },
 
   playPhaseEnd() {
-    if (this.muted) return;
-    this.init();
-    if (!this.ctx) return;
-
-    const now = this.ctx.currentTime;
-    [220, 330, 440].forEach(freq => {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(freq, now);
-      gain.gain.setValueAtTime(0.1, now);
-      gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.9);
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.92);
+    this._run(ctx => {
+      const now = ctx.currentTime;
+      [261.63, 392.00, 523.25].forEach(freq => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.92);
+      });
     });
   },
 
   startSiren() {
     this.stopSiren();
-    if (this.muted) return;
-    this.init();
-    if (!this.ctx) return;
+    this._run(ctx => {
+      if (!state.alarmActive) return;
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
 
-    const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(480, now);
+      gain.gain.setValueAtTime(0.26, now);
 
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(440, now);
-    gain.gain.setValueAtTime(0.16, now);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
 
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start(now);
+      this.sirenOsc = osc;
+      this.sirenGain = gain;
 
-    this.sirenOsc = osc;
-    this.sirenGain = gain;
-
-    let high = true;
-    const sweep = () => {
-      if (!this.sirenOsc || !this.ctx) return;
-      const t = this.ctx.currentTime;
-      this.sirenOsc.frequency.cancelScheduledValues(t);
-      this.sirenOsc.frequency.setValueAtTime(this.sirenOsc.frequency.value, t);
-      this.sirenOsc.frequency.linearRampToValueAtTime(high ? 860 : 420, t + 0.38);
-      high = !high;
-    };
-    sweep();
-    this.sirenInterval = setInterval(sweep, 400);
+      let high = true;
+      const sweep = () => {
+        if (!this.sirenOsc || !this.ctx) return;
+        if (this.ctx.state !== 'running') {
+          this.ctx.resume().catch(() => {});
+        }
+        const t = this.ctx.currentTime;
+        this.sirenOsc.frequency.cancelScheduledValues(t);
+        this.sirenOsc.frequency.setValueAtTime(this.sirenOsc.frequency.value, t);
+        this.sirenOsc.frequency.linearRampToValueAtTime(high ? 920 : 440, t + 0.36);
+        high = !high;
+      };
+      sweep();
+      this.sirenInterval = setInterval(sweep, 380);
+    });
   },
 
   stopSiren() {
@@ -1249,26 +1279,29 @@ const SoundEngine = {
   },
 
   playFinalFanfare() {
-    if (this.muted) return;
-    this.init();
-    if (!this.ctx) return;
-
-    const now = this.ctx.currentTime;
-    const notes = [261.63, 329.63, 392.00, 523.25];
-    notes.forEach((freq, idx) => {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, now + idx * 0.08);
-      gain.gain.setValueAtTime(0.16, now + idx * 0.08);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 1.1);
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(now + idx * 0.08);
-      osc.stop(now + idx * 0.08 + 1.15);
+    this._run(ctx => {
+      const now = ctx.currentTime;
+      const notes = [261.63, 329.63, 392.00, 523.25];
+      notes.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.09);
+        gain.gain.setValueAtTime(0.28, now + idx * 0.09);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.09 + 1.1);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + idx * 0.09);
+        osc.stop(now + idx * 0.09 + 1.15);
+      });
     });
   }
 };
+
+// Globalus garso kanalo atrakinimas bet kokio paspaudimo metu mobiliuosiuose įrenginiuose
+['touchstart', 'touchend', 'pointerdown', 'click'].forEach(evt => {
+  window.addEventListener(evt, () => SoundEngine.unlock(), { passive: true });
+});
 
 // ============================================================================
 // BŪSENA IR KATALOGO DUOMENYS
@@ -1514,8 +1547,13 @@ async function requestWakeLock() {
   }
 }
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && !['HOME', 'PREGAME', 'EDITOR'].includes(state.screen)) {
-    requestWakeLock();
+  if (document.visibilityState === 'visible') {
+    if (SoundEngine.ctx && SoundEngine.ctx.state !== 'running') {
+      SoundEngine.ctx.resume().catch(() => {});
+    }
+    if (!['HOME', 'PREGAME', 'EDITOR'].includes(state.screen)) {
+      requestWakeLock();
+    }
   }
 });
 
@@ -1627,6 +1665,23 @@ function cycleItemColor(currentKey) {
   return ITEM_COLOR_KEYS[(idx + 1) % ITEM_COLOR_KEYS.length];
 }
 
+// Sukant kortelės spalvą, kai parinkta grupė su spalva, praleidžiame dubliuojančią grupės spalvą
+function cycleCardColorInEditor(cardIndex) {
+  if (!state.editorDraft) return;
+  const card = state.editorDraft.cards[cardIndex];
+  if (!card) return;
+  const grp = getGroupById(state.editorDraft, card.groupId);
+  const grpColor = (grp && grp.color && grp.color !== 'none') ? grp.color : null;
+
+  let next = cycleItemColor(card.color);
+  if (grpColor && next === grpColor) {
+    next = cycleItemColor(next);
+  }
+  card.color = next;
+  updateDraftHashBadge();
+  render();
+}
+
 function updateGroupTitleInSelects(groupId, newTitle) {
   const selects = document.querySelectorAll('.group-select');
   selects.forEach(sel => {
@@ -1701,7 +1756,7 @@ function buildSessionDeck() {
 }
 
 function startDealing() {
-  SoundEngine.init();
+  SoundEngine.unlock();
   requestWakeLock();
   clearAppEffects();
   setAccent(BASE_GAME.color);
@@ -1787,7 +1842,7 @@ function returnCardToDeck(card) {
 // 3.C FAZIŲ VALDYMAS IR ŽAIDIMO EIGA
 // ============================================================================
 function startPhases() {
-  SoundEngine.init();
+  SoundEngine.unlock();
   requestWakeLock();
   state.screen = 'PHASE';
   state.phaseIndex = 0;
@@ -1865,6 +1920,7 @@ function togglePausePhase() {
 }
 
 function triggerAlarm() {
+  SoundEngine.unlock();
   state.alarmActive = !state.alarmActive;
   const app = document.getElementById('app');
   app.classList.toggle('fx-alarm', state.alarmActive);
@@ -1895,6 +1951,7 @@ function getNextPhaseIndex() {
 }
 
 function nextPhase() {
+  SoundEngine.unlock();
   const phases = BASE_GAME.phases || [];
   if (state.firstLap && state.phaseIndex + 1 >= phases.length) {
     state.firstLap = false;
@@ -1918,7 +1975,7 @@ function startFinalHold(idx, e) {
   if (!finalObj) return;
 
   cancelFinalHold();
-  SoundEngine.init();
+  SoundEngine.unlock();
 
   state.holdFinalIdx = idx;
   state.holdStartTime = performance.now();
@@ -2065,7 +2122,7 @@ function render() {
       <div class="catalog-card" style="--card-accent: ${getColorCss(g.color)}" onclick="openGameByHashFromList('${g.hash}', 'my')">
         <div class="catalog-card-title">${escapeHtml(g.title)}</div>
         <div class="catalog-card-actions">
-          <button class="xs danger" onclick="deleteMyGame('${g.hash}', event)">
+          <button class="xs" onclick="deleteMyGame('${g.hash}', event)">
             <i class="fa-solid fa-trash"></i>
           </button>
           <button class="xs" onclick="shareMyFullGame('${g.hash}', event)">
@@ -2294,7 +2351,6 @@ function render() {
 
     const cardsHtml = d.cards.map((c, i) => {
       const resolvedColorKey = resolveCardColorKey(d, c);
-      const hasOwnColor = c.color && c.color !== 'none';
       const isNoneResolved = resolvedColorKey === 'none';
       const itemColorCss = getColorCss(resolvedColorKey, 'var(--border)');
 
@@ -2306,10 +2362,10 @@ function render() {
       return `
         <div class="editor-item" style="--item-color: ${itemColorCss}">
           <div class="editor-item-main">
-            <div class="color-cycle-btn ${isNoneResolved ? 'is-none' : (!hasOwnColor ? 'is-inherited' : '')}"
+            <div class="color-cycle-btn ${isNoneResolved ? 'is-none' : ''}"
                  style="background: ${isNoneResolved ? 'transparent' : PALETTE[resolvedColorKey]}"
-                 onclick="state.editorDraft.cards[${i}].color = cycleItemColor('${c.color}'); updateDraftHashBadge(); render();">
-              ${isNoneResolved ? '<i class="fa-solid fa-ban"></i>' : (!hasOwnColor ? '<i class="fa-solid fa-link"></i>' : '')}
+                 onclick="cycleCardColorInEditor(${i})">
+              ${isNoneResolved ? '<i class="fa-solid fa-ban"></i>' : ''}
             </div>
             <input class="text-input"
                    value="${escapeHtml(c.title)}"
