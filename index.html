@@ -101,6 +101,8 @@
     align-items: center;
     min-height: 48px;
     flex-shrink: 0;
+    position: relative;
+    z-index: 130;
   }
   .top-bar.empty-top {
     min-height: 12px;
@@ -140,7 +142,7 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: transform 0.1s, border-color 0.2s, background 0.2s, color 0.2s;
+    transition: transform 0.1s, border-color 0.2s, background 0.2s, color 0.2s, box-shadow 0.2s;
     padding: 0;
   }
   button:active { transform: scale(0.92); }
@@ -165,6 +167,16 @@
   @keyframes btnPulse {
     from { transform: scale(1); box-shadow: 0 0 5px var(--accent); }
     to { transform: scale(1.12); box-shadow: 0 0 25px var(--accent); }
+  }
+
+  .hold-btn {
+    touch-action: none;
+  }
+  .hold-btn.holding {
+    transform: scale(1.14);
+    border-color: var(--hold-color, var(--c-red));
+    color: var(--hold-color, var(--c-red));
+    box-shadow: 0 0 22px var(--hold-color, var(--c-red));
   }
 
   /* =========================================================================
@@ -254,9 +266,6 @@
     gap: 8px;
     align-items: center;
     flex-shrink: 0;
-  }
-  .del-hold-btn {
-    touch-action: none;
   }
   .star-active {
     color: var(--c-amber) !important;
@@ -432,7 +441,7 @@
   }
   @keyframes blinkTxt { from { opacity: 1; } to { opacity: 0.2; } }
 
-  /* 3.D Finaliniai žetonai ir Long-Press peržiūros sluoksnis */
+  /* 3.D Finaliniai žetonai ir Universalus Užlaikymo (Hold) peržiūros sluoksnis */
   .finals-tray {
     display: flex;
     gap: 14px;
@@ -465,7 +474,7 @@
     box-shadow: 0 0 28px var(--token-color);
   }
 
-  #final-hold-overlay {
+  #hold-overlay {
     position: fixed;
     inset: 0;
     pointer-events: none;
@@ -478,32 +487,26 @@
     opacity: 0;
     visibility: hidden;
   }
-  #final-hold-overlay.active {
+  #hold-overlay.active {
     visibility: visible;
   }
-  #final-hold-overlay .playing-card {
+  #hold-overlay .hold-target {
     transform: scale(var(--hold-scale, 0.88));
     transition: none;
   }
-
-  /* 4.1 Universalus modalinis patvirtinimas */
-  #modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(6, 7, 11, 0.9);
-    backdrop-filter: blur(6px);
-    display: none;
-    flex-direction: column;
+  .hold-symbol-badge {
+    width: 132px;
+    height: 132px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 4px solid var(--badge-color, var(--c-red));
+    color: var(--badge-color, var(--c-red));
+    box-shadow: 0 12px 40px -10px rgba(0,0,0,0.8), 0 0 36px -6px var(--badge-color, var(--c-red));
+    display: flex;
     align-items: center;
     justify-content: center;
-    gap: 36px;
-    z-index: 150;
+    font-size: 4rem;
   }
-  #modal-overlay.open { display: flex; }
-  .modal-symbol { font-size: 3.6rem; font-weight: 800; display: flex; align-items: center; gap: 14px; }
-  .modal-actions { display: flex; gap: 40px; }
-  .btn-confirm { border-color: var(--c-emerald); color: var(--c-emerald); }
-  .btn-cancel { border-color: var(--c-amber); color: var(--c-amber); }
 
   /* =========================================================================
      2. REDAKTORIUS (EDITOR FORMA)
@@ -702,20 +705,168 @@
 <div class="lock-bar" id="lock-bar"></div>
 <div id="app"></div>
 
-<!-- Laikomo finalinio žetono peržiūros sluoksnis -->
-<div id="final-hold-overlay"></div>
-
-<!-- Universalus modalinis langas -->
-<div id="modal-overlay">
-  <div class="modal-symbol" id="modal-symbol"></div>
-  <div class="modal-actions">
-    <button class="lg btn-confirm" id="modal-yes"><i class="fa-solid fa-check"></i></button>
-    <button class="lg btn-cancel" id="modal-no"><i class="fa-solid fa-rotate-left"></i></button>
-  </div>
-</div>
+<!-- Universalus užlaikymo (Hold-to-Action) peržiūros sluoksnis -->
+<div id="hold-overlay"></div>
 
 <script>
-// 9 fiksuotų spalvų paletė ir elemento spalvų sąrašas su 'none' (be spalvos / paveldima)
+// ============================================================================
+// BENDRA UŽLAIKYMO (HOLD-TO-CONFIRM) KONFIGŪRACIJA IR VARIKLIS
+// ============================================================================
+const HOLD_CONFIG = {
+  FILL_MS: 1300,        // Laikas iki pilno veiksmo įvykdymo laikant paspaudus (ms)
+  DECAY_MS: 650,        // Išblėsimo (fade-out) laikas atleidus mygtuką (ms)
+  INITIAL_JUMP: 0.32,   // Pradinis blyksnis trumpai bakstelėjus (0..1)
+  REPRESS_BOOST: 0.08,  // Papildomas šuolis paspaudus dar kartą, kol blyksnis neišblėso
+  MAX_BOOST_CAP: 0.88   // Viršutinė šuolio riba, kad visada reikėtų bent trumpai palaikyti
+};
+
+const HoldEngine = {
+  activeKey: null,
+  isHolding: false,
+  progress: 0,
+  lastTime: 0,
+  rafId: null,
+  handler: null,
+
+  start(key, handler, e) {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    if (state.locked) return;
+    SoundEngine.unlock();
+
+    if (this.activeKey !== key) {
+      this.reset();
+      this.activeKey = key;
+      this.progress = 0;
+      this.handler = handler;
+      if (handler.onSetup) handler.onSetup();
+    } else {
+      this.handler = handler;
+      if (handler.onSetup) handler.onSetup();
+    }
+
+    this.isHolding = true;
+    this.lastTime = performance.now();
+
+    if (this.progress < HOLD_CONFIG.INITIAL_JUMP) {
+      this.progress = HOLD_CONFIG.INITIAL_JUMP;
+    } else {
+      this.progress = Math.min(HOLD_CONFIG.MAX_BOOST_CAP, this.progress + HOLD_CONFIG.REPRESS_BOOST);
+    }
+
+    SoundEngine.playHoldPulse(this.progress, Boolean(handler.isDanger));
+
+    if (this.handler.onUpdate) {
+      this.handler.onUpdate(this.progress, true);
+    }
+
+    if (!this.rafId) {
+      this.rafId = requestAnimationFrame(t => this.step(t));
+    }
+  },
+
+  release() {
+    if (!this.activeKey) return;
+    this.isHolding = false;
+    if (this.handler && this.handler.onRelease) {
+      this.handler.onRelease(this.progress);
+    }
+  },
+
+  reset() {
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+    if (this.handler && this.handler.onCleanup) {
+      this.handler.onCleanup();
+    }
+    this.activeKey = null;
+    this.isHolding = false;
+    this.progress = 0;
+    this.handler = null;
+  },
+
+  step(now) {
+    if (!this.activeKey || !this.handler) {
+      this.reset();
+      return;
+    }
+
+    const dt = Math.min(80, Math.max(0, now - this.lastTime));
+    this.lastTime = now;
+
+    if (this.isHolding) {
+      this.progress = Math.min(1, this.progress + dt / HOLD_CONFIG.FILL_MS);
+      if (this.handler.onUpdate) this.handler.onUpdate(this.progress, true);
+
+      if (this.progress >= 1) {
+        const doneFn = this.handler.onComplete;
+        this.reset();
+        if (doneFn) doneFn();
+        return;
+      }
+    } else {
+      this.progress = Math.max(0, this.progress - dt / HOLD_CONFIG.DECAY_MS);
+      if (this.handler.onUpdate) this.handler.onUpdate(this.progress, false);
+
+      if (this.progress <= 0) {
+        this.reset();
+        return;
+      }
+    }
+
+    this.rafId = requestAnimationFrame(t => this.step(t));
+  },
+
+  // Pagalbinis metodas visiems veiksmams, kurie pamažu ryškėja (#hold-overlay)
+  startOverlayHold({ key, btnId, colorCss, innerHtml, isDanger = false, onComplete }) {
+    this.start(key, {
+      isDanger,
+      onSetup() {
+        const overlay = document.getElementById('hold-overlay');
+        if (overlay) {
+          overlay.innerHTML = innerHtml;
+          overlay.style.boxShadow = `inset 0 0 90px ${colorCss}, inset 0 0 30px ${colorCss}`;
+          overlay.classList.add('active');
+        }
+        const btn = btnId ? document.getElementById(btnId) : null;
+        if (btn) btn.classList.add('holding');
+      },
+      onUpdate(p) {
+        const overlay = document.getElementById('hold-overlay');
+        if (overlay) {
+          overlay.style.opacity = p.toFixed(3);
+          overlay.style.setProperty('--hold-scale', (0.86 + 0.14 * p).toFixed(3));
+        }
+      },
+      onRelease() {
+        const btn = btnId ? document.getElementById(btnId) : null;
+        if (btn) btn.classList.remove('holding');
+      },
+      onCleanup() {
+        const btn = btnId ? document.getElementById(btnId) : null;
+        if (btn) btn.classList.remove('holding');
+        const overlay = document.getElementById('hold-overlay');
+        if (overlay) {
+          overlay.classList.remove('active');
+          overlay.style.opacity = '0';
+          overlay.innerHTML = '';
+        }
+      },
+      onComplete
+    });
+  }
+};
+
+window.addEventListener('pointerup', () => HoldEngine.release());
+window.addEventListener('pointercancel', () => HoldEngine.release());
+
+// ============================================================================
+// SPALVŲ PALETĖ IR BAZINIAI DUOMENYS
+// ============================================================================
 const COLOR_KEYS = ['red', 'amber', 'emerald', 'cyan', 'blue', 'purple', 'pink', 'gray', 'white'];
 const ITEM_COLOR_KEYS = ['none', ...COLOR_KEYS];
 const RETURN_METHODS = ['bottom', 'shuffle', 'middle'];
@@ -922,7 +1073,6 @@ function computeCanonicalHash(gameObj) {
   return (h >>> 0).toString(16).padStart(8, '0');
 }
 
-// Žaidimo objektas -> Pozicinis masyvas
 function gameToPositionalArray(g) {
   const groups = Array.isArray(g.groups) ? g.groups : [];
   const groupIndexMap = new Map(groups.map((grp, idx) => [grp.id, idx]));
@@ -957,7 +1107,6 @@ function gameToPositionalArray(g) {
   ];
 }
 
-// Pozicinis masyvas -> Žaidimo objektas
 function positionalArrayToGame(arr) {
   if (!Array.isArray(arr) || arr.length < 9) throw new Error("Netinkamas masyvas");
   const hasGroupsArr = Array.isArray(arr[9]);
@@ -1007,7 +1156,6 @@ function positionalArrayToGame(arr) {
   return normalizeGameObject(game);
 }
 
-// Saugi srauto skaitymo funkcija be new Response(stream)
 async function runCompressionPipeline(inputBytes, transformStream) {
   const writer = transformStream.writable.getWriter();
   writer.write(inputBytes);
@@ -1031,7 +1179,6 @@ async function runCompressionPipeline(inputBytes, transformStream) {
   return out;
 }
 
-// Pozicinis masyvas -> Deflate -> Base64URL
 async function encodeGameToDeflateParam(gameObj) {
   const posArr = gameToPositionalArray(gameObj);
   const jsonBytes = new TextEncoder().encode(JSON.stringify(posArr));
@@ -1046,7 +1193,6 @@ async function encodeGameToDeflateParam(gameObj) {
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-// Base64URL -> Inflate -> Pozicinis masyvas -> Žaidimo objektas
 async function decodeGameFromDeflateParam(encodedStr) {
   const b64 = encodedStr.replace(/-/g, '+').replace(/_/g, '/');
   const pad = b64.length % 4 ? '='.repeat(4 - (b64.length % 4)) : '';
@@ -1158,7 +1304,6 @@ const SoundEngine = {
     } catch (_) {}
   },
 
-  // Palaiko aktyvią garso sesiją žaidimo metu, kad OS neužmigdytų garso kanalo per tylos fazes
   startKeepAlive() {
     if (this.muted || this.keepAliveOsc) return;
     const ctx = this.ensureContext();
@@ -1326,7 +1471,6 @@ const SoundEngine = {
   }
 };
 
-// Globalus garso kanalo atrakinimas bet kokio paspaudimo metu
 ['touchstart', 'touchend', 'pointerdown', 'click'].forEach(evt => {
   window.addEventListener(evt, () => SoundEngine.ensureContext(), { passive: true });
 });
@@ -1372,20 +1516,8 @@ const state = {
   timerInterval: null,
   alarmActive: false,
 
-  // 3.D Finalinės kortos trumpas blyksnis + tęstinis Long-Press
-  activeFinal: null,
-  holdFinalIdx: null,
-  isHoldingFinal: false,
-  holdProgress: 0,
-  holdLastTime: 0,
-  holdRaf: null,
-
-  // Išsaugoto žaidimo trynimo trumpas blyksnis + tęstinis Long-Press
-  delHoldHash: null,
-  isHoldingDel: false,
-  delProgress: 0,
-  delLastTime: 0,
-  delRaf: null
+  // 3.D Finalinė korta
+  activeFinal: null
 };
 
 async function refreshCatalogState() {
@@ -1439,8 +1571,7 @@ window.addEventListener('hashchange', () => {
 });
 
 function goToHome() {
-  resetFinalHoldImmediate();
-  resetDeleteHoldImmediate();
+  HoldEngine.reset();
   stopPhaseTimer();
   SoundEngine.stopSiren();
   SoundEngine.stopKeepAlive();
@@ -1463,7 +1594,152 @@ function openGameSession(gameObj) {
 }
 
 // ============================================================================
-// KATALOGO VEIKSMAI IR TRYNIMAS BE PATVIRTINIMO (BLYKSNIS + HOLD FADE-IN)
+// VISI UŽLAIKYMO (HOLD) VEIKSMAI PER BENDRĄ HOLDENGINE
+// ============================================================================
+
+// 1. Išsaugoto žaidimo trynimas kataloge (raudonas kortelės blyksnis + fade-in)
+function startDeleteHold(hash, e) {
+  if (state.screen !== 'HOME') return;
+  HoldEngine.start(`del:${hash}`, {
+    isDanger: true,
+    onUpdate(p) {
+      const card = document.getElementById(`my-card-${hash}`);
+      const btn = document.getElementById(`del-btn-${hash}`);
+      if (!card) return;
+      const pct = Math.round(p * 100);
+      card.style.borderColor = `rgba(239, 68, 68, ${(0.35 + 0.65 * p).toFixed(2)})`;
+      card.style.borderLeftColor = 'var(--c-red)';
+      card.style.boxShadow = `inset 0 0 ${Math.round(55 * p)}px rgba(239, 68, 68, ${(0.65 * p).toFixed(2)}), 0 0 ${Math.round(20 * p)}px rgba(239, 68, 68, ${(0.4 * p).toFixed(2)})`;
+      card.style.background = `linear-gradient(90deg, rgba(239, 68, 68, ${(0.48 * p).toFixed(2)}) ${pct}%, rgba(239, 68, 68, ${(0.16 * p).toFixed(2)}) ${pct}%), var(--surface-2)`;
+      if (btn) {
+        btn.style.borderColor = 'var(--c-red)';
+        btn.style.color = p > 0.45 ? '#fff' : 'var(--c-red)';
+        btn.style.background = `rgba(239, 68, 68, ${(0.9 * p).toFixed(2)})`;
+      }
+    },
+    onCleanup() {
+      const card = document.getElementById(`my-card-${hash}`);
+      const btn = document.getElementById(`del-btn-${hash}`);
+      if (card) {
+        card.style.borderColor = '';
+        card.style.borderLeftColor = '';
+        card.style.boxShadow = '';
+        card.style.background = '';
+      }
+      if (btn) {
+        btn.style.borderColor = '';
+        btn.style.color = '';
+        btn.style.background = '';
+      }
+    },
+    async onComplete() {
+      SoundEngine.playCardFlip(false);
+      const card = document.getElementById(`my-card-${hash}`);
+      if (card) card.classList.add('deleting-card');
+      await CacheStore.remove(CacheStore.MY_CACHE, CacheStore.memMy, hash);
+      await refreshCatalogState();
+      setTimeout(() => {
+        if (state.screen === 'HOME') render();
+      }, 220);
+    }
+  }, e);
+}
+
+// 2. Kortelių dalinimo arba žaidimo/fazių nutraukimas (X mygtukas -> X fade-in -> goToPregame)
+function startCancelHold(e) {
+  if (e) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  HoldEngine.startOverlayHold({
+    key: 'cancel:session',
+    btnId: 'cancel-hold-btn',
+    colorCss: 'var(--c-red)',
+    isDanger: true,
+    innerHtml: `
+      <div class="hold-target hold-symbol-badge" style="--badge-color: var(--c-red)">
+        <i class="fa-solid fa-xmark"></i>
+      </div>
+    `,
+    onComplete() {
+      SoundEngine.playCardFlip(false);
+      goToPregame();
+    }
+  });
+}
+
+// 3. Kaladės permaišymas 4-ame režime (🔄 mygtukas -> 🔄 fade-in -> startDealing)
+function startReshuffleHold(e) {
+  if (e) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  const accentCss = getColorCss(BASE_GAME.color, 'var(--c-blue)');
+  HoldEngine.startOverlayHold({
+    key: 'reshuffle:deck',
+    btnId: 'reshuffle-hold-btn',
+    colorCss: accentCss,
+    isDanger: false,
+    innerHtml: `
+      <div class="hold-target hold-symbol-badge" style="--badge-color: ${accentCss}">
+        <i class="fa-solid fa-arrows-rotate"></i>
+      </div>
+    `,
+    onComplete() {
+      SoundEngine.playCardFlip(true);
+      startDealing();
+    }
+  });
+}
+
+// 4. Finalinės pergalės kortos atvertimas (🏆 žetonas -> kortos fade-in -> FINAL ekranas)
+function startFinalHold(idx, e) {
+  if (e) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  if (state.screen !== 'PHASE') return;
+  const finalObj = (BASE_GAME.finals || [])[idx];
+  if (!finalObj) return;
+
+  const colorCss = getColorCss(finalObj.color, 'var(--c-none)');
+  const textColorCss = (!finalObj.color || finalObj.color === 'none') ? 'var(--text)' : PALETTE[finalObj.color];
+
+  HoldEngine.startOverlayHold({
+    key: `final:${idx}`,
+    btnId: `final-token-${idx}`,
+    colorCss,
+    isDanger: false,
+    innerHtml: `
+      <div class="hold-target playing-card" style="--card-color: ${colorCss}; --card-text-color: ${textColorCss};">
+        <div style="font-size: 3rem; color: ${textColorCss}; margin-bottom: 14px;">
+          <i class="fa-solid fa-trophy"></i>
+        </div>
+        <div class="card-face-title">${escapeHtml(finalObj.title)}</div>
+        <div class="return-btn-wrap">
+          <button style="border-color: ${colorCss}; color: ${textColorCss}; pointer-events: none;">
+            <i class="fa-solid fa-check"></i>
+          </button>
+        </div>
+      </div>
+    `,
+    onComplete() {
+      stopPhaseTimer();
+      SoundEngine.stopSiren();
+      clearAppEffects();
+      state.activeFinal = finalObj;
+      state.screen = 'FINAL';
+      setAccent(finalObj.color);
+      document.getElementById('app').classList.add('fx-final');
+      SoundEngine.playFinalFanfare();
+      render();
+      triggerBarrier();
+    }
+  });
+}
+
+// ============================================================================
+// KATALOGO VEIKSMAI (FAVORITE, SAVE, SHARE)
 // ============================================================================
 function findGameAnySourceByHash(hash) {
   return state.myGames.find(g => g.hash === hash) ||
@@ -1514,148 +1790,10 @@ async function saveCurrentGameInPregame() {
   render();
 }
 
-// Išsaugoto žaidimo trynimo blyksnis + tęstinis išlaikymas (be patvirtinimo lango)
-const DEL_HOLD_FILL_MS = 1150;
-const DEL_HOLD_DECAY_MS = 650;
-
-function startDeleteHold(hash, e) {
-  if (e) {
-    e.stopPropagation();
-    e.preventDefault();
-  }
-  if (state.screen !== 'HOME') return;
-
-  if (state.delHoldHash && state.delHoldHash !== hash) {
-    applyDeleteVisual(state.delHoldHash, 0);
-    state.delProgress = 0;
-  }
-
-  state.delHoldHash = hash;
-  state.isHoldingDel = true;
-  state.delLastTime = performance.now();
-
-  // Trumpas paspaudimas iškart sukelia matomą raudoną blyksnį (~32%), o pakartotinis paspaudimas tęsia nuo esamo
-  if (state.delProgress < 0.32) {
-    state.delProgress = 0.32;
-  } else {
-    state.delProgress = Math.min(0.88, state.delProgress + 0.08);
-  }
-
-  SoundEngine.playHoldPulse(state.delProgress, true);
-  applyDeleteVisual(hash, state.delProgress);
-
-  if (!state.delRaf) {
-    state.delRaf = requestAnimationFrame(stepDeleteHold);
-  }
-}
-
-function releaseDeleteHold() {
-  state.isHoldingDel = false;
-}
-
-function resetDeleteHoldImmediate() {
-  if (state.delRaf) {
-    cancelAnimationFrame(state.delRaf);
-    state.delRaf = null;
-  }
-  if (state.delHoldHash) {
-    applyDeleteVisual(state.delHoldHash, 0);
-  }
-  state.delHoldHash = null;
-  state.isHoldingDel = false;
-  state.delProgress = 0;
-}
-
-function applyDeleteVisual(hash, p) {
-  const card = document.getElementById(`my-card-${hash}`);
-  const btn = document.getElementById(`del-btn-${hash}`);
-  if (!card) return;
-
-  if (p <= 0.001) {
-    card.style.borderColor = '';
-    card.style.borderLeftColor = '';
-    card.style.boxShadow = '';
-    card.style.background = '';
-    if (btn) {
-      btn.style.borderColor = '';
-      btn.style.color = '';
-      btn.style.background = '';
-    }
-    return;
-  }
-
-  const pct = Math.round(p * 100);
-  card.style.borderColor = `rgba(239, 68, 68, ${(0.35 + 0.65 * p).toFixed(2)})`;
-  card.style.borderLeftColor = 'var(--c-red)';
-  card.style.boxShadow = `inset 0 0 ${Math.round(55 * p)}px rgba(239, 68, 68, ${(0.65 * p).toFixed(2)}), 0 0 ${Math.round(20 * p)}px rgba(239, 68, 68, ${(0.4 * p).toFixed(2)})`;
-  card.style.background = `linear-gradient(90deg, rgba(239, 68, 68, ${(0.48 * p).toFixed(2)}) ${pct}%, rgba(239, 68, 68, ${(0.16 * p).toFixed(2)}) ${pct}%), var(--surface-2)`;
-
-  if (btn) {
-    btn.style.borderColor = 'var(--c-red)';
-    btn.style.color = p > 0.45 ? '#fff' : 'var(--c-red)';
-    btn.style.background = `rgba(239, 68, 68, ${(0.9 * p).toFixed(2)})`;
-  }
-}
-
-function stepDeleteHold(now) {
-  const hash = state.delHoldHash;
-  if (!hash || state.screen !== 'HOME') {
-    resetDeleteHoldImmediate();
-    return;
-  }
-
-  const dt = Math.min(80, Math.max(0, now - state.delLastTime));
-  state.delLastTime = now;
-
-  if (state.isHoldingDel) {
-    state.delProgress = Math.min(1, state.delProgress + dt / DEL_HOLD_FILL_MS);
-    applyDeleteVisual(hash, state.delProgress);
-    if (state.delProgress >= 1) {
-      completeDeleteHold(hash);
-      return;
-    }
-  } else {
-    state.delProgress = Math.max(0, state.delProgress - dt / DEL_HOLD_DECAY_MS);
-    applyDeleteVisual(hash, state.delProgress);
-    if (state.delProgress <= 0) {
-      state.delHoldHash = null;
-      state.delRaf = null;
-      return;
-    }
-  }
-
-  state.delRaf = requestAnimationFrame(stepDeleteHold);
-}
-
-async function completeDeleteHold(hash) {
-  if (state.delRaf) {
-    cancelAnimationFrame(state.delRaf);
-    state.delRaf = null;
-  }
-  state.isHoldingDel = false;
-  state.delHoldHash = null;
-  state.delProgress = 0;
-
-  SoundEngine.playCardFlip(false);
-
-  const card = document.getElementById(`my-card-${hash}`);
-  if (card) {
-    card.classList.add('deleting-card');
-  }
-
-  await CacheStore.remove(CacheStore.MY_CACHE, CacheStore.memMy, hash);
-  await refreshCatalogState();
-
-  setTimeout(() => {
-    if (state.screen === 'HOME') render();
-  }, 220);
-}
-
 function getBaseShareUrl() {
   return window.location.href.split('#')[0];
 }
 
-// Vieninga dalijimosi funkcija: suformuoja nuorodą su /#/kodas (deflatintas pozicinis masyvas)
 async function shareGameByHash(hash, e) {
   if (e) e.stopPropagation();
   const game = findGameAnySourceByHash(hash);
@@ -1729,24 +1867,6 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-function openConfirmModal(symbolHtml, onConfirm) {
-  const overlay = document.getElementById('modal-overlay');
-  const sym = document.getElementById('modal-symbol');
-  const yes = document.getElementById('modal-yes');
-  const no = document.getElementById('modal-no');
-
-  sym.innerHTML = symbolHtml;
-  overlay.classList.add('open');
-
-  yes.onclick = () => {
-    overlay.classList.remove('open');
-    onConfirm();
-  };
-  no.onclick = () => {
-    overlay.classList.remove('open');
-  };
-}
-
 function shuffleArray(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -1760,8 +1880,7 @@ function shuffleArray(arr) {
 // 3.A PRIEŠŽAIDIMINIS LANGAS
 // ============================================================================
 function goToPregame() {
-  resetFinalHoldImmediate();
-  resetDeleteHoldImmediate();
+  HoldEngine.reset();
   stopPhaseTimer();
   SoundEngine.stopSiren();
   SoundEngine.stopKeepAlive();
@@ -1929,6 +2048,7 @@ function buildSessionDeck() {
 }
 
 function startDealing() {
+  HoldEngine.reset();
   SoundEngine.unlock();
   SoundEngine.startKeepAlive();
   requestWakeLock();
@@ -2016,6 +2136,7 @@ function returnCardToDeck(card) {
 // 3.C FAZIŲ VALDYMAS IR ŽAIDIMO EIGA
 // ============================================================================
 function startPhases() {
+  HoldEngine.reset();
   SoundEngine.unlock();
   SoundEngine.startKeepAlive();
   requestWakeLock();
@@ -2042,7 +2163,7 @@ function triggerPhaseStartEffect() {
 }
 
 function loadCurrentPhase() {
-  resetFinalHoldImmediate();
+  HoldEngine.reset();
   stopPhaseTimer();
   SoundEngine.stopSiren();
   SoundEngine.startKeepAlive();
@@ -2155,175 +2276,6 @@ function nextPhase() {
   }
 }
 
-// ============================================================================
-// 3.D ŽAIDIMO PABAIGA (FINALINĖS KORTOS: TRUMPAS BLYKSNIS + TĘSTINIS FADE-IN)
-// ============================================================================
-const FINAL_HOLD_FILL_MS = 1500;
-const FINAL_HOLD_DECAY_MS = 650;
-
-function startFinalHold(idx, e) {
-  if (e) {
-    e.stopPropagation();
-    e.preventDefault();
-  }
-  if (state.locked || state.screen !== 'PHASE') return;
-  const finalObj = (BASE_GAME.finals || [])[idx];
-  if (!finalObj) return;
-
-  SoundEngine.unlock();
-
-  // Jei paspaustas kitas žetonas nei tas, kuris šiuo metu blėsta, pradedame nuo 0
-  if (state.holdFinalIdx !== idx) {
-    if (state.holdFinalIdx !== null) {
-      const prevBtn = document.getElementById(`final-token-${state.holdFinalIdx}`);
-      if (prevBtn) prevBtn.classList.remove('holding');
-    }
-    state.holdFinalIdx = idx;
-    state.holdProgress = 0;
-    populateFinalHoldOverlay(finalObj);
-  }
-
-  state.isHoldingFinal = true;
-  state.holdLastTime = performance.now();
-
-  // Net ir labai trumpas paspaudimas iškart sukelia matomą kortelės blyksnį (~30%),
-  // o jei paspaudžiama dar kartą jai nespėjus išblėsti — ryškėjimas tęsiasi toliau
-  if (state.holdProgress < 0.30) {
-    state.holdProgress = 0.30;
-  } else {
-    state.holdProgress = Math.min(0.88, state.holdProgress + 0.08);
-  }
-
-  SoundEngine.playHoldPulse(state.holdProgress, false);
-
-  const btn = document.getElementById(`final-token-${idx}`);
-  if (btn) btn.classList.add('holding');
-
-  applyFinalHoldVisual(state.holdProgress);
-
-  if (!state.holdRaf) {
-    state.holdRaf = requestAnimationFrame(stepFinalHold);
-  }
-}
-
-function populateFinalHoldOverlay(finalObj) {
-  const colorCss = getColorCss(finalObj.color, 'var(--c-none)');
-  const textColorCss = (!finalObj.color || finalObj.color === 'none') ? 'var(--text)' : PALETTE[finalObj.color];
-
-  const overlay = document.getElementById('final-hold-overlay');
-  overlay.innerHTML = `
-    <div class="playing-card" style="--card-color: ${colorCss}; --card-text-color: ${textColorCss};">
-      <div style="font-size: 3rem; color: ${textColorCss}; margin-bottom: 14px;">
-        <i class="fa-solid fa-trophy"></i>
-      </div>
-      <div class="card-face-title">${escapeHtml(finalObj.title)}</div>
-      <div class="return-btn-wrap">
-        <button style="border-color: ${colorCss}; color: ${textColorCss}; pointer-events: none;">
-          <i class="fa-solid fa-check"></i>
-        </button>
-      </div>
-    </div>
-  `;
-  overlay.style.boxShadow = `inset 0 0 90px ${colorCss}, inset 0 0 30px ${colorCss}`;
-  overlay.classList.add('active');
-}
-
-function applyFinalHoldVisual(p) {
-  const overlay = document.getElementById('final-hold-overlay');
-  if (!overlay) return;
-  overlay.style.opacity = p.toFixed(3);
-  overlay.style.setProperty('--hold-scale', (0.88 + 0.12 * p).toFixed(3));
-}
-
-function releaseFinalHold() {
-  state.isHoldingFinal = false;
-  if (state.holdFinalIdx !== null) {
-    const btn = document.getElementById(`final-token-${state.holdFinalIdx}`);
-    if (btn) btn.classList.remove('holding');
-  }
-}
-
-function resetFinalHoldImmediate() {
-  if (state.holdRaf) {
-    cancelAnimationFrame(state.holdRaf);
-    state.holdRaf = null;
-  }
-  if (state.holdFinalIdx !== null) {
-    const btn = document.getElementById(`final-token-${state.holdFinalIdx}`);
-    if (btn) btn.classList.remove('holding');
-  }
-  state.holdFinalIdx = null;
-  state.isHoldingFinal = false;
-  state.holdProgress = 0;
-
-  const overlay = document.getElementById('final-hold-overlay');
-  if (overlay) {
-    overlay.classList.remove('active');
-    overlay.style.opacity = '0';
-    overlay.innerHTML = '';
-  }
-}
-
-function stepFinalHold(now) {
-  const idx = state.holdFinalIdx;
-  if (idx === null || state.screen !== 'PHASE') {
-    resetFinalHoldImmediate();
-    return;
-  }
-
-  const dt = Math.min(80, Math.max(0, now - state.holdLastTime));
-  state.holdLastTime = now;
-
-  if (state.isHoldingFinal) {
-    state.holdProgress = Math.min(1, state.holdProgress + dt / FINAL_HOLD_FILL_MS);
-    applyFinalHoldVisual(state.holdProgress);
-
-    if (state.holdProgress >= 1) {
-      const finalObj = (BASE_GAME.finals || [])[idx];
-      if (finalObj) {
-        completeFinalHold(finalObj);
-      } else {
-        resetFinalHoldImmediate();
-      }
-      return;
-    }
-  } else {
-    state.holdProgress = Math.max(0, state.holdProgress - dt / FINAL_HOLD_DECAY_MS);
-    applyFinalHoldVisual(state.holdProgress);
-
-    if (state.holdProgress <= 0) {
-      resetFinalHoldImmediate();
-      return;
-    }
-  }
-
-  state.holdRaf = requestAnimationFrame(stepFinalHold);
-}
-
-function completeFinalHold(finalObj) {
-  resetFinalHoldImmediate();
-  stopPhaseTimer();
-  SoundEngine.stopSiren();
-  clearAppEffects();
-
-  state.activeFinal = finalObj;
-  state.screen = 'FINAL';
-  setAccent(finalObj.color);
-  document.getElementById('app').classList.add('fx-final');
-  SoundEngine.playFinalFanfare();
-  render();
-  triggerBarrier();
-}
-
-window.addEventListener('pointerup', () => {
-  if (state.isHoldingFinal) releaseFinalHold();
-  if (state.isHoldingDel) releaseDeleteHold();
-});
-window.addEventListener('pointercancel', () => {
-  if (state.isHoldingFinal) releaseFinalHold();
-  if (state.isHoldingDel) releaseDeleteHold();
-});
-
 function closeFinalCard() {
   if (state.locked) return;
   SoundEngine.playCardFlip(false);
@@ -2371,7 +2323,7 @@ function renderTimerOnly() {
 }
 
 function openGameByHashFromList(hash, source) {
-  if (state.delHoldHash === hash && state.delProgress > 0.05) return;
+  if (HoldEngine.activeKey === `del:${hash}` && HoldEngine.progress > 0.05) return;
   let g = null;
   if (source === 'my') g = state.myGames.find(x => x.hash === hash);
   else if (source === 'fav') g = state.favGames.find(x => x.hash === hash);
@@ -2398,12 +2350,13 @@ function render() {
         <div class="catalog-card-title">${escapeHtml(g.title)}</div>
         <div class="catalog-card-actions">
           <button id="del-btn-${g.hash}"
-                  class="xs del-hold-btn"
+                  class="xs hold-btn"
                   oncontextmenu="return false;"
                   onclick="event.stopPropagation();"
                   onpointerdown="startDeleteHold('${g.hash}', event)"
-                  onpointerup="releaseDeleteHold()"
-                  onpointercancel="releaseDeleteHold()">
+                  onpointerup="HoldEngine.release()"
+                  onpointerleave="HoldEngine.release()"
+                  onpointercancel="HoldEngine.release()">
             <i class="fa-solid fa-trash"></i>
           </button>
           <button class="xs" onclick="shareGameByHash('${g.hash}', event)">
@@ -2860,7 +2813,14 @@ function render() {
 
     const topRightActions = (mode === 4 && !state.cardFaceUp) ? `
       <div class="top-actions">
-        <button class="sm" onclick="openConfirmModal('<i class=\\'fa-solid fa-arrows-rotate\\'></i> ?', startDealing)">
+        <button id="reshuffle-hold-btn"
+                class="sm hold-btn"
+                style="--hold-color: ${getColorCss(BASE_GAME.color, 'var(--c-blue)')}"
+                oncontextmenu="return false;"
+                onpointerdown="startReshuffleHold(event)"
+                onpointerup="HoldEngine.release()"
+                onpointerleave="HoldEngine.release()"
+                onpointercancel="HoldEngine.release()">
           <i class="fa-solid fa-arrows-rotate"></i>
         </button>
         ${hasPhasesOrFinals ? `<button class="sm" onclick="startPhases()"><i class="fa-solid fa-play"></i></button>` : ''}
@@ -2879,7 +2839,14 @@ function render() {
 
     app.innerHTML = `
       <div class="top-bar">
-        <button class="sm" onclick="openConfirmModal('<i class=\\'fa-solid fa-xmark\\'></i> ?', goToPregame)">
+        <button id="cancel-hold-btn"
+                class="sm hold-btn"
+                style="--hold-color: var(--c-red)"
+                oncontextmenu="return false;"
+                onpointerdown="startCancelHold(event)"
+                onpointerup="HoldEngine.release()"
+                onpointerleave="HoldEngine.release()"
+                onpointercancel="HoldEngine.release()">
           <i class="fa-solid fa-xmark"></i>
         </button>
         <div class="counter-pill" style="font-size:1.05rem; padding:6px 16px;">${progressText}</div>
@@ -2944,12 +2911,13 @@ function render() {
       <div class="finals-tray">
         ${BASE_GAME.finals.map((f, idx) => `
           <button id="final-token-${idx}"
-                  class="final-token ${state.holdFinalIdx === idx && state.isHoldingFinal ? 'holding' : ''}"
+                  class="final-token ${HoldEngine.activeKey === 'final:' + idx && HoldEngine.isHolding ? 'holding' : ''}"
                   style="--token-color: ${getColorCss(f.color, 'var(--text)')}"
                   oncontextmenu="return false;"
                   onpointerdown="startFinalHold(${idx}, event)"
-                  onpointerup="releaseFinalHold()"
-                  onpointercancel="releaseFinalHold()">
+                  onpointerup="HoldEngine.release()"
+                  onpointerleave="HoldEngine.release()"
+                  onpointercancel="HoldEngine.release()">
             <i class="fa-solid fa-trophy"></i>
           </button>
         `).join('')}
@@ -2958,7 +2926,14 @@ function render() {
 
     app.innerHTML = `
       <div class="top-bar">
-        <button class="sm" onclick="openConfirmModal('<i class=\\'fa-solid fa-xmark\\'></i> ?', goToPregame)">
+        <button id="cancel-hold-btn"
+                class="sm hold-btn"
+                style="--hold-color: var(--c-red)"
+                oncontextmenu="return false;"
+                onpointerdown="startCancelHold(event)"
+                onpointerup="HoldEngine.release()"
+                onpointerleave="HoldEngine.release()"
+                onpointercancel="HoldEngine.release()">
           <i class="fa-solid fa-xmark"></i>
         </button>
         <button class="sm" onclick="SoundEngine.toggleMute()">
