@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AmongAI — Universalus žaidimų moderatorius</title>
+<title>C4RDx5 — Universalus žaidimų moderatorius</title>
 <link rel="icon" type="image/png" href="https://mruslys.github.io/amongai/f/favicon-96x96.png" sizes="96x96" />
 <link rel="icon" type="image/svg+xml" href="https://mruslys.github.io/amongai/f/favicon.svg" />
 <link rel="shortcut icon" href="https://mruslys.github.io/amongai/f/favicon.ico" />
@@ -988,7 +988,7 @@ const PUBLIC_CATALOG_RAW = [
     title: "AmongAI",
     color: "blue",
     dealMode: 1,
-    drawCount: 0,
+    drawCount: 1,
     shuffle: true,
     returnMethod: "bottom",
     returnCondition: "auto",
@@ -1022,7 +1022,7 @@ const PUBLIC_CATALOG_RAW = [
     title: "Mafija",
     color: "red",
     dealMode: 1,
-    drawCount: 0,
+    drawCount: 1,
     shuffle: true,
     returnMethod: "bottom",
     returnCondition: "auto",
@@ -1048,7 +1048,7 @@ const PUBLIC_CATALOG_RAW = [
     title: "Šnipas",
     color: "emerald",
     dealMode: 1,
-    drawCount: 0,
+    drawCount: 1,
     shuffle: true,
     returnMethod: "bottom",
     returnCondition: "auto",
@@ -1072,7 +1072,7 @@ function normalizeGameObject(g) {
   copy.title = copy.title || "Žaidimas";
   copy.color = COLOR_KEYS.includes(copy.color) ? copy.color : "blue";
   copy.dealMode = [1, 2, 3, 4].includes(Number(copy.dealMode)) ? Number(copy.dealMode) : 1;
-  copy.drawCount = Math.max(0, parseInt(copy.drawCount, 10) || 0);
+  copy.drawCount = Math.max(1, parseInt(copy.drawCount, 10) || 1);
   copy.shuffle = Boolean(copy.shuffle);
   copy.returnMethod = RETURN_METHODS.includes(copy.returnMethod) ? copy.returnMethod : "bottom";
   copy.returnCondition = RETURN_CONDS.includes(copy.returnCondition) ? copy.returnCondition : "auto";
@@ -1116,13 +1116,13 @@ function computeCanonicalHash(gameObj) {
   const groups = Array.isArray(gameObj.groups) ? gameObj.groups : [];
   const groupIndexMap = new Map(groups.map((g, idx) => [g.id, idx]));
   const mode = Number(gameObj.dealMode) || 1;
-  const drawN = Math.max(0, parseInt(gameObj.drawCount, 10) || 0);
+  const drawN = Math.max(1, parseInt(gameObj.drawCount, 10) || 1);
 
   const canonical = {
     title: (gameObj.title || "").trim(),
     color: gameObj.color || "blue",
     dealMode: mode,
-    ...(mode === 3 && drawN > 0 ? { drawCount: drawN } : {}),
+    ...(mode === 3 ? { drawCount: drawN } : {}),
     shuffle: Boolean(gameObj.shuffle),
     returnMethod: gameObj.returnMethod || "bottom",
     returnCondition: gameObj.returnCondition || "auto",
@@ -1188,7 +1188,7 @@ function gameToPositionalArray(g) {
       (grp.title || "").trim(),
       Math.max(0, ITEM_COLOR_KEYS.indexOf(grp.color || "none"))
     ]),
-    Math.max(0, parseInt(g.drawCount, 10) || 0)
+    Math.max(1, parseInt(g.drawCount, 10) || 1)
   ];
 }
 
@@ -1207,7 +1207,7 @@ function positionalArrayToGame(arr) {
     title: String(arr[0] || "Žaidimas"),
     color: COLOR_KEYS[arr[1]] || "blue",
     dealMode: [1, 2, 3, 4].includes(Number(arr[2])) ? Number(arr[2]) : 1,
-    drawCount: Math.max(0, parseInt(arr[10], 10) || 0),
+    drawCount: Math.max(1, parseInt(arr[10], 10) || 1),
     shuffle: Boolean(arr[3]),
     returnMethod: RETURN_METHODS[arr[4]] || "bottom",
     returnCondition: RETURN_CONDS[arr[5]] || "auto",
@@ -1386,7 +1386,7 @@ const SessionStore = {
     const totalBase = (gameObj.cards || []).reduce((sum, c) => sum + (Number(c.count) || 0), 0);
     const configuredN = (Number(gameObj.dealMode) === 3 && Number(gameObj.drawCount) > 0)
       ? Number(gameObj.drawCount)
-      : 5;
+      : 1;
     const defaultDrawX = totalBase > 0
       ? Math.min(configuredN, Math.max(1, totalBase))
       : Math.max(1, configuredN);
@@ -2182,7 +2182,7 @@ function openEditorForNew() {
     title: "Naujas žaidimas",
     color: "blue",
     dealMode: 1,
-    drawCount: 0,
+    drawCount: 1,
     shuffle: true,
     returnMethod: "bottom",
     returnCondition: "auto",
@@ -3119,10 +3119,10 @@ function render() {
           <div class="field-row">
             <select class="select-input"
                     onchange="Haptics.tap(); state.editorDraft.dealMode = parseInt(this.value); updateDraftHashBadge(); render();">
-              <option value="1" ${d.dealMode === 1 ? 'selected' : ''}>1. Pritaikomas kiekis (Custom +/-)</option>
-              <option value="2" ${d.dealMode === 2 ? 'selected' : ''}>2. Visa kaladė (Full Deck)</option>
+              <option value="1" ${d.dealMode === 1 ? 'selected' : ''}>1. Pritaikomas kiekis</option>
+              <option value="2" ${d.dealMode === 2 ? 'selected' : ''}>2. Visa kaladė</option>
               <option value="3" ${d.dealMode === 3 ? 'selected' : ''}>3. Atsitiktinis N kortų traukimas</option>
-              <option value="4" ${d.dealMode === 4 ? 'selected' : ''}>4. Traukimas su grąžinimu (Infinite)</option>
+              <option value="4" ${d.dealMode === 4 ? 'selected' : ''}>4. Traukimas su grąžinimu</option>
             </select>
           </div>
 
@@ -3138,11 +3138,10 @@ function render() {
 
           ${d.dealMode === 3 ? `
             <div class="inline-switch">
-              <span>Numatytasis kortų kiekis (N)</span>
+              <span>N</span>
               <input type="number" min="1" class="num-input"
-                     placeholder="Auto"
-                     value="${d.drawCount > 0 ? d.drawCount : ''}"
-                     oninput="state.editorDraft.drawCount = Math.max(0, parseInt(this.value, 10) || 0); updateDraftHashBadge();" />
+                     value="${d.drawCount > 0 ? d.drawCount : 1}"
+                     oninput="state.editorDraft.drawCount = Math.max(1, parseInt(this.value, 10) || 1); updateDraftHashBadge();" />
             </div>
           ` : ''}
 
@@ -3167,10 +3166,10 @@ function render() {
           ` : ''}
         </div>
 
-        <!-- III. Kortelių grupės -->
+        <!-- III. Kortų grupės -->
         <div class="editor-section">
           <div class="section-head">
-            <span>III. Kortelių grupės (${d.groups.length})</span>
+            <span>III. Kortų grupės (${d.groups.length})</span>
             <button class="xs" onclick="addGroupInEditor(event)">
               <i class="fa-solid fa-plus"></i>
             </button>
@@ -3178,10 +3177,10 @@ function render() {
           ${d.groups.length > 0 ? `<div class="editor-item-list">${groupsHtml}</div>` : ''}
         </div>
 
-        <!-- IV. Kortelių kaladė -->
+        <!-- IV. Kortos -->
         <div class="editor-section">
           <div class="section-head">
-            <span>IV. Kortelių (Rolių) kaladė (${d.cards.length})</span>
+            <span>IV. Kortos (${d.cards.length})</span>
             <button class="xs" onclick="addCardInEditor(event)">
               <i class="fa-solid fa-plus"></i>
             </button>
