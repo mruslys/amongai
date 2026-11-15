@@ -1714,6 +1714,14 @@ function isPublicCatalogGame(hash) {
   return PUBLIC_GAMES.some(g => g.hash === hash);
 }
 
+// Pašalina ne viešo katalogo žaidimą iš Favorites, Recent ir Session talpyklų
+async function purgeNonPublicGameFromOtherCaches(hash) {
+  if (!hash || isPublicCatalogGame(hash)) return;
+  await CacheStore.remove(CacheStore.FAV_CACHE, CacheStore.memFav, hash);
+  await CacheStore.remove(CacheStore.RECENT_CACHE, CacheStore.memRecent, hash);
+  SessionStore.removeForGame(hash);
+}
+
 async function refreshCatalogState() {
   state.myGames = await CacheStore.getAll(CacheStore.MY_CACHE, CacheStore.memMy);
   state.favGames = await CacheStore.getAll(CacheStore.FAV_CACHE, CacheStore.memFav);
@@ -1863,11 +1871,8 @@ function startDeleteHold(hash, e) {
       const card = document.getElementById(`my-card-${hash}`);
       if (card) card.classList.add('deleting-card');
       await CacheStore.remove(CacheStore.MY_CACHE, CacheStore.memMy, hash);
-      // Jei žaidimas nėra viešajame sąraše, pašaliname jį ir iš Recent sąrašo bei RECENT_CACHE
-      if (!isPublicCatalogGame(hash)) {
-        await CacheStore.remove(CacheStore.RECENT_CACHE, CacheStore.memRecent, hash);
-        SessionStore.removeForGame(hash);
-      }
+      // Jei žaidimas nėra viešajame kataloge, išmetame jį ir iš Favorites bei Recent sąrašų ir Cache
+      await purgeNonPublicGameFromOtherCaches(hash);
       await refreshCatalogState();
       setTimeout(() => {
         if (state.screen === 'HOME') render();
@@ -2368,10 +2373,7 @@ async function saveEditorChanges() {
 
   if (state.editingOriginHash && state.editingOriginHash !== savedGame.hash) {
     await CacheStore.remove(CacheStore.MY_CACHE, CacheStore.memMy, state.editingOriginHash);
-    if (!isPublicCatalogGame(state.editingOriginHash)) {
-      await CacheStore.remove(CacheStore.RECENT_CACHE, CacheStore.memRecent, state.editingOriginHash);
-      SessionStore.removeForGame(state.editingOriginHash);
-    }
+    await purgeNonPublicGameFromOtherCaches(state.editingOriginHash);
   }
   await CacheStore.put(CacheStore.MY_CACHE, CacheStore.memMy, savedGame);
   await openGameSession(savedGame, { isPublic: isPublicCatalogGame(savedGame.hash) });
