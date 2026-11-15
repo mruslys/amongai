@@ -195,7 +195,7 @@
   }
 
   /* =========================================================================
-     1. HOME KATALOGAS (TAB'Ų ARCHITEKTŪRA)
+     1. HOME KATALOGAS (PLIed + SEARCH + TAB'Ų ARCHITEKTŪRA)
      ========================================================================= */
   .catalog-wrap {
     width: 100%;
@@ -204,8 +204,87 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 10px;
     padding: 2px 2px 12px 2px;
+  }
+  .catalog-add-btn {
+    width: 100%;
+    height: 46px;
+    border-radius: 14px;
+    border: 1px dashed var(--border);
+    background: rgba(26, 31, 46, 0.55);
+    color: var(--text);
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform 0.14s ease, border-color 0.2s, color 0.2s, background 0.2s, box-shadow 0.2s;
+  }
+  .catalog-add-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(59, 130, 246, 0.08);
+  }
+  .catalog-add-btn:active {
+    transform: scale(0.985);
+  }
+  .catalog-search-wrap {
+    width: 100%;
+    height: 44px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 10px;
+    flex-shrink: 0;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .catalog-search-wrap:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 14px -5px var(--accent);
+  }
+  .catalog-search-icon {
+    color: var(--muted);
+    font-size: 0.95rem;
+    flex-shrink: 0;
+  }
+  .catalog-search-input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 0.96rem;
+    outline: none;
+  }
+  .catalog-search-input::placeholder {
+    color: var(--muted);
+    opacity: 0.75;
+  }
+  .catalog-search-clear {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: none;
+    background: var(--surface-2);
+    color: var(--muted);
+    font-size: 0.8rem;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .catalog-search-clear.visible {
+    display: inline-flex;
+  }
+  .catalog-search-clear:hover {
+    color: var(--text);
   }
   .catalog-tabs {
     display: grid;
@@ -277,19 +356,6 @@
   }
   .catalog-card:active {
     transform: scale(0.985);
-  }
-  .catalog-card.add-game-card {
-    justify-content: center;
-    border-left: 1px dashed var(--border);
-    border-style: dashed;
-    background: rgba(26, 31, 46, 0.55);
-    color: var(--text);
-    font-size: 1.25rem;
-    min-height: 56px;
-  }
-  .catalog-card.add-game-card:hover {
-    border-color: var(--accent);
-    color: var(--accent);
   }
   .catalog-card.deleting-card {
     opacity: 0 !important;
@@ -1666,6 +1732,7 @@ let BASE_GAME = PUBLIC_GAMES[0];
 const state = {
   screen: 'HOME', // 'HOME' | 'PREGAME' | 'EDITOR' | 'DEAL' | 'DEAL_DONE' | 'PHASE' | 'FINAL'
   catalogTab: 'my', // 'my' | 'fav' | 'pub' | 'recent'
+  searchQuery: '',  // Katalogo paieškos filtras visiems tab'ams
   locked: false,
   wakeLock: null,
   fxStartTimer: null,
@@ -1795,10 +1862,54 @@ window.addEventListener('hashchange', () => {
   }
 });
 
+// Normalizuoja tekstą paieškai (be diakritikų ir mažosiomis raidėmis)
+function normalizeSearchStr(str) {
+  return String(str || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function matchesSearchQuery(gameObj, query) {
+  const q = normalizeSearchStr(query).trim();
+  if (!q) return true;
+  return normalizeSearchStr(gameObj.title).includes(q);
+}
+
+function getFilteredCatalogLists() {
+  const q = state.searchQuery;
+  return {
+    my: state.myGames.filter(g => matchesSearchQuery(g, q)),
+    fav: state.favGames.filter(g => matchesSearchQuery(g, q)),
+    pub: PUBLIC_GAMES.filter(g => matchesSearchQuery(g, q)),
+    recent: state.recentGames.filter(g => matchesSearchQuery(g, q))
+  };
+}
+
+function onSearchInput(val) {
+  state.searchQuery = val;
+  updateCatalogDynamicUI();
+}
+
+function clearCatalogSearch() {
+  Haptics.tap();
+  state.searchQuery = '';
+  const input = document.getElementById('catalog-search-input');
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+  updateCatalogDynamicUI();
+}
+
 function selectCatalogTab(tabKey) {
   Haptics.tap();
   state.catalogTab = tabKey;
-  render();
+  if (state.screen === 'HOME') {
+    updateCatalogDynamicUI();
+  } else {
+    render();
+  }
 }
 
 function goToHome() {
@@ -1875,7 +1986,7 @@ function startDeleteHold(hash, e) {
       await purgeNonPublicGameFromOtherCaches(hash);
       await refreshCatalogState();
       setTimeout(() => {
-        if (state.screen === 'HOME') render();
+        if (state.screen === 'HOME') updateCatalogDynamicUI();
       }, 220);
     }
   }, e);
@@ -2007,7 +2118,11 @@ async function toggleFavoriteGame(hash, e) {
     }
   }
   await refreshCatalogState();
-  render();
+  if (state.screen === 'HOME') {
+    updateCatalogDynamicUI();
+  } else {
+    render();
+  }
 }
 
 async function saveCurrentGameInPregame() {
@@ -2049,10 +2164,14 @@ function triggerShareConfirmation(hash) {
   Haptics.tap();
   state.copiedShareHash = hash;
   if (state.copiedShareTimer) clearTimeout(state.copiedShareTimer);
-  render();
+  if (state.screen === 'HOME') {
+    updateCatalogDynamicUI();
+  } else {
+    render();
+  }
   state.copiedShareTimer = setTimeout(() => {
     state.copiedShareHash = null;
-    if (state.screen === 'HOME') render();
+    if (state.screen === 'HOME') updateCatalogDynamicUI();
   }, 1300);
 }
 
@@ -2719,11 +2838,14 @@ function openGameByHashFromList(hash, options = {}) {
   if (g) openGameSession(g, options);
 }
 
-function renderCatalogRowFavAndShare(g, forceStarActive = false) {
+function renderCatalogRowFavAndShare(g, forceStarActive = false, extraOptions = null) {
   const faved = forceStarActive || isFavorited(g.hash);
   const isCopied = state.copiedShareHash === g.hash;
+  const clickCall = extraOptions
+    ? `openGameByHashFromList('${g.hash}', ${extraOptions})`
+    : `openGameByHashFromList('${g.hash}')`;
   return `
-    <div class="catalog-card" style="--card-accent: ${getColorCss(g.color)}" onclick="openGameByHashFromList('${g.hash}')">
+    <div class="catalog-card" style="--card-accent: ${getColorCss(g.color)}" onclick="${clickCall}">
       <div class="catalog-card-title">${escapeHtml(g.title)}</div>
       <div class="catalog-card-actions">
         <button class="xs ${faved ? 'star-active' : ''}" onclick="toggleFavoriteGame('${g.hash}', event)">
@@ -2737,6 +2859,75 @@ function renderCatalogRowFavAndShare(g, forceStarActive = false) {
   `;
 }
 
+function buildCatalogListHtml(tab, filtered) {
+  if (tab === 'my') {
+    return filtered.my.map(g => {
+      const isCopied = state.copiedShareHash === g.hash;
+      return `
+        <div id="my-card-${g.hash}"
+             class="catalog-card"
+             style="--card-accent: ${getColorCss(g.color)}"
+             onclick="openGameByHashFromList('${g.hash}')">
+          <div class="catalog-card-title">${escapeHtml(g.title)}</div>
+          <div class="catalog-card-actions">
+            <button class="xs" onclick="openEditorByHash('${g.hash}', event)">
+              <i class="fa-solid fa-pen-to-square"></i>
+            </button>
+            <button id="del-btn-${g.hash}"
+                    class="xs hold-btn"
+                    oncontextmenu="return false;"
+                    onclick="event.stopPropagation();"
+                    onpointerdown="startDeleteHold('${g.hash}', event)"
+                    onpointerup="HoldEngine.release()"
+                    onpointerleave="HoldEngine.release()"
+                    onpointercancel="HoldEngine.release()">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+            <button class="xs ${isCopied ? 'copied-check' : ''}" onclick="shareGameByHash('${g.hash}', event)">
+              <i class="fa-solid ${isCopied ? 'fa-check' : 'fa-share-nodes'}"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+  if (tab === 'fav') {
+    return filtered.fav.map(g => renderCatalogRowFavAndShare(g, true)).join('');
+  }
+  if (tab === 'pub') {
+    return filtered.pub.map(g => renderCatalogRowFavAndShare(g, false, '{ isPublic: true }')).join('');
+  }
+  if (tab === 'recent') {
+    return filtered.recent.map(g => renderCatalogRowFavAndShare(g, false)).join('');
+  }
+  return '';
+}
+
+// Dinamiškai atnaujina katalogo sąrašą ir tab'ų skaitiklius neprarandant paieškos laukelio fokuso
+function updateCatalogDynamicUI() {
+  if (state.screen !== 'HOME') return;
+  const tab = state.catalogTab || 'my';
+  const filtered = getFilteredCatalogLists();
+
+  const listEl = document.getElementById('catalog-list');
+  if (listEl) {
+    listEl.innerHTML = buildCatalogListHtml(tab, filtered);
+  }
+
+  const clearBtn = document.getElementById('catalog-search-clear');
+  if (clearBtn) {
+    clearBtn.classList.toggle('visible', Boolean(state.searchQuery && state.searchQuery.length > 0));
+  }
+
+  const tabIds = ['my', 'fav', 'pub', 'recent'];
+  tabIds.forEach(k => {
+    const btn = document.getElementById(`catalog-tab-${k}`);
+    if (btn) btn.classList.toggle('active', tab === k);
+    const cnt = document.getElementById(`tab-count-${k}`);
+    if (cnt) cnt.textContent = filtered[k].length;
+  });
+}
+
 function render() {
   const app = document.getElementById('app');
   const mode = BASE_GAME.dealMode;
@@ -2745,73 +2936,12 @@ function render() {
                             (BASE_GAME.finals && BASE_GAME.finals.length > 0);
 
   // --------------------------------------------------------------------------
-  // 0. HOME KATALOGAS SU TAB'AIS (1. SAVE, 2. FAVS, 3. PUBLIC, 4. RECENT)
+  // 0. HOME KATALOGAS: LOGO -> ADD GAME (+) -> SEARCH BAR -> TAB'AI -> SĄRAŠAS
   // --------------------------------------------------------------------------
   if (state.screen === 'HOME') {
     const tab = state.catalogTab || 'my';
-    let listContentHtml = '';
-
-    if (tab === 'my') {
-      const addCardHtml = `
-        <div class="catalog-card add-game-card" onclick="openEditorForNew()">
-          <i class="fa-solid fa-plus"></i>
-        </div>
-      `;
-      const myRows = state.myGames.map(g => {
-        const isCopied = state.copiedShareHash === g.hash;
-        return `
-          <div id="my-card-${g.hash}"
-               class="catalog-card"
-               style="--card-accent: ${getColorCss(g.color)}"
-               onclick="openGameByHashFromList('${g.hash}')">
-            <div class="catalog-card-title">${escapeHtml(g.title)}</div>
-            <div class="catalog-card-actions">
-              <button class="xs" onclick="openEditorByHash('${g.hash}', event)">
-                <i class="fa-solid fa-pen-to-square"></i>
-              </button>
-              <button id="del-btn-${g.hash}"
-                      class="xs hold-btn"
-                      oncontextmenu="return false;"
-                      onclick="event.stopPropagation();"
-                      onpointerdown="startDeleteHold('${g.hash}', event)"
-                      onpointerup="HoldEngine.release()"
-                      onpointerleave="HoldEngine.release()"
-                      onpointercancel="HoldEngine.release()">
-                <i class="fa-solid fa-trash"></i>
-              </button>
-              <button class="xs ${isCopied ? 'copied-check' : ''}" onclick="shareGameByHash('${g.hash}', event)">
-                <i class="fa-solid ${isCopied ? 'fa-check' : 'fa-share-nodes'}"></i>
-              </button>
-            </div>
-          </div>
-        `;
-      }).join('');
-      listContentHtml = addCardHtml + myRows;
-    } else if (tab === 'fav') {
-      listContentHtml = state.favGames.map(g => renderCatalogRowFavAndShare(g, true)).join('');
-    } else if (tab === 'pub') {
-      listContentHtml = PUBLIC_GAMES.map(g => {
-        const faved = isFavorited(g.hash);
-        const isCopied = state.copiedShareHash === g.hash;
-        return `
-          <div class="catalog-card"
-               style="--card-accent: ${getColorCss(g.color)}"
-               onclick="openGameByHashFromList('${g.hash}', { isPublic: true })">
-            <div class="catalog-card-title">${escapeHtml(g.title)}</div>
-            <div class="catalog-card-actions">
-              <button class="xs ${faved ? 'star-active' : ''}" onclick="toggleFavoriteGame('${g.hash}', event)">
-                <i class="${faved ? 'fa-solid' : 'fa-regular'} fa-star"></i>
-              </button>
-              <button class="xs ${isCopied ? 'copied-check' : ''}" onclick="shareGameByHash('${g.hash}', event)">
-                <i class="fa-solid ${isCopied ? 'fa-check' : 'fa-share-nodes'}"></i>
-              </button>
-            </div>
-          </div>
-        `;
-      }).join('');
-    } else if (tab === 'recent') {
-      listContentHtml = state.recentGames.map(g => renderCatalogRowFavAndShare(g, false)).join('');
-    }
+    const filtered = getFilteredCatalogLists();
+    const listContentHtml = buildCatalogListHtml(tab, filtered);
 
     app.innerHTML = `
       <div class="top-bar catalog-brand-bar">
@@ -2819,27 +2949,46 @@ function render() {
       </div>
 
       <div class="catalog-wrap">
+        <button class="catalog-add-btn" onclick="openEditorForNew()">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+
+        <div class="catalog-search-wrap">
+          <i class="fa-solid fa-magnifying-glass catalog-search-icon"></i>
+          <input id="catalog-search-input"
+                 type="text"
+                 class="catalog-search-input"
+                 placeholder="Ieškoti žaidimo..."
+                 value="${escapeHtml(state.searchQuery)}"
+                 oninput="onSearchInput(this.value)" />
+          <button id="catalog-search-clear"
+                  class="catalog-search-clear ${state.searchQuery ? 'visible' : ''}"
+                  onclick="clearCatalogSearch()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
         <div class="catalog-tabs">
-          <button class="catalog-tab ${tab === 'my' ? 'active' : ''}" onclick="selectCatalogTab('my')">
+          <button id="catalog-tab-my" class="catalog-tab ${tab === 'my' ? 'active' : ''}" onclick="selectCatalogTab('my')">
             <i class="fa-solid fa-floppy-disk"></i>
-            <span class="catalog-tab-count">${state.myGames.length}</span>
+            <span id="tab-count-my" class="catalog-tab-count">${filtered.my.length}</span>
           </button>
-          <button class="catalog-tab ${tab === 'fav' ? 'active' : ''}" onclick="selectCatalogTab('fav')">
+          <button id="catalog-tab-fav" class="catalog-tab ${tab === 'fav' ? 'active' : ''}" onclick="selectCatalogTab('fav')">
             <i class="fa-solid fa-star"></i>
-            <span class="catalog-tab-count">${state.favGames.length}</span>
+            <span id="tab-count-fav" class="catalog-tab-count">${filtered.fav.length}</span>
           </button>
-          <button class="catalog-tab ${tab === 'pub' ? 'active' : ''}" onclick="selectCatalogTab('pub')">
+          <button id="catalog-tab-pub" class="catalog-tab ${tab === 'pub' ? 'active' : ''}" onclick="selectCatalogTab('pub')">
             <i class="fa-solid fa-globe"></i>
-            <span class="catalog-tab-count">${PUBLIC_GAMES.length}</span>
+            <span id="tab-count-pub" class="catalog-tab-count">${filtered.pub.length}</span>
           </button>
-          <button class="catalog-tab ${tab === 'recent' ? 'active' : ''}" onclick="selectCatalogTab('recent')">
+          <button id="catalog-tab-recent" class="catalog-tab ${tab === 'recent' ? 'active' : ''}" onclick="selectCatalogTab('recent')">
             <i class="fa-solid fa-clock-rotate-left"></i>
-            <span class="catalog-tab-count">${state.recentGames.length}</span>
+            <span id="tab-count-recent" class="catalog-tab-count">${filtered.recent.length}</span>
           </button>
         </div>
 
         <div class="catalog-panel">
-          <div class="catalog-list">${listContentHtml}</div>
+          <div id="catalog-list" class="catalog-list">${listContentHtml}</div>
         </div>
       </div>
 
