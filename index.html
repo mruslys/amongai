@@ -4,14 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>AmongAI — Universalus žaidimų moderatorius</title>
-
 <link rel="icon" type="image/png" href="/f/favicon-96x96.png" sizes="96x96" />
 <link rel="icon" type="image/svg+xml" href="/f/favicon.svg" />
 <link rel="shortcut icon" href="/f/favicon.ico" />
 <link rel="apple-touch-icon" sizes="180x180" href="/f/apple-touch-icon.png" />
 <meta name="apple-mobile-web-app-title" content="C4RDx5" />
 <link rel="manifest" href="/f/site.webmanifest" />
-  
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
   :root {
@@ -114,20 +112,15 @@
   }
   .top-bar.catalog-brand-bar {
     justify-content: center;
-    min-height: 52px;
+    min-height: 48px;
+    margin-bottom: 2px;
   }
-  .catalog-brand-emblem {
-    width: 48px;
-    height: 48px;
-    border-radius: 15px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--accent);
-    font-size: 1.45rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 22px -6px var(--accent);
+  .catalog-brand-logo {
+    width: 44px;
+    height: 44px;
+    display: block;
+    border-radius: 50%;
+    object-fit: contain;
   }
   .top-actions {
     display: flex;
@@ -754,6 +747,7 @@
     padding: 8px 12px;
     border-radius: 10px;
     font-size: 0.9rem;
+    gap: 10px;
   }
 </style>
 </head>
@@ -994,6 +988,7 @@ const PUBLIC_CATALOG_RAW = [
     title: "AmongAI",
     color: "blue",
     dealMode: 1,
+    drawCount: 0,
     shuffle: true,
     returnMethod: "bottom",
     returnCondition: "auto",
@@ -1027,6 +1022,7 @@ const PUBLIC_CATALOG_RAW = [
     title: "Mafija",
     color: "red",
     dealMode: 1,
+    drawCount: 0,
     shuffle: true,
     returnMethod: "bottom",
     returnCondition: "auto",
@@ -1052,6 +1048,7 @@ const PUBLIC_CATALOG_RAW = [
     title: "Šnipas",
     color: "emerald",
     dealMode: 1,
+    drawCount: 0,
     shuffle: true,
     returnMethod: "bottom",
     returnCondition: "auto",
@@ -1075,6 +1072,7 @@ function normalizeGameObject(g) {
   copy.title = copy.title || "Žaidimas";
   copy.color = COLOR_KEYS.includes(copy.color) ? copy.color : "blue";
   copy.dealMode = [1, 2, 3, 4].includes(Number(copy.dealMode)) ? Number(copy.dealMode) : 1;
+  copy.drawCount = Math.max(0, parseInt(copy.drawCount, 10) || 0);
   copy.shuffle = Boolean(copy.shuffle);
   copy.returnMethod = RETURN_METHODS.includes(copy.returnMethod) ? copy.returnMethod : "bottom";
   copy.returnCondition = RETURN_CONDS.includes(copy.returnCondition) ? copy.returnCondition : "auto";
@@ -1117,11 +1115,14 @@ function normalizeGameObject(g) {
 function computeCanonicalHash(gameObj) {
   const groups = Array.isArray(gameObj.groups) ? gameObj.groups : [];
   const groupIndexMap = new Map(groups.map((g, idx) => [g.id, idx]));
+  const mode = Number(gameObj.dealMode) || 1;
+  const drawN = Math.max(0, parseInt(gameObj.drawCount, 10) || 0);
 
   const canonical = {
     title: (gameObj.title || "").trim(),
     color: gameObj.color || "blue",
-    dealMode: Number(gameObj.dealMode) || 1,
+    dealMode: mode,
+    ...(mode === 3 && drawN > 0 ? { drawCount: drawN } : {}),
     shuffle: Boolean(gameObj.shuffle),
     returnMethod: gameObj.returnMethod || "bottom",
     returnCondition: gameObj.returnCondition || "auto",
@@ -1186,7 +1187,8 @@ function gameToPositionalArray(g) {
     groups.map(grp => [
       (grp.title || "").trim(),
       Math.max(0, ITEM_COLOR_KEYS.indexOf(grp.color || "none"))
-    ])
+    ]),
+    Math.max(0, parseInt(g.drawCount, 10) || 0)
   ];
 }
 
@@ -1205,6 +1207,7 @@ function positionalArrayToGame(arr) {
     title: String(arr[0] || "Žaidimas"),
     color: COLOR_KEYS[arr[1]] || "blue",
     dealMode: [1, 2, 3, 4].includes(Number(arr[2])) ? Number(arr[2]) : 1,
+    drawCount: Math.max(0, parseInt(arr[10], 10) || 0),
     shuffle: Boolean(arr[3]),
     returnMethod: RETURN_METHODS[arr[4]] || "bottom",
     returnCondition: RETURN_CONDS[arr[5]] || "auto",
@@ -1381,7 +1384,12 @@ const SessionStore = {
     const entry = all[gameObj.hash];
     const counts = {};
     const totalBase = (gameObj.cards || []).reduce((sum, c) => sum + (Number(c.count) || 0), 0);
-    const defaultDrawX = Math.min(5, Math.max(1, totalBase));
+    const configuredN = (Number(gameObj.dealMode) === 3 && Number(gameObj.drawCount) > 0)
+      ? Number(gameObj.drawCount)
+      : 5;
+    const defaultDrawX = totalBase > 0
+      ? Math.min(configuredN, Math.max(1, totalBase))
+      : Math.max(1, configuredN);
 
     if (entry && entry.customCounts) {
       (gameObj.cards || []).forEach(c => {
@@ -1389,7 +1397,7 @@ const SessionStore = {
         counts[c.id] = (typeof val === 'number' && val >= 0) ? val : c.count;
       });
       const drawX = (typeof entry.randomDrawX === 'number')
-        ? Math.min(Math.max(1, totalBase), Math.max(1, entry.randomDrawX))
+        ? (totalBase > 0 ? Math.min(totalBase, Math.max(1, entry.randomDrawX)) : Math.max(1, entry.randomDrawX))
         : defaultDrawX;
       return { customCounts: counts, randomDrawX: drawX };
     }
@@ -1410,6 +1418,17 @@ const SessionStore = {
         updatedAt: Date.now()
       };
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(all));
+    } catch (_) {}
+  },
+
+  removeForGame(hash) {
+    if (!hash) return;
+    try {
+      const all = this._readAll();
+      if (all[hash]) {
+        delete all[hash];
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(all));
+      }
     } catch (_) {}
   }
 };
@@ -1703,7 +1722,8 @@ async function refreshCatalogState() {
   state.recentGames = recentRaw.slice(0, MAX_RECENT_GAMES);
 }
 
-// Įrašo žaidimą į Most Recent (RECENT_CACHE) viršų ir apriboja sąrašą iki 10 žaidimų
+// Įrašo žaidimą į Most Recent (RECENT_CACHE) viršų ir, viršijus MAX_RECENT_GAMES,
+// pašalina seniausiai naudotus žaidimus (įskaitant ir viešus) iš RECENT_CACHE bei sąrašo
 async function recordRecentGame(gameObj) {
   const copy = normalizeGameObject(gameObj);
   copy._recentTs = Date.now();
@@ -1843,6 +1863,11 @@ function startDeleteHold(hash, e) {
       const card = document.getElementById(`my-card-${hash}`);
       if (card) card.classList.add('deleting-card');
       await CacheStore.remove(CacheStore.MY_CACHE, CacheStore.memMy, hash);
+      // Jei žaidimas nėra viešajame sąraše, pašaliname jį ir iš Recent sąrašo bei RECENT_CACHE
+      if (!isPublicCatalogGame(hash)) {
+        await CacheStore.remove(CacheStore.RECENT_CACHE, CacheStore.memRecent, hash);
+        SessionStore.removeForGame(hash);
+      }
       await refreshCatalogState();
       setTimeout(() => {
         if (state.screen === 'HOME') render();
@@ -2137,7 +2162,7 @@ function adjustCustomCount(cardId, delta) {
 function adjustRandomDrawX(delta) {
   Haptics.tap();
   SoundEngine.playCardFlip(true);
-  const max = getBaseDeckSize();
+  const max = Math.max(1, getBaseDeckSize());
   state.randomDrawX = Math.min(max, Math.max(1, state.randomDrawX + delta));
   SessionStore.saveForGame(BASE_GAME.hash, state.customCounts, state.randomDrawX);
   render();
@@ -2152,6 +2177,7 @@ function openEditorForNew() {
     title: "Naujas žaidimas",
     color: "blue",
     dealMode: 1,
+    drawCount: 0,
     shuffle: true,
     returnMethod: "bottom",
     returnCondition: "auto",
@@ -2342,6 +2368,10 @@ async function saveEditorChanges() {
 
   if (state.editingOriginHash && state.editingOriginHash !== savedGame.hash) {
     await CacheStore.remove(CacheStore.MY_CACHE, CacheStore.memMy, state.editingOriginHash);
+    if (!isPublicCatalogGame(state.editingOriginHash)) {
+      await CacheStore.remove(CacheStore.RECENT_CACHE, CacheStore.memRecent, state.editingOriginHash);
+      SessionStore.removeForGame(state.editingOriginHash);
+    }
   }
   await CacheStore.put(CacheStore.MY_CACHE, CacheStore.memMy, savedGame);
   await openGameSession(savedGame, { isPublic: isPublicCatalogGame(savedGame.hash) });
@@ -2783,9 +2813,7 @@ function render() {
 
     app.innerHTML = `
       <div class="top-bar catalog-brand-bar">
-        <div class="catalog-brand-emblem">
-          <i class="fa-solid fa-masks-theater"></i>
-        </div>
+        <img src="/f/favicon-96x96.png" alt="C4RDx5" class="catalog-brand-logo" />
       </div>
 
       <div class="catalog-wrap">
@@ -2860,11 +2888,11 @@ function render() {
           </div>
         `;
       } else if (mode === 3) {
-        deckCount = state.randomDrawX;
+        deckCount = Math.min(state.randomDrawX, getBaseDeckSize());
         modeControlsHtml = `
           <div class="counter-pill">
             <button class="sm" onclick="adjustRandomDrawX(-1)"><i class="fa-solid fa-minus"></i></button>
-            <span><i class="fa-solid fa-users"></i> ${state.randomDrawX} / ${getBaseDeckSize()}</span>
+            <span><i class="fa-solid fa-users"></i> ${deckCount} / ${getBaseDeckSize()}</span>
             <button class="sm" onclick="adjustRandomDrawX(1)"><i class="fa-solid fa-plus"></i></button>
           </div>
         `;
@@ -3091,7 +3119,7 @@ function render() {
                     onchange="Haptics.tap(); state.editorDraft.dealMode = parseInt(this.value); updateDraftHashBadge(); render();">
               <option value="1" ${d.dealMode === 1 ? 'selected' : ''}>1. Pritaikomas kiekis (Custom +/-)</option>
               <option value="2" ${d.dealMode === 2 ? 'selected' : ''}>2. Visa kaladė (Full Deck)</option>
-              <option value="3" ${d.dealMode === 3 ? 'selected' : ''}>3. Atsitiktinis X kortų traukimas</option>
+              <option value="3" ${d.dealMode === 3 ? 'selected' : ''}>3. Atsitiktinis N kortų traukimas</option>
               <option value="4" ${d.dealMode === 4 ? 'selected' : ''}>4. Traukimas su grąžinimu (Infinite)</option>
             </select>
           </div>
@@ -3103,6 +3131,16 @@ function render() {
                       onclick="Haptics.tap(); state.editorDraft.shuffle = !state.editorDraft.shuffle; updateDraftHashBadge(); render();">
                 <i class="fa-solid fa-shuffle"></i>
               </button>
+            </div>
+          ` : ''}
+
+          ${d.dealMode === 3 ? `
+            <div class="inline-switch">
+              <span>Numatytasis kortų kiekis (N)</span>
+              <input type="number" min="1" class="num-input"
+                     placeholder="Auto"
+                     value="${d.drawCount > 0 ? d.drawCount : ''}"
+                     oninput="state.editorDraft.drawCount = Math.max(0, parseInt(this.value, 10) || 0); updateDraftHashBadge();" />
             </div>
           ` : ''}
 
