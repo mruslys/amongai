@@ -249,7 +249,8 @@
   }
   .copied-check {
     color: var(--c-emerald) !important;
-    border-color: rgba(16, 185, 129, 0.45) !important;
+    border-color: rgba(16, 185, 129, 0.55) !important;
+    background: rgba(16, 185, 129, 0.12) !important;
   }
 
   /* 3.A Priešžaidiminis langas */
@@ -990,13 +991,40 @@ function positionalArrayToGame(arr) {
   return normalizeGameObject(game);
 }
 
+// Saugi srauto skaitymo funkcija be new Response(stream), išvengiant Chrome macOS lūžimo
+async function runCompressionPipeline(inputBytes, transformStream) {
+  const writer = transformStream.writable.getWriter();
+  writer.write(inputBytes);
+  writer.close();
+
+  const reader = transformStream.readable.getReader();
+  const chunks = [];
+  let totalLen = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    totalLen += value.byteLength;
+  }
+  const out = new Uint8Array(totalLen);
+  let offset = 0;
+  for (const ch of chunks) {
+    out.set(ch, offset);
+    offset += ch.byteLength;
+  }
+  return out;
+}
+
 // Pozicinis masyvas -> Deflate -> Base64URL
 async function encodeGameToDeflateParam(gameObj) {
   const posArr = gameToPositionalArray(gameObj);
   const jsonBytes = new TextEncoder().encode(JSON.stringify(posArr));
-  const stream = new Blob([jsonBytes]).stream().pipeThrough(new CompressionStream('deflate-raw'));
-  const compressedBuf = await new Response(stream).arrayBuffer();
-  const bytes = new Uint8Array(compressedBuf);
+  let bytes = jsonBytes;
+  if ('CompressionStream' in window) {
+    try {
+      bytes = await runCompressionPipeline(jsonBytes, new CompressionStream('deflate-raw'));
+    } catch (_) {}
+  }
   let binary = '';
   for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -1009,13 +1037,16 @@ async function decodeGameFromDeflateParam(encodedStr) {
   const binary = atob(b64 + pad);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
-  const text = await new Response(stream).text();
+  let outBytes = bytes;
+  if ('DecompressionStream' in window) {
+    outBytes = await runCompressionPipeline(bytes, new DecompressionStream('deflate-raw'));
+  }
+  const text = new TextDecoder().decode(outBytes);
   return positionalArrayToGame(JSON.parse(text));
 }
 
 // ============================================================================
-// CACHE API SAUGYKLA (MANO ŽAIDIMAI IR MĖGSTAMI ŽAIDIMAI)
+// CACHE API SAUGYKLA (SAVE IR FAVORITES BLOKAI)
 // ============================================================================
 const CacheStore = {
   MY_CACHE: 'amongai-my-games-v2',
@@ -1259,9 +1290,10 @@ const state = {
   customCounts: {},
   randomDrawX: 5,
 
-  // 2. Redaktoriaus laikinas juodraštis ir redaguojamo žaidimo pradinis hash
+  // 2. Redaktoriaus laikinas juodraštis, pradinis hash ir grįžimo ekranas
   editorDraft: null,
   editingOriginHash: null,
+  editorReturnScreen: 'HOME',
 
   // 3.B Dalijimo būsena
   deck: [],
@@ -1347,7 +1379,7 @@ function openGameSession(gameObj) {
 }
 
 // ============================================================================
-// KATALOGO VEIKSMAI (FAVORITE, COPY TO EDIT, SHARE, DELETE)
+// KATALOGO VEIKSMAI (FAVORITE, SAVE TO MY BLOCK, SHARE, DELETE)
 // ============================================================================
 function isFavorited(hash) {
   return state.favGames.some(g => g.hash === hash);
@@ -1372,12 +1404,21 @@ async function toggleFavoriteGame(hash, e) {
   render();
 }
 
-async function copyGameToMyEditList(hash, e) {
+async function saveGameToMyList(hash, e) {
   if (e) e.stopPropagation();
   if (isInMyGames(hash)) return;
   const game = PUBLIC_GAMES.find(g => g.hash === hash) || state.favGames.find(g => g.hash === hash);
   if (!game) return;
+  SoundEngine.playCardFlip(true);
   await CacheStore.put(CacheStore.MY_CACHE, CacheStore.memMy, game);
+  await refreshCatalogState();
+  render();
+}
+
+async function saveCurrentGameInPregame() {
+  if (isInMyGames(BASE_GAME.hash)) return;
+  SoundEngine.playCardFlip(true);
+  await CacheStore.put(CacheStore.MY_CACHE, CacheStore.memMy, BASE_GAME);
   await refreshCatalogState();
   render();
 }
@@ -1391,12 +1432,16 @@ function deleteMyGame(hash, e) {
   });
 }
 
+function getBaseShareUrl() {
+  return window.location.href.split('#')[0];
+}
+
 async function shareMyFullGame(hash, e) {
   if (e) e.stopPropagation();
   const game = state.myGames.find(g => g.hash === hash);
   if (!game) return;
   const deflated = await encodeGameToDeflateParam(game);
-  const url = `${window.location.origin}${window.location.pathname}#g=${deflated}`;
+  const url = `${getBaseShareUrl()}#g=${deflated}`;
   await invokeNativeShare(game.title, url);
 }
 
@@ -1404,14 +1449,19 @@ async function shareCatalogGameHash(hash, e) {
   if (e) e.stopPropagation();
   const game = PUBLIC_GAMES.find(g => g.hash === hash) || state.favGames.find(g => g.hash === hash);
   if (!game) return;
-  const url = `${window.location.origin}${window.location.pathname}#h=${game.hash}`;
+  const url = `${getBaseShareUrl()}#h=${game.hash}`;
   await invokeNativeShare(game.title, url);
 }
 
 async function invokeNativeShare(title, url) {
+  const isWebProtocol = window.location.protocol === 'http:' || window.location.protocol === 'https:';
   if (navigator.share) {
     try {
-      await navigator.share({ title, url });
+      if (isWebProtocol) {
+        await navigator.share({ title, url });
+      } else {
+        await navigator.share({ title, text: url });
+      }
       return;
     } catch (err) {
       if (err && err.name === 'AbortError') return;
@@ -1542,20 +1592,27 @@ function openEditorForNew() {
   });
   state.editorDraft = emptyGame;
   state.editingOriginHash = null;
+  state.editorReturnScreen = 'HOME';
   state.screen = 'EDITOR';
   setAccent(state.editorDraft.color);
   render();
 }
 
-function openEditorByHash(hash, e) {
-  if (e) e.stopPropagation();
-  const target = state.myGames.find(g => g.hash === hash);
-  if (!target) return;
-  state.editorDraft = normalizeGameObject(target);
-  state.editingOriginHash = target.hash;
+function openEditorFromPregame() {
+  state.editorDraft = normalizeGameObject(BASE_GAME);
+  state.editingOriginHash = BASE_GAME.hash;
+  state.editorReturnScreen = 'PREGAME';
   state.screen = 'EDITOR';
   setAccent(state.editorDraft.color);
   render();
+}
+
+function exitEditorWithoutSaving() {
+  if (state.editorReturnScreen === 'PREGAME') {
+    goToPregame();
+  } else {
+    goToHome();
+  }
 }
 
 function updateDraftHashBadge() {
@@ -1607,15 +1664,19 @@ async function saveEditorChanges() {
   if (!state.editorDraft.title || !state.editorDraft.title.trim()) {
     state.editorDraft.title = "Naujas žaidimas";
   }
-  const newHash = computeCanonicalHash(state.editorDraft);
-  state.editorDraft.hash = newHash;
+  const savedGame = normalizeGameObject(state.editorDraft);
 
-  if (state.editingOriginHash && state.editingOriginHash !== newHash) {
+  if (state.editingOriginHash && state.editingOriginHash !== savedGame.hash) {
     await CacheStore.remove(CacheStore.MY_CACHE, CacheStore.memMy, state.editingOriginHash);
   }
-  await CacheStore.put(CacheStore.MY_CACHE, CacheStore.memMy, state.editorDraft);
+  await CacheStore.put(CacheStore.MY_CACHE, CacheStore.memMy, savedGame);
   await refreshCatalogState();
-  goToHome();
+
+  if (state.editorReturnScreen === 'PREGAME') {
+    openGameSession(savedGame);
+  } else {
+    goToHome();
+  }
 }
 
 // ============================================================================
@@ -2004,14 +2065,11 @@ function render() {
       <div class="catalog-card" style="--card-accent: ${getColorCss(g.color)}" onclick="openGameByHashFromList('${g.hash}', 'my')">
         <div class="catalog-card-title">${escapeHtml(g.title)}</div>
         <div class="catalog-card-actions">
-          <button class="xs" onclick="openEditorByHash('${g.hash}', event)">
-            <i class="fa-solid fa-pen-to-square"></i>
+          <button class="xs danger" onclick="deleteMyGame('${g.hash}', event)">
+            <i class="fa-solid fa-trash"></i>
           </button>
           <button class="xs" onclick="shareMyFullGame('${g.hash}', event)">
             <i class="fa-solid fa-share-nodes"></i>
-          </button>
-          <button class="xs danger" onclick="deleteMyGame('${g.hash}', event)">
-            <i class="fa-solid fa-trash"></i>
           </button>
         </div>
       </div>
@@ -2026,8 +2084,8 @@ function render() {
             <button class="xs star-active" onclick="toggleFavoriteGame('${g.hash}', event)">
               <i class="fa-solid fa-star"></i>
             </button>
-            <button class="xs ${inMy ? 'copied-check' : ''}" onclick="copyGameToMyEditList('${g.hash}', event)">
-              <i class="fa-solid ${inMy ? 'fa-check' : 'fa-pen-to-square'}"></i>
+            <button class="xs ${inMy ? 'copied-check' : ''}" onclick="saveGameToMyList('${g.hash}', event)">
+              <i class="fa-solid fa-floppy-disk"></i>
             </button>
             <button class="xs" onclick="shareCatalogGameHash('${g.hash}', event)">
               <i class="fa-solid fa-share-nodes"></i>
@@ -2047,8 +2105,8 @@ function render() {
             <button class="xs ${faved ? 'star-active' : ''}" onclick="toggleFavoriteGame('${g.hash}', event)">
               <i class="${faved ? 'fa-solid' : 'fa-regular'} fa-star"></i>
             </button>
-            <button class="xs ${inMy ? 'copied-check' : ''}" onclick="copyGameToMyEditList('${g.hash}', event)">
-              <i class="fa-solid ${inMy ? 'fa-check' : 'fa-pen-to-square'}"></i>
+            <button class="xs ${inMy ? 'copied-check' : ''}" onclick="saveGameToMyList('${g.hash}', event)">
+              <i class="fa-solid fa-floppy-disk"></i>
             </button>
             <button class="xs" onclick="shareCatalogGameHash('${g.hash}', event)">
               <i class="fa-solid fa-share-nodes"></i>
@@ -2062,11 +2120,11 @@ function render() {
       <div class="top-bar empty-top"></div>
 
       <div class="catalog-wrap">
-        <!-- Mano žaidimai (Edit) -->
+        <!-- Išsaugoti žaidimai (Save) -->
         <div class="catalog-block">
           <div class="catalog-head">
             <div class="catalog-head-title">
-              <i class="fa-solid fa-pen-to-square"></i>
+              <i class="fa-solid fa-floppy-disk"></i>
               <span>[${state.myGames.length}]</span>
             </div>
             <button class="xs" onclick="openEditorForNew()">
@@ -2110,6 +2168,7 @@ function render() {
   if (state.screen === 'PREGAME') {
     let deckCount = 0;
     let modeControlsHtml = '';
+    const isSavedInMyGames = isInMyGames(BASE_GAME.hash);
 
     if (hasCards) {
       if (mode === 1) {
@@ -2169,6 +2228,15 @@ function render() {
           <i class="fa-solid fa-arrow-left"></i>
         </button>
         <div class="top-actions">
+          ${isSavedInMyGames ? `
+            <button class="sm" onclick="openEditorFromPregame()">
+              <i class="fa-solid fa-pen-to-square"></i>
+            </button>
+          ` : `
+            <button class="sm" onclick="saveCurrentGameInPregame()">
+              <i class="fa-solid fa-floppy-disk"></i>
+            </button>
+          `}
           <button class="sm" onclick="SoundEngine.toggleMute()">
             <i class="fa-solid ${SoundEngine.muted ? 'fa-volume-xmark' : 'fa-volume-high'}"></i>
           </button>
@@ -2330,7 +2398,7 @@ function render() {
 
     app.innerHTML = `
       <div class="top-bar">
-        <button class="sm" onclick="goToHome()"><i class="fa-solid fa-arrow-left"></i></button>
+        <button class="sm" onclick="exitEditorWithoutSaving()"><i class="fa-solid fa-arrow-left"></i></button>
         <div class="top-actions">
           <button class="sm btn-confirm" onclick="saveEditorChanges()"><i class="fa-solid fa-check"></i></button>
         </div>
