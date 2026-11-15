@@ -105,7 +105,7 @@
     z-index: 130;
   }
   .top-bar.empty-top {
-    min-height: 12px;
+    min-height: 6px;
   }
   .top-actions {
     display: flex;
@@ -180,46 +180,65 @@
   }
 
   /* =========================================================================
-     1. HOME KATALOGAS
+     1. HOME KATALOGAS (TAB'Ų ARCHITEKTŪRA)
      ========================================================================= */
   .catalog-wrap {
     width: 100%;
     max-width: 540px;
     flex: 1;
     min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 2px 2px 12px 2px;
+  }
+  .catalog-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    background: var(--surface);
+    padding: 6px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .catalog-tab {
+    width: 100%;
+    height: 44px;
+    border-radius: 11px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.95rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s, border-color 0.18s;
+  }
+  .catalog-tab:active {
+    transform: scale(0.96);
+  }
+  .catalog-tab.active {
+    background: var(--surface-2);
+    color: var(--text);
+    border-color: var(--accent);
+    box-shadow: 0 0 14px -5px var(--accent);
+  }
+  .catalog-tab-count {
+    font-size: 0.8rem;
+    opacity: 0.85;
+  }
+  .catalog-panel {
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    padding: 4px 2px 24px 2px;
-  }
-  .catalog-block {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .catalog-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    min-height: 36px;
-  }
-  .catalog-head-title {
-    display: flex;
-    align-items: center;
     gap: 8px;
-    font-size: 1.05rem;
-    font-weight: 800;
-    color: var(--muted);
-    letter-spacing: 0.03em;
-  }
-  .catalog-head-title i {
-    color: var(--text);
-    font-size: 1.1rem;
+    padding-bottom: 16px;
   }
   .catalog-list {
     display: flex;
@@ -230,19 +249,32 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--surface-2);
+    background: var(--surface);
     border: 1px solid var(--border);
     border-left: 5px solid var(--card-accent, var(--c-blue));
     border-radius: 12px;
-    padding: 10px 12px;
+    padding: 11px 13px;
     cursor: pointer;
-    transition: transform 0.16s ease, opacity 0.22s ease, max-height 0.22s ease, padding 0.22s ease, margin 0.22s ease;
+    transition: transform 0.16s ease, opacity 0.22s ease, max-height 0.22s ease, padding 0.22s ease, margin 0.22s ease, border-color 0.2s;
     gap: 10px;
     max-height: 90px;
     overflow: hidden;
   }
   .catalog-card:active {
     transform: scale(0.985);
+  }
+  .catalog-card.add-game-card {
+    justify-content: center;
+    border-left: 1px dashed var(--border);
+    border-style: dashed;
+    background: rgba(26, 31, 46, 0.55);
+    color: var(--text);
+    font-size: 1.25rem;
+    min-height: 56px;
+  }
+  .catalog-card.add-game-card:hover {
+    border-color: var(--accent);
+    color: var(--accent);
   }
   .catalog-card.deleting-card {
     opacity: 0 !important;
@@ -508,8 +540,10 @@
     font-size: 4rem;
   }
 
+  .btn-confirm { border-color: var(--c-emerald); color: var(--c-emerald); }
+
   /* =========================================================================
-     2. REDAKTORIUS (EDITOR FORMA)
+     2. REDAKTORIUS (EDITOR FORMA SU SUSKLEIDŽIAMAIS BLOKAIS)
      ========================================================================= */
   .editor-wrap {
     width: 100%;
@@ -519,7 +553,7 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 16px;
     padding: 4px 4px 24px 4px;
   }
   .editor-section {
@@ -540,6 +574,21 @@
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    min-height: 36px;
+  }
+  .section-head.collapsible {
+    cursor: pointer;
+  }
+  .section-head-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-head-title i.collapse-arrow {
+    font-size: 0.8rem;
+    width: 14px;
+    text-align: center;
+    color: var(--text);
   }
   .hash-badge {
     font-family: monospace;
@@ -710,10 +759,27 @@
 
 <script>
 // ============================================================================
-// SISTEMOS KONSTANTOS IR UŽLAIKYMO (HOLD-TO-CONFIRM) KONFIGŪRACIJA
+// SISTEMOS KONSTANTOS, VIBRACIJA (HAPTICS) IR UŽLAIKYMO (HOLD) KONFIGŪRACIJA
 // ============================================================================
-const MAX_RECENT_GAMES = 8;                  // Maksimalus paskutinių žaistų žaidimų skaičius
+const MAX_RECENT_GAMES = 10;                 // Maksimalus paskutinių žaistų žaidimų skaičius
 const SESSION_TTL_MS = 6 * 60 * 60 * 1000;   // Sesijos kortų kiekių galiojimo laikas (6 val. nuo paskutinio Play/keitimo)
+
+const Haptics = {
+  vibrate(pattern) {
+    try {
+      if (navigator.vibrate) navigator.vibrate(pattern);
+    } catch (_) {}
+  },
+  tap() { this.vibrate(12); },
+  cardFlip() { this.vibrate(18); },
+  holdPulse() { this.vibrate(22); },
+  holdComplete() { this.vibrate([40, 30, 65]); },
+  phaseStart() { this.vibrate(35); },
+  tick() { this.vibrate(15); },
+  phaseEnd() { this.vibrate([120, 60, 120, 60, 180]); },
+  alarm() { this.vibrate([160, 80, 160]); },
+  finalWin() { this.vibrate([60, 40, 60, 40, 160]); }
+};
 
 const HOLD_CONFIG = {
   FILL_MS: 1300,        // Laikas iki pilno veiksmo įvykdymo laikant paspaudus (ms)
@@ -759,6 +825,7 @@ const HoldEngine = {
       this.progress = Math.min(HOLD_CONFIG.MAX_BOOST_CAP, this.progress + HOLD_CONFIG.REPRESS_BOOST);
     }
 
+    Haptics.holdPulse();
     SoundEngine.playHoldPulse(this.progress, Boolean(handler.isDanger));
 
     if (this.handler.onUpdate) {
@@ -808,6 +875,7 @@ const HoldEngine = {
       if (this.progress >= 1) {
         const doneFn = this.handler.onComplete;
         this.reset();
+        Haptics.holdComplete();
         if (doneFn) doneFn();
         return;
       }
@@ -1441,6 +1509,7 @@ const SoundEngine = {
 
   toggleMute() {
     this.muted = !this.muted;
+    Haptics.tap();
     if (this.muted) {
       this.stopSiren();
       this.stopKeepAlive();
@@ -1557,6 +1626,7 @@ let BASE_GAME = PUBLIC_GAMES[0];
 
 const state = {
   screen: 'HOME', // 'HOME' | 'PREGAME' | 'EDITOR' | 'DEAL' | 'DEAL_DONE' | 'PHASE' | 'FINAL'
+  catalogTab: 'my', // 'my' | 'fav' | 'pub' | 'recent'
   locked: false,
   wakeLock: null,
   fxStartTimer: null,
@@ -1565,15 +1635,23 @@ const state = {
   myGames: [],
   favGames: [],
   recentGames: [],
+  copiedShareHash: null,
+  copiedShareTimer: null,
 
   // 3.A Sesijos atmintis (atstatoma iš localStorage su TTL)
   customCounts: {},
   randomDrawX: 5,
 
-  // 2. Redaktoriaus laikinas juodraštis, pradinis hash ir grįžimo ekranas atšaukus
+  // 2. Redaktoriaus laikinas juodraštis ir suskleidžiamų blokų būsena
   editorDraft: null,
   editingOriginHash: null,
   editorReturnScreen: 'HOME',
+  editorCollapsed: {
+    groups: false,
+    cards: false,
+    phases: false,
+    finals: false
+  },
 
   // 3.B Dalijimo būsena
   deck: [],
@@ -1582,12 +1660,15 @@ const state = {
   cardFaceUp: false,
   currentCard: null,
 
-  // 3.C Fazių būsena
+  // 3.C Fazių ir tikslaus laikmačio (Drift-Free) būsena
   phaseIndex: 0,
   firstLap: true,
   timeLeft: 0,
   timerRunning: false,
   timerInterval: null,
+  timerAccumulatedMs: 0,
+  timerLastResumeTs: 0,
+  phaseEndTriggered: false,
   alarmActive: false,
 
   // 3.D Finalinė korta
@@ -1602,7 +1683,7 @@ async function refreshCatalogState() {
   state.recentGames = recentRaw.slice(0, MAX_RECENT_GAMES);
 }
 
-// Įrašo žaidimą į Most Recent (RECENT_CACHE) viršų ir apriboja sąrašą iki 8 žaidimų
+// Įrašo žaidimą į Most Recent (RECENT_CACHE) viršų ir apriboja sąrašą iki 10 žaidimų
 async function recordRecentGame(gameObj) {
   const copy = normalizeGameObject(gameObj);
   copy._recentTs = Date.now();
@@ -1664,6 +1745,12 @@ window.addEventListener('hashchange', () => {
     handleStartupRouting();
   }
 });
+
+function selectCatalogTab(tabKey) {
+  Haptics.tap();
+  state.catalogTab = tabKey;
+  render();
+}
 
 function goToHome() {
   HoldEngine.reset();
@@ -1826,6 +1913,7 @@ function startFinalHold(idx, e) {
       state.screen = 'FINAL';
       setAccent(finalObj.color);
       document.getElementById('app').classList.add('fx-final');
+      Haptics.finalWin();
       SoundEngine.playFinalFanfare();
       render();
       triggerBarrier();
@@ -1834,7 +1922,7 @@ function startFinalHold(idx, e) {
 }
 
 // ============================================================================
-// KATALOGO VEIKSMAI (FAVORITE, SAVE, SHARE)
+// KATALOGO VEIKSMAI (FAVORITE, SAVE, SHARE SU PATVIRTINIMU IR IŠKARPINE)
 // ============================================================================
 function findGameAnySourceByHash(hash) {
   return state.myGames.find(g => g.hash === hash) ||
@@ -1854,6 +1942,7 @@ function isInMyGames(hash) {
 
 async function toggleFavoriteGame(hash, e) {
   if (e) e.stopPropagation();
+  Haptics.tap();
   const exists = isFavorited(hash);
   if (exists) {
     await CacheStore.remove(CacheStore.FAV_CACHE, CacheStore.memFav, hash);
@@ -1872,6 +1961,7 @@ async function saveGameToMyList(hash, e) {
   if (isInMyGames(hash)) return;
   const game = findGameAnySourceByHash(hash);
   if (!game) return;
+  Haptics.tap();
   SoundEngine.playCardFlip(true);
   await CacheStore.put(CacheStore.MY_CACHE, CacheStore.memMy, game);
   await refreshCatalogState();
@@ -1880,6 +1970,7 @@ async function saveGameToMyList(hash, e) {
 
 async function saveCurrentGameInPregame() {
   if (isInMyGames(BASE_GAME.hash)) return;
+  Haptics.tap();
   SoundEngine.playCardFlip(true);
   await CacheStore.put(CacheStore.MY_CACHE, CacheStore.memMy, BASE_GAME);
   await refreshCatalogState();
@@ -1890,29 +1981,66 @@ function getBaseShareUrl() {
   return window.location.href.split('#')[0];
 }
 
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (_) {}
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch (_) {
+    return false;
+  }
+}
+
+function triggerShareConfirmation(hash) {
+  Haptics.tap();
+  SoundEngine.playCardFlip(true);
+  state.copiedShareHash = hash;
+  if (state.copiedShareTimer) clearTimeout(state.copiedShareTimer);
+  render();
+  state.copiedShareTimer = setTimeout(() => {
+    state.copiedShareHash = null;
+    if (state.screen === 'HOME') render();
+  }, 1300);
+}
+
 async function shareGameByHash(hash, e) {
   if (e) e.stopPropagation();
   const game = findGameAnySourceByHash(hash);
   if (!game) return;
   const deflated = await encodeGameToDeflateParam(game);
   const url = `${getBaseShareUrl()}#/${deflated}`;
-  await invokeNativeShare(game.title, url);
-}
 
-async function invokeNativeShare(title, url) {
-  if (navigator.clipboard) {
-    try { await navigator.clipboard.writeText(url); } catch (_) {}
-  }
   const isWebProtocol = window.location.protocol === 'http:' || window.location.protocol === 'https:';
-  if (navigator.share) {
+  const canUseNativeShare = typeof navigator.share === 'function';
+
+  if (canUseNativeShare) {
     try {
-      if (isWebProtocol) {
-        await navigator.share({ url });
-      } else {
-        await navigator.share({ text: url });
+      const shareData = isWebProtocol ? { url } : { text: url };
+      if (!navigator.canShare || navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+        triggerShareConfirmation(hash);
+        return;
       }
-    } catch (_) {}
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+    }
   }
+
+  await copyTextToClipboard(url);
+  triggerShareConfirmation(hash);
 }
 
 // ============================================================================
@@ -1988,6 +2116,7 @@ function goToPregame() {
 }
 
 function adjustCustomCount(cardId, delta) {
+  Haptics.tap();
   SoundEngine.playCardFlip(true);
   const current = state.customCounts[cardId] ?? 0;
   state.customCounts[cardId] = Math.max(0, current + delta);
@@ -1996,6 +2125,7 @@ function adjustCustomCount(cardId, delta) {
 }
 
 function adjustRandomDrawX(delta) {
+  Haptics.tap();
   SoundEngine.playCardFlip(true);
   const max = getBaseDeckSize();
   state.randomDrawX = Math.min(max, Math.max(1, state.randomDrawX + delta));
@@ -2004,9 +2134,10 @@ function adjustRandomDrawX(delta) {
 }
 
 // ============================================================================
-// 2. ŽAIDIMO NUSTATYMŲ FORMA (EDITOR)
+// 2. ŽAIDIMO NUSTATYMŲ FORMA (EDITOR SU SUSKLEIDŽIAMAIS BLOKAIS)
 // ============================================================================
 function openEditorForNew() {
+  Haptics.tap();
   const emptyGame = normalizeGameObject({
     title: "Naujas žaidimas",
     color: "blue",
@@ -2022,21 +2153,99 @@ function openEditorForNew() {
   state.editorDraft = emptyGame;
   state.editingOriginHash = null;
   state.editorReturnScreen = 'HOME';
+  state.editorCollapsed = { groups: false, cards: false, phases: false, finals: false };
   state.screen = 'EDITOR';
   setAccent(state.editorDraft.color);
   render();
 }
 
 function openEditorFromPregame() {
+  Haptics.tap();
   state.editorDraft = normalizeGameObject(BASE_GAME);
   state.editingOriginHash = BASE_GAME.hash;
   state.editorReturnScreen = 'PREGAME';
+  state.editorCollapsed = { groups: false, cards: false, phases: false, finals: false };
   state.screen = 'EDITOR';
   setAccent(state.editorDraft.color);
   render();
 }
 
+function toggleEditorSection(secKey) {
+  Haptics.tap();
+  state.editorCollapsed[secKey] = !state.editorCollapsed[secKey];
+  render();
+}
+
+function addGroupInEditor(e) {
+  if (e) e.stopPropagation();
+  if (!state.editorDraft) return;
+  Haptics.tap();
+  state.editorCollapsed.groups = false;
+  state.editorDraft.groups.push({ id: uid('g'), title: 'Nauja grupė', color: 'blue' });
+  updateDraftHashBadge();
+  render();
+}
+
+function addCardInEditor(e) {
+  if (e) e.stopPropagation();
+  if (!state.editorDraft) return;
+  Haptics.tap();
+  state.editorCollapsed.cards = false;
+
+  // Parinkti praėjusios (paskutinės) kortos grupę, jei ji buvo pasirinkta ir vis dar egzistuoja
+  const cards = state.editorDraft.cards;
+  let inheritedGroupId = '';
+  if (cards.length > 0) {
+    const prevGroupId = cards[cards.length - 1].groupId || '';
+    if (prevGroupId && state.editorDraft.groups.some(g => g.id === prevGroupId)) {
+      inheritedGroupId = prevGroupId;
+    }
+  }
+
+  cards.push({
+    id: uid('c'),
+    title: 'Nauja rolė',
+    groupId: inheritedGroupId,
+    color: 'none',
+    count: 1
+  });
+  updateDraftHashBadge();
+  render();
+}
+
+function addPhaseInEditor(e) {
+  if (e) e.stopPropagation();
+  if (!state.editorDraft) return;
+  Haptics.tap();
+  state.editorCollapsed.phases = false;
+  state.editorDraft.phases.push({
+    id: uid('p'),
+    title: 'Nauja fazė',
+    color: 'amber',
+    loop: true,
+    duration: 60,
+    fxAlarm: false
+  });
+  updateDraftHashBadge();
+  render();
+}
+
+function addFinalInEditor(e) {
+  if (e) e.stopPropagation();
+  if (!state.editorDraft) return;
+  Haptics.tap();
+  state.editorCollapsed.finals = false;
+  state.editorDraft.finals.push({
+    id: uid('f'),
+    title: 'Nauja baigtis',
+    color: 'emerald'
+  });
+  updateDraftHashBadge();
+  render();
+}
+
 function exitEditorWithoutSaving() {
+  Haptics.tap();
   if (state.editorReturnScreen === 'PREGAME') {
     goToPregame();
   } else {
@@ -2060,6 +2269,7 @@ function cycleCardColorInEditor(cardIndex) {
   if (!state.editorDraft) return;
   const card = state.editorDraft.cards[cardIndex];
   if (!card) return;
+  Haptics.tap();
   const grp = getGroupById(state.editorDraft, card.groupId);
   const grpColor = (grp && grp.color && grp.color !== 'none') ? grp.color : null;
 
@@ -2084,6 +2294,7 @@ function deleteGroupInEditor(groupIndex) {
   if (!state.editorDraft) return;
   const grp = state.editorDraft.groups[groupIndex];
   if (!grp) return;
+  Haptics.tap();
   state.editorDraft.groups.splice(groupIndex, 1);
   state.editorDraft.cards.forEach(c => {
     if (c.groupId === grp.id) {
@@ -2097,6 +2308,7 @@ function deleteGroupInEditor(groupIndex) {
 function moveItem(arr, index, dir) {
   const target = index + dir;
   if (target < 0 || target >= arr.length) return;
+  Haptics.tap();
   const temp = arr[index];
   arr[index] = arr[target];
   arr[target] = temp;
@@ -2107,6 +2319,7 @@ function moveItem(arr, index, dir) {
 // Išsaugojus žaidimą redaktoriuje VISADA patenkama į žaidimo Play režimą (PREGAME)
 async function saveEditorChanges() {
   if (!state.editorDraft) return;
+  Haptics.tap();
   if (!state.editorDraft.title || !state.editorDraft.title.trim()) {
     state.editorDraft.title = "Naujas žaidimas";
   }
@@ -2142,13 +2355,13 @@ function buildSessionDeck() {
 
 function startDealing() {
   HoldEngine.reset();
+  Haptics.tap();
   SoundEngine.unlock();
   SoundEngine.startKeepAlive();
   requestWakeLock();
   clearAppEffects();
   setAccent(BASE_GAME.color);
 
-  // Atnaujiname sesijos nustatymų galiojimo laiką (TTL) po Play/Deal paspaudimo
   SessionStore.saveForGame(BASE_GAME.hash, state.customCounts, state.randomDrawX);
 
   state.deck = buildSessionDeck();
@@ -2169,9 +2382,11 @@ function handleCardTap() {
     state.currentCard = (BASE_GAME.dealMode === 4) ? state.deck[0] : state.deck[state.dealIndex];
     const resolvedColor = resolveCardColorKey(BASE_GAME, state.currentCard);
     setAccent(resolvedColor);
+    Haptics.cardFlip();
     SoundEngine.playCardFlip(true);
     render();
   } else {
+    Haptics.cardFlip();
     SoundEngine.playCardFlip(false);
     if (BASE_GAME.dealMode === 4) {
       const drawn = state.deck.shift();
@@ -2203,6 +2418,7 @@ function handleDynamicReturn(e) {
   e.stopPropagation();
   if (state.locked || !state.cardFaceUp) return;
 
+  Haptics.cardFlip();
   SoundEngine.playCardFlip(false);
   const drawn = state.deck.shift();
   returnCardToDeck(drawn);
@@ -2229,7 +2445,7 @@ function returnCardToDeck(card) {
 }
 
 // ============================================================================
-// 3.C FAZIŲ VALDYMAS IR ŽAIDIMO EIGA
+// 3.C FAZIŲ VALDYMAS IR TIKSLUS LAIKMATIS BE VĖLAVIMO (DRIFT-FREE TIMER)
 // ============================================================================
 function startPhases() {
   HoldEngine.reset();
@@ -2237,7 +2453,6 @@ function startPhases() {
   SoundEngine.startKeepAlive();
   requestWakeLock();
 
-  // Atnaujiname sesijos nustatymų galiojimo laiką (TTL) po Play paspaudimo
   SessionStore.saveForGame(BASE_GAME.hash, state.customCounts, state.randomDrawX);
 
   state.screen = 'PHASE';
@@ -2274,8 +2489,11 @@ function loadCurrentPhase() {
   if (!hasPhases) {
     setAccent(BASE_GAME.color);
     state.timeLeft = 0;
+    state.timerAccumulatedMs = 0;
+    state.timerLastResumeTs = performance.now();
+    state.phaseEndTriggered = false;
     state.timerRunning = true;
-    startPhaseTimer(false);
+    startPhaseTimer(0);
     render();
     return;
   }
@@ -2285,38 +2503,54 @@ function loadCurrentPhase() {
 
   // Pradžios efektas taikomas visada
   triggerPhaseStartEffect();
+  Haptics.phaseStart();
   SoundEngine.playPhaseStart();
 
-  const isCountdown = phase.duration && phase.duration > 0;
-  state.timeLeft = isCountdown ? phase.duration : 0;
+  const durationSec = (phase.duration && phase.duration > 0) ? Number(phase.duration) : 0;
+  state.timeLeft = durationSec;
+  state.timerAccumulatedMs = 0;
+  state.timerLastResumeTs = performance.now();
+  state.phaseEndTriggered = false;
   state.timerRunning = true;
-  startPhaseTimer(isCountdown);
+  startPhaseTimer(durationSec);
   render();
 }
 
-function startPhaseTimer(isCountdown) {
+// Tikslus laikmatis pagal performance.now()
+function startPhaseTimer(durationSec) {
   stopPhaseTimer();
+  const isCountdown = durationSec > 0;
+
   state.timerInterval = setInterval(() => {
     if (!state.timerRunning) return;
 
+    const now = performance.now();
+    const totalElapsedMs = state.timerAccumulatedMs + Math.max(0, now - state.timerLastResumeTs);
+    const elapsedSec = Math.floor(totalElapsedMs / 1000);
+
     if (isCountdown) {
-      if (state.timeLeft > 0) {
-        state.timeLeft--;
+      const nextLeft = Math.max(0, durationSec - elapsedSec);
+      if (nextLeft !== state.timeLeft) {
+        state.timeLeft = nextLeft;
         if (state.timeLeft > 0 && state.timeLeft <= 5) {
+          Haptics.tick();
           SoundEngine.playTick();
         }
-        if (state.timeLeft === 0) {
-          // Pabaigos efektas taikomas visada
+        if (state.timeLeft === 0 && !state.phaseEndTriggered) {
+          state.phaseEndTriggered = true;
           document.getElementById('app').classList.add('fx-end');
+          Haptics.phaseEnd();
           SoundEngine.playPhaseEnd();
         }
         renderTimerOnly();
       }
     } else {
-      state.timeLeft++;
-      renderTimerOnly();
+      if (elapsedSec !== state.timeLeft) {
+        state.timeLeft = elapsedSec;
+        renderTimerOnly();
+      }
     }
-  }, 1000);
+  }, 200);
 }
 
 function stopPhaseTimer() {
@@ -2327,8 +2561,15 @@ function stopPhaseTimer() {
 }
 
 function togglePausePhase() {
+  Haptics.tap();
   SoundEngine.ensureContext();
-  state.timerRunning = !state.timerRunning;
+  if (state.timerRunning) {
+    state.timerAccumulatedMs += Math.max(0, performance.now() - state.timerLastResumeTs);
+    state.timerRunning = false;
+  } else {
+    state.timerLastResumeTs = performance.now();
+    state.timerRunning = true;
+  }
   render();
 }
 
@@ -2338,8 +2579,10 @@ function triggerAlarm() {
   const app = document.getElementById('app');
   app.classList.toggle('fx-alarm', state.alarmActive);
   if (state.alarmActive) {
+    Haptics.alarm();
     SoundEngine.startSiren();
   } else {
+    Haptics.tap();
     SoundEngine.stopSiren();
   }
   render();
@@ -2378,6 +2621,7 @@ function nextPhase() {
 
 function closeFinalCard() {
   if (state.locked) return;
+  Haptics.tap();
   SoundEngine.playCardFlip(false);
   goToPregame();
 }
@@ -2424,6 +2668,7 @@ function renderTimerOnly() {
 
 function openGameByHashFromList(hash) {
   if (HoldEngine.activeKey === `del:${hash}` && HoldEngine.progress > 0.05) return;
+  Haptics.tap();
   const g = findGameAnySourceByHash(hash);
   if (g) openGameSession(g);
 }
@@ -2431,6 +2676,7 @@ function openGameByHashFromList(hash) {
 function renderCatalogRowWithStarSaveShare(g, forceStarActive = false) {
   const faved = forceStarActive || isFavorited(g.hash);
   const inMy = isInMyGames(g.hash);
+  const isCopied = state.copiedShareHash === g.hash;
   return `
     <div class="catalog-card" style="--card-accent: ${getColorCss(g.color)}" onclick="openGameByHashFromList('${g.hash}')">
       <div class="catalog-card-title">${escapeHtml(g.title)}</div>
@@ -2441,8 +2687,8 @@ function renderCatalogRowWithStarSaveShare(g, forceStarActive = false) {
         <button class="xs ${inMy ? 'copied-check' : ''}" onclick="saveGameToMyList('${g.hash}', event)">
           <i class="fa-solid fa-floppy-disk"></i>
         </button>
-        <button class="xs" onclick="shareGameByHash('${g.hash}', event)">
-          <i class="fa-solid fa-share-nodes"></i>
+        <button class="xs ${isCopied ? 'copied-check' : ''}" onclick="shareGameByHash('${g.hash}', event)">
+          <i class="fa-solid ${isCopied ? 'fa-check' : 'fa-share-nodes'}"></i>
         </button>
       </div>
     </div>
@@ -2457,86 +2703,78 @@ function render() {
                             (BASE_GAME.finals && BASE_GAME.finals.length > 0);
 
   // --------------------------------------------------------------------------
-  // 0. HOME KATALOGAS (1 SKYRIUS)
+  // 0. HOME KATALOGAS SU TAB'AIS (1. SAVE, 2. FAVS, 3. PUBLIC, 4. RECENT)
   // --------------------------------------------------------------------------
   if (state.screen === 'HOME') {
-    const myRows = state.myGames.map(g => `
-      <div id="my-card-${g.hash}"
-           class="catalog-card"
-           style="--card-accent: ${getColorCss(g.color)}"
-           onclick="openGameByHashFromList('${g.hash}')">
-        <div class="catalog-card-title">${escapeHtml(g.title)}</div>
-        <div class="catalog-card-actions">
-          <button id="del-btn-${g.hash}"
-                  class="xs hold-btn"
-                  oncontextmenu="return false;"
-                  onclick="event.stopPropagation();"
-                  onpointerdown="startDeleteHold('${g.hash}', event)"
-                  onpointerup="HoldEngine.release()"
-                  onpointerleave="HoldEngine.release()"
-                  onpointercancel="HoldEngine.release()">
-            <i class="fa-solid fa-trash"></i>
-          </button>
-          <button class="xs" onclick="shareGameByHash('${g.hash}', event)">
-            <i class="fa-solid fa-share-nodes"></i>
-          </button>
-        </div>
-      </div>
-    `).join('');
+    const tab = state.catalogTab || 'my';
+    let listContentHtml = '';
 
-    const favRows = state.favGames.map(g => renderCatalogRowWithStarSaveShare(g, true)).join('');
-    const recentRows = state.recentGames.map(g => renderCatalogRowWithStarSaveShare(g, false)).join('');
-    const pubRows = PUBLIC_GAMES.map(g => renderCatalogRowWithStarSaveShare(g, false)).join('');
+    if (tab === 'my') {
+      const addCardHtml = `
+        <div class="catalog-card add-game-card" onclick="openEditorForNew()">
+          <i class="fa-solid fa-plus"></i>
+        </div>
+      `;
+      const myRows = state.myGames.map(g => {
+        const isCopied = state.copiedShareHash === g.hash;
+        return `
+          <div id="my-card-${g.hash}"
+               class="catalog-card"
+               style="--card-accent: ${getColorCss(g.color)}"
+               onclick="openGameByHashFromList('${g.hash}')">
+            <div class="catalog-card-title">${escapeHtml(g.title)}</div>
+            <div class="catalog-card-actions">
+              <button id="del-btn-${g.hash}"
+                      class="xs hold-btn"
+                      oncontextmenu="return false;"
+                      onclick="event.stopPropagation();"
+                      onpointerdown="startDeleteHold('${g.hash}', event)"
+                      onpointerup="HoldEngine.release()"
+                      onpointerleave="HoldEngine.release()"
+                      onpointercancel="HoldEngine.release()">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+              <button class="xs ${isCopied ? 'copied-check' : ''}" onclick="shareGameByHash('${g.hash}', event)">
+                <i class="fa-solid ${isCopied ? 'fa-check' : 'fa-share-nodes'}"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      listContentHtml = addCardHtml + myRows;
+    } else if (tab === 'fav') {
+      listContentHtml = state.favGames.map(g => renderCatalogRowWithStarSaveShare(g, true)).join('');
+    } else if (tab === 'pub') {
+      listContentHtml = PUBLIC_GAMES.map(g => renderCatalogRowWithStarSaveShare(g, false)).join('');
+    } else if (tab === 'recent') {
+      listContentHtml = state.recentGames.map(g => renderCatalogRowWithStarSaveShare(g, false)).join('');
+    }
 
     app.innerHTML = `
       <div class="top-bar empty-top"></div>
 
       <div class="catalog-wrap">
-        <!-- Išsaugoti žaidimai (Save) -->
-        <div class="catalog-block">
-          <div class="catalog-head">
-            <div class="catalog-head-title">
-              <i class="fa-solid fa-floppy-disk"></i>
-              <span>[${state.myGames.length}]</span>
-            </div>
-            <button class="xs" onclick="openEditorForNew()">
-              <i class="fa-solid fa-plus"></i>
-            </button>
-          </div>
-          ${state.myGames.length > 0 ? `<div class="catalog-list">${myRows}</div>` : ''}
+        <div class="catalog-tabs">
+          <button class="catalog-tab ${tab === 'my' ? 'active' : ''}" onclick="selectCatalogTab('my')">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span class="catalog-tab-count">${state.myGames.length}</span>
+          </button>
+          <button class="catalog-tab ${tab === 'fav' ? 'active' : ''}" onclick="selectCatalogTab('fav')">
+            <i class="fa-solid fa-star"></i>
+            <span class="catalog-tab-count">${state.favGames.length}</span>
+          </button>
+          <button class="catalog-tab ${tab === 'pub' ? 'active' : ''}" onclick="selectCatalogTab('pub')">
+            <i class="fa-solid fa-globe"></i>
+            <span class="catalog-tab-count">${PUBLIC_GAMES.length}</span>
+          </button>
+          <button class="catalog-tab ${tab === 'recent' ? 'active' : ''}" onclick="selectCatalogTab('recent')">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span class="catalog-tab-count">${state.recentGames.length}</span>
+          </button>
         </div>
 
-        <!-- Mėgstami žaidimai (Favorites) -->
-        <div class="catalog-block">
-          <div class="catalog-head">
-            <div class="catalog-head-title">
-              <i class="fa-solid fa-star"></i>
-              <span>[${state.favGames.length}]</span>
-            </div>
-          </div>
-          ${state.favGames.length > 0 ? `<div class="catalog-list">${favRows}</div>` : ''}
-        </div>
-
-        <!-- Paskutiniai žaisti žaidimai (Most Recent, iki 8) -->
-        <div class="catalog-block">
-          <div class="catalog-head">
-            <div class="catalog-head-title">
-              <i class="fa-solid fa-clock-rotate-left"></i>
-              <span>[${state.recentGames.length}]</span>
-            </div>
-          </div>
-          ${state.recentGames.length > 0 ? `<div class="catalog-list">${recentRows}</div>` : ''}
-        </div>
-
-        <!-- Viešas katalogas -->
-        <div class="catalog-block">
-          <div class="catalog-head">
-            <div class="catalog-head-title">
-              <i class="fa-solid fa-globe"></i>
-              <span>[${PUBLIC_GAMES.length}]</span>
-            </div>
-          </div>
-          <div class="catalog-list">${pubRows}</div>
+        <div class="catalog-panel">
+          <div class="catalog-list">${listContentHtml}</div>
         </div>
       </div>
 
@@ -2607,7 +2845,7 @@ function render() {
 
     app.innerHTML = `
       <div class="top-bar">
-        <button class="sm" onclick="goToHome()">
+        <button class="sm" onclick="Haptics.tap(); goToHome()">
           <i class="fa-solid fa-arrow-left"></i>
         </button>
         <div class="top-actions">
@@ -2643,15 +2881,16 @@ function render() {
   }
 
   // --------------------------------------------------------------------------
-  // 2. REDAKTORIAUS FORMA (EDITOR)
+  // 2. REDAKTORIAUS FORMA (EDITOR SU SUSKLEIDŽIAMAIS II-V BLOKAIS)
   // --------------------------------------------------------------------------
   if (state.screen === 'EDITOR' && state.editorDraft) {
     const d = state.editorDraft;
+    const col = state.editorCollapsed;
 
     const paletteHtml = COLOR_KEYS.map(ck => `
       <div class="color-swatch ${d.color === ck ? 'selected' : ''}"
            style="background: ${PALETTE[ck]}; color: ${PALETTE[ck]}"
-           onclick="state.editorDraft.color='${ck}'; setAccent('${ck}'); updateDraftHashBadge(); render();"></div>
+           onclick="Haptics.tap(); state.editorDraft.color='${ck}'; setAccent('${ck}'); updateDraftHashBadge(); render();"></div>
     `).join('');
 
     const groupsHtml = d.groups.map((grp, i) => {
@@ -2662,7 +2901,7 @@ function render() {
           <div class="editor-item-main">
             <div class="color-cycle-btn ${isNone ? 'is-none' : ''}"
                  style="background: ${isNone ? 'transparent' : PALETTE[grp.color]}"
-                 onclick="state.editorDraft.groups[${i}].color = cycleItemColor('${grp.color}'); updateDraftHashBadge(); render();">
+                 onclick="Haptics.tap(); state.editorDraft.groups[${i}].color = cycleItemColor('${grp.color}'); updateDraftHashBadge(); render();">
               ${isNone ? '<i class="fa-solid fa-ban"></i>' : ''}
             </div>
             <input class="text-input"
@@ -2700,7 +2939,7 @@ function render() {
           </div>
           <div class="editor-item-subrow">
             <select class="group-select"
-                    onchange="state.editorDraft.cards[${i}].groupId = this.value; state.editorDraft.cards[${i}].color = 'none'; updateDraftHashBadge(); render();">
+                    onchange="Haptics.tap(); state.editorDraft.cards[${i}].groupId = this.value; state.editorDraft.cards[${i}].color = 'none'; updateDraftHashBadge(); render();">
               ${groupOptions}
             </select>
             <input type="number" min="0" class="num-input"
@@ -2709,7 +2948,7 @@ function render() {
             <div class="toggle-group">
               <button class="icon-btn" onclick="moveItem(state.editorDraft.cards, ${i}, -1)"><i class="fa-solid fa-chevron-up"></i></button>
               <button class="icon-btn" onclick="moveItem(state.editorDraft.cards, ${i}, 1)"><i class="fa-solid fa-chevron-down"></i></button>
-              <button class="icon-btn del" onclick="state.editorDraft.cards.splice(${i}, 1); updateDraftHashBadge(); render();"><i class="fa-solid fa-trash"></i></button>
+              <button class="icon-btn del" onclick="Haptics.tap(); state.editorDraft.cards.splice(${i}, 1); updateDraftHashBadge(); render();"><i class="fa-solid fa-trash"></i></button>
             </div>
           </div>
         </div>
@@ -2724,7 +2963,7 @@ function render() {
           <div class="editor-item-main">
             <div class="color-cycle-btn ${isNone ? 'is-none' : ''}"
                  style="background: ${isNone ? 'transparent' : PALETTE[p.color]}"
-                 onclick="state.editorDraft.phases[${i}].color = cycleItemColor('${p.color}'); updateDraftHashBadge(); render();">
+                 onclick="Haptics.tap(); state.editorDraft.phases[${i}].color = cycleItemColor('${p.color}'); updateDraftHashBadge(); render();">
               ${isNone ? '<i class="fa-solid fa-ban"></i>' : ''}
             </div>
             <input class="text-input"
@@ -2741,16 +2980,16 @@ function render() {
             </div>
             <div class="toggle-group">
               <button class="icon-btn ${p.loop ? 'active-toggle' : ''}"
-                      onclick="state.editorDraft.phases[${i}].loop = !state.editorDraft.phases[${i}].loop; updateDraftHashBadge(); render();">
+                      onclick="Haptics.tap(); state.editorDraft.phases[${i}].loop = !state.editorDraft.phases[${i}].loop; updateDraftHashBadge(); render();">
                 <i class="fa-solid fa-repeat"></i>
               </button>
               <button class="icon-btn ${p.fxAlarm ? 'active-toggle' : ''}"
-                      onclick="state.editorDraft.phases[${i}].fxAlarm = !state.editorDraft.phases[${i}].fxAlarm; updateDraftHashBadge(); render();">
+                      onclick="Haptics.tap(); state.editorDraft.phases[${i}].fxAlarm = !state.editorDraft.phases[${i}].fxAlarm; updateDraftHashBadge(); render();">
                 <i class="fa-solid fa-bullhorn"></i>
               </button>
               <button class="icon-btn" onclick="moveItem(state.editorDraft.phases, ${i}, -1)"><i class="fa-solid fa-chevron-up"></i></button>
               <button class="icon-btn" onclick="moveItem(state.editorDraft.phases, ${i}, 1)"><i class="fa-solid fa-chevron-down"></i></button>
-              <button class="icon-btn del" onclick="state.editorDraft.phases.splice(${i}, 1); updateDraftHashBadge(); render();"><i class="fa-solid fa-trash"></i></button>
+              <button class="icon-btn del" onclick="Haptics.tap(); state.editorDraft.phases.splice(${i}, 1); updateDraftHashBadge(); render();"><i class="fa-solid fa-trash"></i></button>
             </div>
           </div>
         </div>
@@ -2765,14 +3004,14 @@ function render() {
           <div class="editor-item-main">
             <div class="color-cycle-btn ${isNone ? 'is-none' : ''}"
                  style="background: ${isNone ? 'transparent' : PALETTE[f.color]}"
-                 onclick="state.editorDraft.finals[${i}].color = cycleItemColor('${f.color}'); updateDraftHashBadge(); render();">
+                 onclick="Haptics.tap(); state.editorDraft.finals[${i}].color = cycleItemColor('${f.color}'); updateDraftHashBadge(); render();">
               ${isNone ? '<i class="fa-solid fa-ban"></i>' : ''}
             </div>
             <input class="text-input"
                    value="${escapeHtml(f.title)}"
                    placeholder="Finalo pavadinimas"
                    oninput="state.editorDraft.finals[${i}].title = this.value; updateDraftHashBadge();" />
-            <button class="icon-btn del" onclick="state.editorDraft.finals.splice(${i}, 1); updateDraftHashBadge(); render();"><i class="fa-solid fa-trash"></i></button>
+            <button class="icon-btn del" onclick="Haptics.tap(); state.editorDraft.finals.splice(${i}, 1); updateDraftHashBadge(); render();"><i class="fa-solid fa-trash"></i></button>
           </div>
         </div>
       `;
@@ -2787,7 +3026,7 @@ function render() {
       </div>
 
       <div class="editor-wrap">
-        <!-- I. Bendrieji nustatymai -->
+        <!-- I. Bendrieji nustatymai (Visada išskleistas) -->
         <div class="editor-section">
           <div class="section-head">
             <span>I. Bendrieji nustatymai</span>
@@ -2808,7 +3047,7 @@ function render() {
           <div class="field-row">
             <label class="field-label">Kortų dalijimo režimas</label>
             <select class="select-input"
-                    onchange="state.editorDraft.dealMode = parseInt(this.value); updateDraftHashBadge(); render();">
+                    onchange="Haptics.tap(); state.editorDraft.dealMode = parseInt(this.value); updateDraftHashBadge(); render();">
               <option value="1" ${d.dealMode === 1 ? 'selected' : ''}>1. Pritaikomas kiekis (Custom +/-)</option>
               <option value="2" ${d.dealMode === 2 ? 'selected' : ''}>2. Visa kaladė (Full Deck)</option>
               <option value="3" ${d.dealMode === 3 ? 'selected' : ''}>3. Atsitiktinis X kortų traukimas</option>
@@ -2820,7 +3059,7 @@ function render() {
             <div class="inline-switch">
               <span>Maišyti kaladę prieš dalijimą</span>
               <button class="icon-btn ${d.shuffle ? 'active-toggle' : ''}"
-                      onclick="state.editorDraft.shuffle = !state.editorDraft.shuffle; updateDraftHashBadge(); render();">
+                      onclick="Haptics.tap(); state.editorDraft.shuffle = !state.editorDraft.shuffle; updateDraftHashBadge(); render();">
                 <i class="fa-solid fa-shuffle"></i>
               </button>
             </div>
@@ -2830,7 +3069,7 @@ function render() {
             <div class="field-row">
               <label class="field-label">Grąžinimo būdas</label>
               <select class="select-input"
-                      onchange="state.editorDraft.returnMethod = this.value; updateDraftHashBadge();">
+                      onchange="Haptics.tap(); state.editorDraft.returnMethod = this.value; updateDraftHashBadge();">
                 <option value="bottom" ${d.returnMethod === 'bottom' ? 'selected' : ''}>Į kaladės apačią</option>
                 <option value="shuffle" ${d.returnMethod === 'shuffle' ? 'selected' : ''}>Su visos kaladės permaišymu</option>
                 <option value="middle" ${d.returnMethod === 'middle' ? 'selected' : ''}>Atsitiktinai į antrąją pusę</option>
@@ -2839,7 +3078,7 @@ function render() {
             <div class="field-row">
               <label class="field-label">Grąžinimo sąlyga</label>
               <select class="select-input"
-                      onchange="state.editorDraft.returnCondition = this.value; updateDraftHashBadge();">
+                      onchange="Haptics.tap(); state.editorDraft.returnCondition = this.value; updateDraftHashBadge();">
                 <option value="auto" ${d.returnCondition === 'auto' ? 'selected' : ''}>Automatinis (užvertus kortą)</option>
                 <option value="dynamic" ${d.returnCondition === 'dynamic' ? 'selected' : ''}>Pasirenkamas (mygtukas atvertus)</option>
               </select>
@@ -2847,48 +3086,60 @@ function render() {
           ` : ''}
         </div>
 
-        <!-- II. Kortelių grupės -->
+        <!-- II. Kortelių grupės (Suskleidžiamas) -->
         <div class="editor-section">
-          <div class="section-head">
-            <span>II. Kortelių grupės (${d.groups.length})</span>
-            <button class="xs" onclick="state.editorDraft.groups.push({id:uid('g'), title:'Nauja grupė', color:'blue'}); updateDraftHashBadge(); render();">
+          <div class="section-head collapsible" onclick="toggleEditorSection('groups')">
+            <div class="section-head-title">
+              <i class="fa-solid ${col.groups ? 'fa-chevron-right' : 'fa-chevron-down'} collapse-arrow"></i>
+              <span>II. Kortelių grupės (${d.groups.length})</span>
+            </div>
+            <button class="xs" onclick="addGroupInEditor(event)">
               <i class="fa-solid fa-plus"></i>
             </button>
           </div>
-          ${d.groups.length > 0 ? `<div class="editor-item-list">${groupsHtml}</div>` : ''}
+          ${!col.groups && d.groups.length > 0 ? `<div class="editor-item-list">${groupsHtml}</div>` : ''}
         </div>
 
-        <!-- III. Kortelių kaladė -->
+        <!-- III. Kortelių kaladė (Suskleidžiamas) -->
         <div class="editor-section">
-          <div class="section-head">
-            <span>III. Kortelių (Rolių) kaladė (${d.cards.length})</span>
-            <button class="xs" onclick="state.editorDraft.cards.push({id:uid('c'), title:'Nauja rolė', groupId:'', color:'none', count:1}); updateDraftHashBadge(); render();">
+          <div class="section-head collapsible" onclick="toggleEditorSection('cards')">
+            <div class="section-head-title">
+              <i class="fa-solid ${col.cards ? 'fa-chevron-right' : 'fa-chevron-down'} collapse-arrow"></i>
+              <span>III. Kortelių (Rolių) kaladė (${d.cards.length})</span>
+            </div>
+            <button class="xs" onclick="addCardInEditor(event)">
               <i class="fa-solid fa-plus"></i>
             </button>
           </div>
-          ${d.cards.length > 0 ? `<div class="editor-item-list">${cardsHtml}</div>` : ''}
+          ${!col.cards && d.cards.length > 0 ? `<div class="editor-item-list">${cardsHtml}</div>` : ''}
         </div>
 
-        <!-- IV. Fazių variklis -->
+        <!-- IV. Fazių variklis (Suskleidžiamas) -->
         <div class="editor-section">
-          <div class="section-head">
-            <span>IV. Fazių variklis (${d.phases.length})</span>
-            <button class="xs" onclick="state.editorDraft.phases.push({id:uid('p'), title:'Nauja fazė', color:'amber', loop:true, duration:60, fxAlarm:false}); updateDraftHashBadge(); render();">
+          <div class="section-head collapsible" onclick="toggleEditorSection('phases')">
+            <div class="section-head-title">
+              <i class="fa-solid ${col.phases ? 'fa-chevron-right' : 'fa-chevron-down'} collapse-arrow"></i>
+              <span>IV. Fazių variklis (${d.phases.length})</span>
+            </div>
+            <button class="xs" onclick="addPhaseInEditor(event)">
               <i class="fa-solid fa-plus"></i>
             </button>
           </div>
-          ${d.phases.length > 0 ? `<div class="editor-item-list">${phasesHtml}</div>` : ''}
+          ${!col.phases && d.phases.length > 0 ? `<div class="editor-item-list">${phasesHtml}</div>` : ''}
         </div>
 
-        <!-- V. Finalinės kortos -->
+        <!-- V. Finalinės kortos (Suskleidžiamas) -->
         <div class="editor-section">
-          <div class="section-head">
-            <span>V. Finalinės kortos (${d.finals.length})</span>
-            <button class="xs" onclick="state.editorDraft.finals.push({id:uid('f'), title:'Nauja baigtis', color:'emerald'}); updateDraftHashBadge(); render();">
+          <div class="section-head collapsible" onclick="toggleEditorSection('finals')">
+            <div class="section-head-title">
+              <i class="fa-solid ${col.finals ? 'fa-chevron-right' : 'fa-chevron-down'} collapse-arrow"></i>
+              <span>V. Finalinės kortos (${d.finals.length})</span>
+            </div>
+            <button class="xs" onclick="addFinalInEditor(event)">
               <i class="fa-solid fa-plus"></i>
             </button>
           </div>
-          ${d.finals.length > 0 ? `<div class="editor-item-list">${finalsHtml}</div>` : ''}
+          ${!col.finals && d.finals.length > 0 ? `<div class="editor-item-list">${finalsHtml}</div>` : ''}
         </div>
       </div>
     `;
@@ -2980,7 +3231,7 @@ function render() {
         <div class="action-row">
           <button class="lg" onclick="startDealing()"><i class="fa-solid fa-arrows-rotate"></i></button>
           ${hasPhasesOrFinals ? `<button class="lg" onclick="startPhases()"><i class="fa-solid fa-play"></i></button>` : ''}
-          <button class="lg" onclick="goToPregame()"><i class="fa-solid fa-xmark"></i></button>
+          <button class="lg" onclick="Haptics.tap(); goToPregame()"><i class="fa-solid fa-xmark"></i></button>
         </div>
       </div>
       <div class="bottom-bar"></div>
