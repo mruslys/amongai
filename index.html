@@ -988,7 +988,7 @@ function positionalArrayToGame(arr) {
   return normalizeGameObject(game);
 }
 
-// Saugi srauto skaitymo funkcija be new Response(stream), išvengiant Chrome macOS lūžimo
+// Saugi srauto skaitymo funkcija be new Response(stream)
 async function runCompressionPipeline(inputBytes, transformStream) {
   const writer = transformStream.writable.getWriter();
   writer.write(inputBytes);
@@ -1036,14 +1036,16 @@ async function decodeGameFromDeflateParam(encodedStr) {
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   let outBytes = bytes;
   if ('DecompressionStream' in window) {
-    outBytes = await runCompressionPipeline(bytes, new DecompressionStream('deflate-raw'));
+    try {
+      outBytes = await runCompressionPipeline(bytes, new DecompressionStream('deflate-raw'));
+    } catch (_) {}
   }
   const text = new TextDecoder().decode(outBytes);
   return positionalArrayToGame(JSON.parse(text));
 }
 
 // ============================================================================
-// CACHE API SAUGYKLA (SAVE IR FAVORITES BLOKAI)
+// CACHE API SAUGYKLA PAGAL HASH (SAVE IR FAVORITES BLOKAI)
 // ============================================================================
 const CacheStore = {
   MY_CACHE: 'amongai-my-games-v2',
@@ -1056,8 +1058,13 @@ const CacheStore = {
       try {
         const cache = await caches.open(cacheName);
         const keys = await cache.keys();
-        const list = await Promise.all(keys.map(req => cache.match(req).then(r => r ? r.json() : null)));
-        return list.filter(Boolean).map(normalizeGameObject);
+        const rawList = await Promise.all(keys.map(req => cache.match(req).then(r => r ? r.json() : null)));
+        const byHash = new Map();
+        rawList.filter(Boolean).forEach(item => {
+          const norm = normalizeGameObject(item);
+          byHash.set(norm.hash, norm);
+        });
+        return Array.from(byHash.values());
       } catch (_) {}
     }
     return Array.from(memFallback.values()).map(normalizeGameObject);
@@ -1069,7 +1076,7 @@ const CacheStore = {
     if ('caches' in window) {
       try {
         const cache = await caches.open(cacheName);
-        const url = `https://amongai.local/${cacheName}/${clean.hash}.json`;
+        const url = `https://amongai.local/${cacheName}/${clean.hash}`;
         const res = new Response(JSON.stringify(clean), {
           headers: { 'Content-Type': 'application/json' }
         });
@@ -1084,8 +1091,8 @@ const CacheStore = {
     if ('caches' in window) {
       try {
         const cache = await caches.open(cacheName);
-        const url = `https://amongai.local/${cacheName}/${hash}.json`;
-        await cache.delete(url);
+        await cache.delete(`https://amongai.local/${cacheName}/${hash}`);
+        await cache.delete(`https://amongai.local/${cacheName}/${hash}.json`);
       } catch (_) {}
     }
   }
@@ -1103,7 +1110,6 @@ const SoundEngine = {
   sirenGain: null,
 
   init() {
-    // iOS 17+ leidžia groti garsą net kai įjungtas fizinis telefono Silent jungiklis
     if ('audioSession' in navigator) {
       try { navigator.audioSession.type = 'playback'; } catch (_) {}
     }
@@ -1159,7 +1165,7 @@ const SoundEngine = {
   playCardFlip(faceUp) {
     this._run(ctx => {
       const now = ctx.currentTime;
-      const osc = ctx.createOscillator();
+      const osc = this.ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(faceUp ? 300 : 440, now);
@@ -1196,8 +1202,8 @@ const SoundEngine = {
   playTick() {
     this._run(ctx => {
       const now = ctx.currentTime;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(920, now);
       gain.gain.setValueAtTime(0.2, now);
@@ -1232,7 +1238,7 @@ const SoundEngine = {
     this._run(ctx => {
       if (!state.alarmActive) return;
       const now = ctx.currentTime;
-      const osc = ctx.createOscillator();
+      const osc = this.createOscillator ? this.createOscillator() : ctx.createOscillator();
       const gain = ctx.createGain();
 
       osc.type = 'sawtooth';
@@ -1315,7 +1321,7 @@ const state = {
   locked: false,
   wakeLock: null,
 
-  // Katalogo sąrašai iš Cache API
+  // Katalogo sąrašai iš Cache API (identifikuojami pagal hash)
   myGames: [],
   favGames: [],
 
@@ -1355,21 +1361,27 @@ async function refreshCatalogState() {
   state.favGames = await CacheStore.getAll(CacheStore.FAV_CACHE, CacheStore.memFav);
 }
 
-// Deep-link apdorojimas (#g=... pilnam žaidimui arba #h=... viešo katalogo hash)
+// Deep-link apdorojimas: /#/kodas atveria žaidimo pradinį langą (PREGAME)
+// (automatiškai neįrašant į Save sąrašą – jei tokio hash nėra, rodomas Save mygtukas)
 async function handleStartupRouting() {
   await refreshCatalogState();
 
   const rawHash = window.location.hash.slice(1);
   if (rawHash) {
-    const params = new URLSearchParams(rawHash);
-    const fullGameParam = params.get('g');
-    const pubHashParam = params.get('h');
+    let encodedPayload = null;
+    let pubHashParam = null;
 
-    if (fullGameParam) {
+    if (rawHash.startsWith('/')) {
+      encodedPayload = rawHash.slice(1).trim();
+    } else {
+      const params = new URLSearchParams(rawHash);
+      encodedPayload = params.get('g');
+      pubHashParam = params.get('h');
+    }
+
+    if (encodedPayload) {
       try {
-        const decodedGame = await decodeGameFromDeflateParam(fullGameParam);
-        await CacheStore.put(CacheStore.MY_CACHE, CacheStore.memMy, decodedGame);
-        await refreshCatalogState();
+        const decodedGame = await decodeGameFromDeflateParam(encodedPayload);
         history.replaceState(null, '', window.location.pathname + window.location.search);
         openGameSession(decodedGame);
         return;
@@ -1377,7 +1389,7 @@ async function handleStartupRouting() {
         console.warn("Nepavyko iškoduoti žaidimo iš URL:", e);
       }
     } else if (pubHashParam) {
-      const found = PUBLIC_GAMES.find(g => g.hash === pubHashParam);
+      const found = findGameAnySourceByHash(pubHashParam);
       if (found) {
         history.replaceState(null, '', window.location.pathname + window.location.search);
         openGameSession(found);
@@ -1388,6 +1400,12 @@ async function handleStartupRouting() {
 
   goToHome();
 }
+
+window.addEventListener('hashchange', () => {
+  if (window.location.hash.length > 1) {
+    handleStartupRouting();
+  }
+});
 
 function goToHome() {
   cancelFinalHold();
@@ -1412,8 +1430,15 @@ function openGameSession(gameObj) {
 }
 
 // ============================================================================
-// KATALOGO VEIKSMAI (FAVORITE, SAVE TO MY BLOCK, SHARE, DELETE)
+// KATALOGO VEIKSMAI (FAVORITE, SAVE TO MY BLOCK, SHARE /#/KODAS, DELETE)
 // ============================================================================
+function findGameAnySourceByHash(hash) {
+  return state.myGames.find(g => g.hash === hash) ||
+         state.favGames.find(g => g.hash === hash) ||
+         PUBLIC_GAMES.find(g => g.hash === hash) ||
+         null;
+}
+
 function isFavorited(hash) {
   return state.favGames.some(g => g.hash === hash);
 }
@@ -1428,7 +1453,7 @@ async function toggleFavoriteGame(hash, e) {
   if (exists) {
     await CacheStore.remove(CacheStore.FAV_CACHE, CacheStore.memFav, hash);
   } else {
-    const game = PUBLIC_GAMES.find(g => g.hash === hash) || state.myGames.find(g => g.hash === hash);
+    const game = findGameAnySourceByHash(hash);
     if (game) {
       await CacheStore.put(CacheStore.FAV_CACHE, CacheStore.memFav, game);
     }
@@ -1440,7 +1465,7 @@ async function toggleFavoriteGame(hash, e) {
 async function saveGameToMyList(hash, e) {
   if (e) e.stopPropagation();
   if (isInMyGames(hash)) return;
-  const game = PUBLIC_GAMES.find(g => g.hash === hash) || state.favGames.find(g => g.hash === hash);
+  const game = findGameAnySourceByHash(hash);
   if (!game) return;
   SoundEngine.playCardFlip(true);
   await CacheStore.put(CacheStore.MY_CACHE, CacheStore.memMy, game);
@@ -1469,40 +1494,28 @@ function getBaseShareUrl() {
   return window.location.href.split('#')[0];
 }
 
-async function shareMyFullGame(hash, e) {
+// Vieninga dalijimosi funkcija: suformuoja nuorodą su /#/kodas (deflatintas pozicinis masyvas)
+async function shareGameByHash(hash, e) {
   if (e) e.stopPropagation();
-  const game = state.myGames.find(g => g.hash === hash);
+  const game = findGameAnySourceByHash(hash);
   if (!game) return;
   const deflated = await encodeGameToDeflateParam(game);
-  const url = `${getBaseShareUrl()}#g=${deflated}`;
-  await invokeNativeShare(game.title, url);
-}
-
-async function shareCatalogGameHash(hash, e) {
-  if (e) e.stopPropagation();
-  const game = PUBLIC_GAMES.find(g => g.hash === hash) || state.favGames.find(g => g.hash === hash);
-  if (!game) return;
-  const url = `${getBaseShareUrl()}#h=${game.hash}`;
+  const url = `${getBaseShareUrl()}#/${deflated}`;
   await invokeNativeShare(game.title, url);
 }
 
 async function invokeNativeShare(title, url) {
+  if (navigator.clipboard) {
+    try { await navigator.clipboard.writeText(url); } catch (_) {}
+  }
   const isWebProtocol = window.location.protocol === 'http:' || window.location.protocol === 'https:';
   if (navigator.share) {
     try {
       if (isWebProtocol) {
-        await navigator.share({ title, url });
+        await navigator.share({ url });
       } else {
-        await navigator.share({ title, text: url });
+        await navigator.share({ text: url });
       }
-      return;
-    } catch (err) {
-      if (err && err.name === 'AbortError') return;
-    }
-  }
-  if (navigator.clipboard) {
-    try {
-      await navigator.clipboard.writeText(url);
     } catch (_) {}
   }
 }
@@ -1665,7 +1678,6 @@ function cycleItemColor(currentKey) {
   return ITEM_COLOR_KEYS[(idx + 1) % ITEM_COLOR_KEYS.length];
 }
 
-// Sukant kortelės spalvą, kai parinkta grupė su spalva, praleidžiame dubliuojančią grupės spalvą
 function cycleCardColorInEditor(cardIndex) {
   if (!state.editorDraft) return;
   const card = state.editorDraft.cards[cardIndex];
@@ -1993,6 +2005,11 @@ function startFinalHold(idx, e) {
         <i class="fa-solid fa-trophy"></i>
       </div>
       <div class="card-face-title">${escapeHtml(finalObj.title)}</div>
+      <div class="return-btn-wrap">
+        <button style="border-color: ${colorCss}; color: ${textColorCss}; pointer-events: none;">
+          <i class="fa-solid fa-check"></i>
+        </button>
+      </div>
     </div>
   `;
   overlay.style.opacity = '0';
@@ -2060,6 +2077,7 @@ window.addEventListener('pointercancel', () => {
 
 function closeFinalCard() {
   if (state.locked) return;
+  SoundEngine.playCardFlip(false);
   goToPregame();
 }
 
@@ -2125,7 +2143,7 @@ function render() {
           <button class="xs" onclick="deleteMyGame('${g.hash}', event)">
             <i class="fa-solid fa-trash"></i>
           </button>
-          <button class="xs" onclick="shareMyFullGame('${g.hash}', event)">
+          <button class="xs" onclick="shareGameByHash('${g.hash}', event)">
             <i class="fa-solid fa-share-nodes"></i>
           </button>
         </div>
@@ -2144,7 +2162,7 @@ function render() {
             <button class="xs ${inMy ? 'copied-check' : ''}" onclick="saveGameToMyList('${g.hash}', event)">
               <i class="fa-solid fa-floppy-disk"></i>
             </button>
-            <button class="xs" onclick="shareCatalogGameHash('${g.hash}', event)">
+            <button class="xs" onclick="shareGameByHash('${g.hash}', event)">
               <i class="fa-solid fa-share-nodes"></i>
             </button>
           </div>
@@ -2165,7 +2183,7 @@ function render() {
             <button class="xs ${inMy ? 'copied-check' : ''}" onclick="saveGameToMyList('${g.hash}', event)">
               <i class="fa-solid fa-floppy-disk"></i>
             </button>
-            <button class="xs" onclick="shareCatalogGameHash('${g.hash}', event)">
+            <button class="xs" onclick="shareGameByHash('${g.hash}', event)">
               <i class="fa-solid fa-share-nodes"></i>
             </button>
           </div>
@@ -2732,6 +2750,11 @@ function render() {
             <i class="fa-solid fa-trophy"></i>
           </div>
           <div class="card-face-title">${escapeHtml(f.title)}</div>
+          <div class="return-btn-wrap">
+            <button style="border-color: ${colorCss}; color: ${textColorCss}; pointer-events: none;">
+              <i class="fa-solid fa-check"></i>
+            </button>
+          </div>
         </div>
       </div>
       <div class="bottom-bar"></div>
