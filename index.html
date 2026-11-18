@@ -3,2622 +3,970 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>C4RDx5 — Universalus žaidimų moderatorius</title>
-<link rel="icon" type="image/png" href="https://mruslys.github.io/amongai/f/favicon-96x96.png" sizes="96x96" />
-<link rel="icon" type="image/svg+xml" href="https://mruslys.github.io/amongai/f/favicon.svg" />
-<link rel="shortcut icon" href="https://mruslys.github.io/amongai/f/favicon.ico" />
-<link rel="apple-touch-icon" sizes="180x180" href="https://mruslys.github.io/amongai/f/apple-touch-icon.png" />
-<meta name="apple-mobile-web-app-title" content="C4RDx5" />
-<link rel="manifest" href="https://mruslys.github.io/amongai/f/site.webmanifest" />
+<title>Amongai — C4RDx5</title>
+<link rel="icon" type="image/png" href="https://mruslys.github.io/C4RDx5/f/favicon-96x96.png" sizes="96x96" />
+<link rel="icon" type="image/svg+xml" href="https://mruslys.github.io/C4RDx5/f/favicon.svg" />
+<link rel="shortcut icon" href="https://mruslys.github.io/C4RDx5/f/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="https://mruslys.github.io/C4RDx5/f/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-title" content="Amongai" />
+<link rel="manifest" href="https://mruslys.github.io/C4RDx5/f/site.webmanifest" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
-  :root {
-    --bg: #090a0f;
-    --surface: #12151f;
-    --surface-2: #1a1f2e;
-    --border: #262c40;
-    --text: #f3f4f6;
-    --muted: #8b95a5;
-    --c-none: #4b5563;
-    --c-red: #ef4444;
-    --c-amber: #f59e0b;
-    --c-emerald: #10b981;
-    --c-cyan: #06b6d4;
-    --c-blue: #3b82f6;
-    --c-purple: #a855f7;
-    --c-pink: #ec4899;
-    --c-gray: #9ca3af;
-    --c-white: #ffffff;
-    --accent: var(--c-blue);
-  }
+ :root {
+ color-scheme: dark;
+ --bg: #090a0f;
+ --surface: #12151f;
+ --surface-2: #1a1f2e;
+ --border: #262c40;
+ --border-float: #353e59;
+ --text: #f3f4f6;
+ --muted: #8b95a5;
+ --c-none: #4b5563;
+ --c-red: #ef4444;
+ --c-amber: #f59e0b;
+ --c-emerald: #10b981;
+ --c-cyan: #06b6d4;
+ --c-blue: #3b82f6;
+ --c-purple: #a855f7;
+ --c-pink: #ec4899;
+ --c-gray: #9ca3af;
+ --c-white: #ffffff;
+ --accent: var(--c-blue);
+ }
 
-  * {
-    box-sizing: border-box;
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-tap-highlight-color: transparent;
-  }
+ * { box-sizing: border-box; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+ input, textarea, select { user-select: text; -webkit-user-select: text; font-family: inherit; }
+ body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
 
-  input, textarea, select {
-    user-select: text;
-    -webkit-user-select: text;
-  }
+ #app { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 18px; transition: box-shadow 0.25s ease; }
+ .screen-scroll { position: absolute; inset: 0; width: 100%; height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; align-items: center; padding: 78px 18px 0 18px; z-index: 10; }
+ .screen-scroll::after { content: ""; display: block; width: 100%; height: 36px; flex-shrink: 0; }
+ .screen-scroll.pregame-scroll::after { height: 118px; }
 
-  body, html {
-    margin: 0; padding: 0;
-    width: 100%; height: 100%;
-    background: var(--bg);
-    color: var(--text);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    overflow: hidden;
-  }
+ .edge-fade-top, .edge-fade-bottom { position: fixed; left: 0; right: 0; pointer-events: none; z-index: 90; }
+ .edge-fade-top { top: 0; height: 76px; background: linear-gradient(to bottom, rgba(9, 10, 15, 0.92) 0%, rgba(9, 10, 15, 0.55) 55%, rgba(9, 10, 15, 0) 100%); }
+ .edge-fade-bottom { bottom: 0; height: 112px; background: linear-gradient(to top, rgba(9, 10, 15, 0.94) 0%, rgba(9, 10, 15, 0.6) 55%, rgba(9, 10, 15, 0) 100%); }
 
-  #app {
-    position: relative;
-    width: 100%; height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
-    padding: 18px;
-    transition: box-shadow 0.25s ease;
-  }
+ .fx-start { animation: flashEdge 0.9s ease-out; }
+ .fx-end { animation: pulseEdge 0.8s infinite alternate; }
+ .fx-alarm { animation: alarmFlash 0.35s infinite alternate !important; }
 
-  /* Šviesos efektai (FX) */
-  .fx-start { animation: flashEdge 0.9s ease-out; }
-  .fx-end { animation: pulseEdge 0.8s infinite alternate; }
-  .fx-alarm { animation: alarmFlash 0.35s infinite alternate !important; }
-  .fx-final { box-shadow: inset 0 0 90px var(--accent), inset 0 0 30px var(--accent); }
+ @keyframes flashEdge { 0% { box-shadow: inset 0 0 110px var(--accent), inset 0 0 40px var(--accent); } 100% { box-shadow: inset 0 0 0px transparent; } }
+ @keyframes pulseEdge { 0% { box-shadow: inset 0 0 25px var(--accent); } 100% { box-shadow: inset 0 0 95px var(--accent), inset 0 0 35px var(--accent); } }
+ @keyframes alarmFlash { 0% { box-shadow: inset 0 0 30px var(--c-red); background: #1f0909; } 100% { box-shadow: inset 0 0 120px var(--c-red); background: #3b0a0a; } }
 
-  @keyframes flashEdge {
-    0% { box-shadow: inset 0 0 110px var(--accent), inset 0 0 40px var(--accent); }
-    100% { box-shadow: inset 0 0 0px transparent; }
-  }
-  @keyframes pulseEdge {
-    0% { box-shadow: inset 0 0 25px var(--accent); }
-    100% { box-shadow: inset 0 0 95px var(--accent), inset 0 0 35px var(--accent); }
-  }
-  @keyframes alarmFlash {
-    0% { box-shadow: inset 0 0 30px var(--c-red); background: #1f0909; }
-    100% { box-shadow: inset 0 0 120px var(--c-red); background: #3b0a0a; }
-  }
+ .locked { pointer-events: none !important; }
+ .lock-bar { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); width: 0%; z-index: 250; }
+ .lock-bar.active { animation: lockProgress 0.6s linear forwards; }
+ @keyframes lockProgress { 0% { width: 100%; opacity: 1; } 100% { width: 0%; opacity: 0; } }
 
-  /* 0.6s apsaugos barjeras */
-  .locked { pointer-events: none !important; }
-  .lock-bar {
-    position: fixed;
-    top: 0; left: 0; height: 4px;
-    background: var(--accent);
-    width: 0%;
-    z-index: 250;
-  }
-  .lock-bar.active { animation: lockProgress 0.6s linear forwards; }
-  @keyframes lockProgress {
-    0% { width: 100%; opacity: 1; }
-    100% { width: 0%; opacity: 0; }
-  }
+ .top-bar { width: 100%; max-width: 540px; display: flex; justify-content: space-between; align-items: center; min-height: 48px; flex-shrink: 0; position: relative; z-index: 130; pointer-events: none; }
+ .top-bar.center-bar { justify-content: center; }
+ .top-bar > * { pointer-events: auto; }
+ .top-actions { display: flex; gap: 10px; align-items: center; }
+ .bottom-bar { width: 100%; max-width: 540px; display: flex; flex-direction: column; gap: 14px; align-items: center; padding-bottom: 6px; flex-shrink: 0; position: relative; z-index: 130; pointer-events: none; }
+ .action-row { display: flex; gap: 20px; justify-content: center; align-items: center; width: 100%; pointer-events: none; }
+ .action-row > *, .finals-tray, .phase-aux > * { pointer-events: auto; }
 
-  /* Viršutinė ir apatinė juostos */
-  .top-bar {
-    width: 100%;
-    max-width: 540px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    min-height: 48px;
-    flex-shrink: 0;
-    position: relative;
-    z-index: 130;
-  }
-  .top-actions {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-  }
-  .bottom-bar {
-    width: 100%;
-    max-width: 540px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    align-items: center;
-    padding-bottom: 6px;
-    flex-shrink: 0;
-  }
-  .action-row {
-    display: flex;
-    gap: 20px;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-  }
+ button { background: rgba(18, 21, 31, 0.84); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 2px solid var(--border-float); color: var(--text); border-radius: 50%; width: 62px; height: 62px; font-size: 1.4rem; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 8px 22px -4px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.04); transition: transform 0.1s, border-color 0.2s, background 0.2s, color 0.2s, box-shadow 0.2s; padding: 0; }
+ button:active { transform: scale(0.92); }
+ button.sm { width: 42px; height: 42px; font-size: 1.05rem; }
+ button.xs { width: 36px; height: 36px; font-size: 0.95rem; border-width: 1px; box-shadow: none; }
+ button.lg { width: 78px; height: 78px; font-size: 1.85rem; background: rgba(14, 17, 26, 0.9); border-color: var(--accent); box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.9), 0 0 26px -4px var(--accent); }
+ button.danger { border-color: var(--c-red); color: var(--c-red); }
+ button.danger.active-alarm { background: var(--c-red); color: #fff; box-shadow: 0 0 25px var(--c-red); }
+ button.pulse-btn { border-color: var(--accent); animation: btnPulse 0.7s infinite alternate; }
+ @keyframes btnPulse { from { transform: scale(1); box-shadow: 0 8px 22px -4px rgba(0, 0, 0, 0.85), 0 0 5px var(--accent); } to { transform: scale(1.12); box-shadow: 0 10px 26px -4px rgba(0, 0, 0, 0.9), 0 0 25px var(--accent); } }
 
-  /* Mygtukai */
-  button {
-    background: var(--surface);
-    border: 2px solid var(--border);
-    color: var(--text);
-    border-radius: 50%;
-    width: 62px; height: 62px;
-    font-size: 1.4rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: transform 0.1s, border-color 0.2s, background 0.2s, color 0.2s, box-shadow 0.2s;
-    padding: 0;
-  }
-  button:active { transform: scale(0.92); }
-  button.sm { width: 42px; height: 42px; font-size: 1.05rem; }
-  button.xs { width: 36px; height: 36px; font-size: 0.95rem; border-width: 1px; }
-  button.lg {
-    width: 78px; height: 78px;
-    font-size: 1.85rem;
-    border-color: var(--accent);
-    box-shadow: 0 0 24px -6px var(--accent);
-    overflow: hidden;
-  }
-  .btn-logo-img {
-    width: 48px;
-    height: 48px;
-    object-fit: contain;
-    display: block;
-    border-radius: 50%;
-    pointer-events: none;
-  }
-  button.danger { border-color: var(--c-red); color: var(--c-red); }
-  button.danger.active-alarm {
-    background: var(--c-red);
-    color: #fff;
-    box-shadow: 0 0 25px var(--c-red);
-  }
-  button.pulse-btn {
-    border-color: var(--accent);
-    animation: btnPulse 0.7s infinite alternate;
-  }
-  @keyframes btnPulse {
-    from { transform: scale(1); box-shadow: 0 0 5px var(--accent); }
-    to { transform: scale(1.12); box-shadow: 0 0 25px var(--accent); }
-  }
+ .hold-btn { touch-action: none; }
+ .hold-btn.holding { transform: scale(1.14); border-color: var(--hold-color, var(--c-red)); color: var(--hold-color, var(--c-red)); box-shadow: 0 0 22px var(--hold-color, var(--c-red)); }
 
-  .hold-btn {
-    touch-action: none;
-  }
-  .hold-btn.holding {
-    transform: scale(1.14);
-    border-color: var(--hold-color, var(--c-red));
-    color: var(--hold-color, var(--c-red));
-    box-shadow: 0 0 22px var(--hold-color, var(--c-red));
-  }
+ /* --- Pregame & Editor & Playing --- */
+ .game-header { text-align: center; margin: 2px 0 12px; width: 100%; max-width: 460px; flex-shrink: 0; }
+ .game-title { font-size: 2.1rem; font-weight: 800; letter-spacing: -0.02em; border-bottom: 3px solid var(--accent); padding-bottom: 6px; display: inline-block; word-break: break-word; }
+ .counter-pill { font-size: 1.25rem; font-weight: 700; color: var(--text); display: inline-flex; align-items: center; gap: 12px; background: rgba(18, 21, 31, 0.86); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding: 8px 20px; border-radius: 999px; border: 1px solid var(--border-float); box-shadow: 0 6px 18px -4px rgba(0, 0, 0, 0.6); flex-shrink: 0; }
+ .card-list { width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: 8px; padding: 4px 0; margin-top: 14px; flex-shrink: 0; }
+ .card-row { display: flex; justify-content: space-between; align-items: center; background: var(--surface); border: 1px solid var(--border); padding: 9px 14px; border-radius: 12px; border-left: 5px solid var(--row-color, var(--border)); gap: 10px; flex-shrink: 0; }
+ .card-row-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+ .card-row-title { font-size: 1.08rem; font-weight: 600; word-break: break-word; }
+ .card-row-group { font-size: 0.78rem; font-weight: 600; color: var(--muted); letter-spacing: 0.02em; }
+ .stepper { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+ .stepper button { width: 34px; height: 34px; font-size: 0.95rem; box-shadow: none; background: var(--surface-2); border-color: var(--border); }
+ .stepper span { font-size: 1.15rem; font-weight: 700; min-width: 24px; text-align: center; }
 
-  .copied-check {
-    color: var(--c-emerald) !important;
-    border-color: rgba(16, 185, 129, 0.55) !important;
-    background: rgba(16, 185, 129, 0.12) !important;
-  }
+ .card-stage { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; }
+ .playing-card { position: fixed; inset: 0; width: 100%; height: 100%; border-radius: 0; border: none; background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--card-color, var(--accent)) 14%, var(--surface)), var(--bg) 85%); box-shadow: inset 0 0 28px -12px var(--card-color, var(--accent)); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 84px 24px; text-align: center; cursor: pointer; z-index: 20; transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1); }
+ .playing-card:active { transform: none; }
+ .playing-card.face-down { background: repeating-linear-gradient(135deg, #0d1017, #0d1017 16px, #141824 16px, #141824 32px); box-shadow: none; }
+ .card-back-emblem { width: 82px; height: 82px; border-radius: 50%; border: 3px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 2.1rem; color: var(--accent); box-shadow: 0 0 22px -4px var(--accent); background: rgba(9, 10, 15, 0.75); }
+ .card-face-group { font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 10px; padding: 4px 12px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); max-width: 100%; word-break: break-word; text-shadow: 0 2px 6px rgba(0,0,0,0.8); }
+ .card-face-title { font-size: 2.2rem; font-weight: 800; line-height: 1.25; word-break: break-word; color: var(--card-text-color, var(--text)); text-shadow: 0 4px 16px rgba(0,0,0,0.8), 0 1px 3px rgba(0,0,0,0.9); }
+ .card-check-btn { margin-top: 28px; pointer-events: none; flex-shrink: 0; }
+ .return-btn-wrap { position: fixed; bottom: 32px; left: 0; right: 0; z-index: 25; display: flex; justify-content: center; pointer-events: none; }
 
-  /* 3.A Priešžaidiminis langas */
-  .game-header { text-align: center; margin: 4px 0 8px; }
-  .game-title {
-    font-size: 2.1rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    border-bottom: 3px solid var(--accent);
-    padding-bottom: 6px;
-    display: inline-block;
-  }
-  .counter-pill {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--text);
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    background: var(--surface);
-    padding: 8px 20px;
-    border-radius: 999px;
-    border: 1px solid var(--border);
-  }
-  .card-list {
-    width: 100%;
-    max-width: 460px;
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 4px 2px;
-    margin: 8px 0;
-  }
-  .card-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: var(--surface);
-    padding: 9px 14px;
-    border-radius: 12px;
-    border-left: 5px solid var(--row-color, var(--border));
-    gap: 10px;
-  }
-  .card-row-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-  }
-  .card-row-title {
-    font-size: 1.08rem;
-    font-weight: 600;
-    word-break: break-word;
-  }
-  .card-row-group {
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: var(--muted);
-    letter-spacing: 0.02em;
-  }
-  .stepper { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-  .stepper button { width: 34px; height: 34px; font-size: 0.95rem; }
-  .stepper span { font-size: 1.2rem; font-weight: 700; min-width: 26px; text-align: center; }
+ .phase-stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; width: 100%; max-width: 540px; min-height: 0; }
+ .phase-spacer-top { flex: 1; width: 100%; min-height: 8px; }
+ .phase-core { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; width: 100%; }
+ .phase-title { font-size: 1.9rem; font-weight: 700; color: var(--accent); max-width: 90%; }
+ .timer-display { font-size: clamp(4rem, 17vw, 6.2rem); font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: 0.03em; line-height: 1.05; white-space: nowrap; }
+ .timer-blink { color: var(--c-red); animation: blinkTxt 0.5s infinite alternate; }
+ .timer-overdue { color: var(--c-red); }
+ @keyframes blinkTxt { from { opacity: 1; } to { opacity: 0.2; } }
 
-  /* 3.B Kortos komponentas */
-  .card-stage {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-  }
-  .playing-card {
-    width: min(84vw, 330px);
-    height: min(58vh, 450px);
-    border-radius: 26px;
-    background: var(--surface);
-    border: 4px solid var(--card-color, var(--accent));
-    box-shadow: 0 12px 40px -10px rgba(0,0,0,0.75), 0 0 30px -10px var(--card-color, var(--accent));
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    text-align: center;
-    cursor: pointer;
-    position: relative;
-    transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.2s;
-  }
-  .playing-card:active { transform: scale(0.97); }
-  .playing-card.face-down {
-    background: repeating-linear-gradient(
-      135deg,
-      #10131c,
-      #10131c 14px,
-      #161a28 14px,
-      #161a28 28px
-    );
-  }
-  .card-back-emblem {
-    width: 82px; height: 82px;
-    border-radius: 50%;
-    border: 3px solid var(--accent);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2.1rem;
-    color: var(--accent);
-    box-shadow: 0 0 22px -4px var(--accent);
-    background: rgba(9, 10, 15, 0.75);
-    overflow: hidden;
-  }
-  .card-back-logo {
-    width: 60px;
-    height: 60px;
-    object-fit: contain;
-    display: block;
-    border-radius: 50%;
-    pointer-events: none;
-  }
-  .card-face-group {
-    font-size: 1rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--muted);
-    margin-bottom: 10px;
-    padding: 4px 12px;
-    border-radius: 999px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    max-width: 100%;
-    word-break: break-word;
-  }
-  .card-face-title {
-    font-size: 2.2rem;
-    font-weight: 800;
-    line-height: 1.25;
-    word-break: break-word;
-    color: var(--card-text-color, var(--text));
-  }
-  .return-btn-wrap { position: absolute; bottom: 20px; }
+ .phase-aux { flex: 1; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 10px 0; min-height: 8px; position: relative; z-index: 130; pointer-events: none; }
+ .finals-tray { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; width: 100%; position: relative; z-index: 130; }
+ .final-token { width: 50px; height: 50px; border-radius: 50%; border: 2px solid var(--token-color); color: var(--token-color); font-size: 1.2rem; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 14px -3px var(--token-color); background: #141824; touch-action: none; position: relative; transition: transform 0.15s, box-shadow 0.15s; }
+ .final-token.holding { transform: scale(1.16); box-shadow: 0 0 28px var(--token-color); }
 
-  /* 3.C Fazių moderatorius */
-  .phase-stage {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    text-align: center;
-    width: 100%;
-  }
-  .phase-title {
-    font-size: 1.9rem;
-    font-weight: 700;
-    color: var(--accent);
-    max-width: 90%;
-  }
-  .timer-display {
-    font-size: clamp(4rem, 17vw, 6.2rem);
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0.03em;
-  }
-  .timer-blink {
-    color: var(--c-red);
-    animation: blinkTxt 0.5s infinite alternate;
-  }
-  @keyframes blinkTxt { from { opacity: 1; } to { opacity: 0.2; } }
+ #hold-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 120; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(9, 10, 15, 0.92); opacity: 0; visibility: hidden; }
+ #hold-overlay.active { visibility: visible; }
+ #hold-overlay .hold-target { transform: scale(var(--hold-scale, 0.88)); transition: none; }
+ .hold-symbol-badge { width: 132px; height: 132px; border-radius: 50%; background: var(--surface); border: 4px solid var(--badge-color, var(--c-red)); color: var(--badge-color, var(--c-red)); box-shadow: 0 12px 40px -10px rgba(0,0,0,0.8), 0 0 36px -6px var(--badge-color, var(--c-red)); display: flex; align-items: center; justify-content: center; font-size: 4rem; }
+ .btn-confirm { border-color: var(--c-emerald) !important; color: var(--c-emerald) !important; box-shadow: 0 8px 22px -4px rgba(0, 0, 0, 0.85), 0 0 16px -3px var(--c-emerald) !important; }
 
-  /* 3.D Baigčių žetonai ir Universalus Užlaikymo (Hold) peržiūros sluoksnis */
-  .finals-tray {
-    display: flex;
-    gap: 14px;
-    justify-content: center;
-    flex-wrap: wrap;
-    padding-top: 8px;
-    border-top: 1px solid var(--border);
-    width: 100%;
-    position: relative;
-    z-index: 130;
-  }
-  .final-token {
-    width: 50px; height: 50px;
-    border-radius: 50%;
-    border: 2px solid var(--token-color);
-    color: var(--token-color);
-    font-size: 1.2rem;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 14px -3px var(--token-color);
-    background: #141824;
-    touch-action: none;
-    position: relative;
-    transition: transform 0.15s, box-shadow 0.15s;
-  }
-  .final-token.holding {
-    transform: scale(1.16);
-    box-shadow: 0 0 28px var(--token-color);
-  }
-
-  #hold-overlay {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 120;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 18px;
-    background: rgba(9, 10, 15, 0.92);
-    opacity: 0;
-    visibility: hidden;
-  }
-  #hold-overlay.active {
-    visibility: visible;
-  }
-  #hold-overlay .hold-target {
-    transform: scale(var(--hold-scale, 0.88));
-    transition: none;
-  }
-  .hold-symbol-badge {
-    width: 132px;
-    height: 132px;
-    border-radius: 50%;
-    background: var(--surface);
-    border: 4px solid var(--badge-color, var(--c-red));
-    color: var(--badge-color, var(--c-red));
-    box-shadow: 0 12px 40px -10px rgba(0,0,0,0.8), 0 0 36px -6px var(--badge-color, var(--c-red));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 4rem;
-  }
-
-  .btn-confirm { border-color: var(--c-emerald); color: var(--c-emerald); }
-
-  /* =========================================================================
-     2. REDAKTORIUS (EDITOR FORMA)
-     ========================================================================= */
-  .editor-wrap {
-    width: 100%;
-    max-width: 540px;
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    padding: 4px 4px 24px 4px;
-  }
-  .editor-section {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .section-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: var(--muted);
-    letter-spacing: 0.03em;
-    min-height: 36px;
-  }
-  .field-icon {
-    color: var(--muted);
-    font-size: 1rem;
-  }
-  .text-input, .select-input {
-    width: 100%;
-    min-width: 0;
-    flex: 1;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 10px 12px;
-    border-radius: 10px;
-    font-size: 1rem;
-    outline: none;
-  }
-  .text-input:focus, .select-input:focus {
-    border-color: var(--accent);
-  }
-  .palette-row {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-  .color-swatch {
-    width: 28px; height: 28px;
-    border-radius: 50%;
-    cursor: pointer;
-    border: 2px solid transparent;
-    transition: transform 0.15s;
-  }
-  .color-swatch.selected {
-    border-color: #fff;
-    transform: scale(1.18);
-    box-shadow: 0 0 10px currentColor;
-  }
-  .editor-item-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .editor-item {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-left: 4px solid var(--item-color, var(--border));
-    border-radius: 12px;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .editor-item-main {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-  }
-  .editor-item-subrow {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    flex-wrap: wrap;
-    padding-top: 8px;
-    border-top: 1px dashed var(--border);
-  }
-  .color-cycle-btn {
-    width: 30px; height: 30px;
-    border-radius: 50%;
-    border: 2px solid rgba(255,255,255,0.55);
-    flex-shrink: 0;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-    color: rgba(255,255,255,0.85);
-  }
-  .color-cycle-btn.is-none {
-    border: 2px dashed var(--muted);
-    background: var(--bg) !important;
-    color: var(--muted);
-  }
-  .num-input {
-    width: 68px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 7px 8px;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    text-align: center;
-    outline: none;
-  }
-  .num-input:focus {
-    border-color: var(--accent);
-  }
-  .group-select {
-    flex: 1;
-    min-width: 120px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 7px 10px;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    outline: none;
-  }
-  .icon-btn {
-    width: 34px; height: 34px;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    color: var(--muted);
-    flex-shrink: 0;
-  }
-  .icon-btn:hover { color: var(--text); }
-  .icon-btn.del:hover { color: var(--c-red); border-color: var(--c-red); }
-  .icon-btn.active-toggle {
-    color: var(--accent);
-    border-color: var(--accent);
-    background: rgba(59, 130, 246, 0.12);
-  }
-  .toggle-group {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-  }
+ .editor-wrap { width: 100%; max-width: 540px; display: flex; flex-direction: column; gap: 16px; flex-shrink: 0; }
+ .editor-section { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 12px; flex-shrink: 0; }
+ .section-head { display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; min-height: 36px; }
+ .section-head-label { display: inline-flex; align-items: center; gap: 7px; }
+ .hash-badge { font-family: monospace; font-size: 0.8rem; background: var(--surface-2); padding: 3px 8px; border-radius: 6px; color: var(--c-cyan); border: 1px solid var(--border); }
+ .field-row { display: flex; flex-direction: column; gap: 6px; }
+ .field-icon { color: var(--muted); font-size: 1rem; }
+ .text-input { width: 100%; min-width: 0; flex: 1; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); padding: 10px 12px; border-radius: 10px; font-size: 1rem; outline: none; }
+ .text-input:focus { border-color: var(--accent); }
+ .palette-row { display: flex; gap: 8px; flex-wrap: wrap; }
+ .color-swatch { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.15s; }
+ .color-swatch.selected { border-color: #fff; transform: scale(1.18); box-shadow: 0 0 10px currentColor; }
+ .editor-item-list { display: flex; flex-direction: column; gap: 10px; }
+ .editor-item { background: var(--surface-2); border: 1px solid var(--border); border-left: 4px solid var(--item-color, var(--border)); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 8px; max-height: 150px; overflow: hidden; flex-shrink: 0; transition: transform 0.16s ease, opacity 0.22s ease, max-height 0.22s ease, padding 0.22s ease, margin 0.22s ease, border-color 0.2s; }
+ .editor-item.deleting-item { opacity: 0 !important; transform: scale(0.93) !important; max-height: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; margin-top: -10px !important; border-width: 0 !important; pointer-events: none !important; }
+ .editor-item-main { display: flex; align-items: center; gap: 10px; width: 100%; }
+ .editor-item-subrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: nowrap; padding-top: 8px; border-top: 1px dashed var(--border); }
+ .color-cycle-btn { width: 32px; height: 32px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.55); flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: rgba(255,255,255,0.92); transition: transform 0.12s ease; }
+ .color-cycle-btn:active { transform: scale(0.9); }
+ .color-cycle-btn.is-none { border: 2px dashed var(--muted); background: var(--bg) !important; color: var(--muted); }
+ .color-cycle-btn.is-white { color: #090a0f; border-color: #fff; }
+ .num-input { width: 68px; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 7px 8px; border-radius: 8px; font-size: 1rem; text-align: center; outline: none; }
+ .num-input:focus { border-color: var(--accent); }
+ .icon-btn { width: 34px; height: 34px; border-radius: 8px; font-size: 0.9rem; background: var(--bg); border: 1px solid var(--border); color: var(--muted); flex-shrink: 0; box-shadow: none; }
+ .icon-btn:hover { color: var(--text); }
+ .icon-btn.del:hover { color: var(--c-red); border-color: var(--c-red); }
+ .icon-btn.active-toggle { color: var(--accent); border-color: var(--accent); background: rgba(59, 130, 246, 0.12); }
+ .toggle-group { display: flex; gap: 6px; align-items: center; }
 </style>
 </head>
 <body>
 
 <div class="lock-bar" id="lock-bar"></div>
 <div id="app"></div>
-
-<!-- Universalus užlaikymo (Hold-to-Action) peržiūros sluoksnis -->
 <div id="hold-overlay"></div>
 
 <script>
-// ============================================================================
-// SISTEMOS KONSTANTOS, VIBRACIJA (HAPTICS) IR UŽLAIKYMO (HOLD) KONFIGŪRACIJA
-// ============================================================================
-const LOGO_URL = 'https://mruslys.github.io/amongai/f/favicon-96x96.png';
+const DEFAULT_GAME = {
+  "title": "Amongai",
+  "color": "blue",
+  "groups": [
+    {
+      "id": "g1",
+      "title": "Geriečiai",
+      "color": "blue"
+    },
+    {
+      "id": "g2",
+      "title": "Blogiečiai",
+      "color": "red"
+    },
+    {
+      "id": "g3",
+      "title": "Speciali rolė",
+      "color": "amber"
+    }
+  ],
+  "cards": [
+    {
+      "id": "c1",
+      "title": "Žmogus",
+      "groupId": "g1"
+    },
+    {
+      "id": "c2",
+      "title": "Gydytojas",
+      "groupId": "g1"
+    },
+    {
+      "id": "c3",
+      "title": "Teisėjas",
+      "groupId": "g1"
+    },
+    {
+      "id": "c4",
+      "title": "Policininkas",
+      "groupId": "g1"
+    },
+    {
+      "id": "c5",
+      "title": "Imposteris",
+      "groupId": "g2"
+    },
+    {
+      "id": "c6",
+      "title": "Trintukas",
+      "groupId": "g2"
+    },
+    {
+      "id": "c7",
+      "title": "Ligonis",
+      "groupId": "g2"
+    },
+    {
+      "id": "c8",
+      "title": "Džakalas",
+      "groupId": "g3"
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Misija",
+      "color": "purple",
+      "loop": true,
+      "duration": 180,
+      "fxAlarm": true,
+      "winner": false
+    },
+    {
+      "id": "p2",
+      "title": "Susirinkimas",
+      "color": "blue",
+      "loop": true,
+      "duration": 60,
+      "fxAlarm": false,
+      "winner": true
+    }
+  ],
+  "finals": [
+    {
+      "id": "f1",
+      "title": "Žmonių pergalė",
+      "color": "blue"
+    },
+    {
+      "id": "f2",
+      "title": "Imposterių pergalė",
+      "color": "red"
+    },
+    {
+      "id": "f3",
+      "title": "Džakalo pergalė",
+      "color": "amber"
+    }
+  ]
+};
+
+const APP_DEFAULT_TITLE = 'Amongai — C4RDx5';
+const CUSTOM_GAME_STORAGE_KEY = 'c4rdx5-amongai-config-v1';
 const SESSION_TTL_MS = 6 * 60 * 60 * 1000;
-const ACTIVE_GAME_STORAGE_KEY = 'amongai-active-game-v3';
+const ZERO_BLINK_SEC = 3;
+
+function getGameTitleWithHash(gameObj) {
+ if (!gameObj) return APP_DEFAULT_TITLE;
+ const baseTitle = (gameObj.title || 'Amongai').trim();
+ return gameObj.hash ? `${baseTitle} [${gameObj.hash}]` : baseTitle;
+}
 
 const Haptics = {
-  vibrate(pattern) {
-    try {
-      if (navigator.vibrate) navigator.vibrate(pattern);
-    } catch (_) {}
-  },
-  tap() { this.vibrate(12); },
-  cardFlip() { this.vibrate(18); },
-  holdPulse() { this.vibrate(22); },
-  holdComplete() { this.vibrate([40, 30, 65]); },
-  phaseStart() { this.vibrate(35); },
-  tick() { this.vibrate(15); },
-  phaseEnd() { this.vibrate([120, 60, 120, 60, 180]); },
-  alarm() { this.vibrate([160, 80, 160]); },
-  finalWin() { this.vibrate([60, 40, 60, 40, 160]); }
+ vibrate(pattern) { try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (_) {} },
+ tap() { this.vibrate(12); },
+ cardFlip() { this.vibrate(18); },
+ holdPulse() { this.vibrate(22); },
+ holdComplete() { this.vibrate([40, 30, 65]); },
+ phaseStart() { this.vibrate(35); },
+ tick() { this.vibrate(15); },
+ phaseEnd() { this.vibrate([120, 60, 120, 60, 180]); },
+ alarm() { this.vibrate([160, 80, 160]); },
+ finalWin() { this.vibrate([60, 40, 60, 40, 160]); }
 };
 
-const HOLD_CONFIG = {
-  FILL_MS: 1300,
-  DECAY_MS: 650,
-  INITIAL_JUMP: 0.32,
-  REPRESS_BOOST: 0.08,
-  MAX_BOOST_CAP: 0.88
-};
+const HOLD_CONFIG = { FILL_MS: 1300, DECAY_MS: 650, INITIAL_JUMP: 0.32, REPRESS_BOOST: 0.08, MAX_BOOST_CAP: 0.88 };
 
 const HoldEngine = {
-  activeKey: null,
-  isHolding: false,
-  progress: 0,
-  lastTime: 0,
-  rafId: null,
-  handler: null,
-
-  start(key, handler, e) {
-    if (e) {
-      e.stopPropagation();
-      e.preventDefault();
-    }
-    if (state.locked) return;
-    if (isPlayAudioAllowed()) SoundEngine.unlock();
-
-    if (this.activeKey !== key) {
-      this.reset();
-      this.activeKey = key;
-      this.progress = 0;
-      this.handler = handler;
-      if (handler.onSetup) handler.onSetup();
-    } else {
-      this.handler = handler;
-      if (handler.onSetup) handler.onSetup();
-    }
-
-    this.isHolding = true;
-    this.lastTime = performance.now();
-
-    if (this.progress < HOLD_CONFIG.INITIAL_JUMP) {
-      this.progress = HOLD_CONFIG.INITIAL_JUMP;
-    } else {
-      this.progress = Math.min(HOLD_CONFIG.MAX_BOOST_CAP, this.progress + HOLD_CONFIG.REPRESS_BOOST);
-    }
-
-    Haptics.holdPulse();
-    if (isPlayAudioAllowed()) {
-      SoundEngine.playHoldPulse(this.progress, Boolean(handler.isDanger));
-    }
-
-    if (this.handler.onUpdate) {
-      this.handler.onUpdate(this.progress, true);
-    }
-
-    if (!this.rafId) {
-      this.rafId = requestAnimationFrame(t => this.step(t));
-    }
-  },
-
-  release() {
-    if (!this.activeKey) return;
-    this.isHolding = false;
-    if (this.handler && this.handler.onRelease) {
-      this.handler.onRelease(this.progress);
-    }
-  },
-
-  reset() {
-    if (this.rafId) {
-      cancelAnimationFrame(this.rafId);
-      this.rafId = null;
-    }
-    if (this.handler && this.handler.onCleanup) {
-      this.handler.onCleanup();
-    }
-    this.activeKey = null;
-    this.isHolding = false;
-    this.progress = 0;
-    this.handler = null;
-  },
-
-  step(now) {
-    if (!this.activeKey || !this.handler) {
-      this.reset();
-      return;
-    }
-
-    const dt = Math.min(80, Math.max(0, now - this.lastTime));
-    this.lastTime = now;
-
-    if (this.isHolding) {
-      this.progress = Math.min(1, this.progress + dt / HOLD_CONFIG.FILL_MS);
-      if (this.handler.onUpdate) this.handler.onUpdate(this.progress, true);
-
-      if (this.progress >= 1) {
-        const doneFn = this.handler.onComplete;
-        this.reset();
-        Haptics.holdComplete();
-        if (doneFn) doneFn();
-        return;
-      }
-    } else {
-      this.progress = Math.max(0, this.progress - dt / HOLD_CONFIG.DECAY_MS);
-      if (this.handler.onUpdate) this.handler.onUpdate(this.progress, false);
-
-      if (this.progress <= 0) {
-        this.reset();
-        return;
-      }
-    }
-
-    this.rafId = requestAnimationFrame(t => this.step(t));
-  },
-
-  startOverlayHold({ key, btnId, colorCss, innerHtml, isDanger = false, onComplete }) {
-    this.start(key, {
-      isDanger,
-      onSetup() {
-        const overlay = document.getElementById('hold-overlay');
-        if (overlay) {
-          overlay.innerHTML = innerHtml;
-          overlay.style.boxShadow = `inset 0 0 90px ${colorCss}, inset 0 0 30px ${colorCss}`;
-          overlay.classList.add('active');
-        }
-        const btn = btnId ? document.getElementById(btnId) : null;
-        if (btn) btn.classList.add('holding');
-      },
-      onUpdate(p) {
-        const overlay = document.getElementById('hold-overlay');
-        if (overlay) {
-          overlay.style.opacity = p.toFixed(3);
-          overlay.style.setProperty('--hold-scale', (0.86 + 0.14 * p).toFixed(3));
-        }
-      },
-      onRelease() {
-        const btn = btnId ? document.getElementById(btnId) : null;
-        if (btn) btn.classList.remove('holding');
-      },
-      onCleanup() {
-        const btn = btnId ? document.getElementById(btnId) : null;
-        if (btn) btn.classList.remove('holding');
-        const overlay = document.getElementById('hold-overlay');
-        if (overlay) {
-          overlay.classList.remove('active');
-          overlay.style.opacity = '0';
-          overlay.innerHTML = '';
-        }
-      },
-      onComplete
-    });
-  }
+ activeKey: null, isHolding: false, progress: 0, lastTime: 0, rafId: null, handler: null,
+ start(key, handler, e) {
+ if (e) { e.stopPropagation(); e.preventDefault(); }
+ if (state.locked) return;
+ if (isPlayAudioAllowed()) SoundEngine.unlock();
+ if (this.activeKey !== key) {
+ this.reset(); this.activeKey = key; this.progress = 0; this.handler = handler;
+ if (handler.onSetup) handler.onSetup();
+ } else {
+ this.handler = handler; if (handler.onSetup) handler.onSetup();
+ }
+ this.isHolding = true; this.lastTime = performance.now();
+ if (this.progress < HOLD_CONFIG.INITIAL_JUMP) this.progress = HOLD_CONFIG.INITIAL_JUMP;
+ else this.progress = Math.min(HOLD_CONFIG.MAX_BOOST_CAP, this.progress + HOLD_CONFIG.REPRESS_BOOST);
+ Haptics.holdPulse();
+ if (isPlayAudioAllowed()) SoundEngine.playHoldPulse(this.progress, Boolean(handler.isDanger));
+ if (this.handler.onUpdate) this.handler.onUpdate(this.progress, true);
+ if (!this.rafId) this.rafId = requestAnimationFrame(t => this.step(t));
+ },
+ release() {
+ if (!this.activeKey) return;
+ this.isHolding = false;
+ if (this.handler && this.handler.onRelease) this.handler.onRelease(this.progress);
+ },
+ reset() {
+ if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = null; }
+ if (this.handler && this.handler.onCleanup) this.handler.onCleanup();
+ this.activeKey = null; this.isHolding = false; this.progress = 0; this.handler = null;
+ },
+ step(now) {
+ if (!this.activeKey || !this.handler) return this.reset();
+ const dt = Math.min(80, Math.max(0, now - this.lastTime));
+ this.lastTime = now;
+ if (this.isHolding) {
+ this.progress = Math.min(1, this.progress + dt / HOLD_CONFIG.FILL_MS);
+ if (this.handler.onUpdate) this.handler.onUpdate(this.progress, true);
+ if (this.progress >= 1) {
+ const doneFn = this.handler.onComplete;
+ this.reset(); Haptics.holdComplete(); if (doneFn) doneFn(); return;
+ }
+ } else {
+ this.progress = Math.max(0, this.progress - dt / HOLD_CONFIG.DECAY_MS);
+ if (this.handler.onUpdate) this.handler.onUpdate(this.progress, false);
+ if (this.progress <= 0) return this.reset();
+ }
+ this.rafId = requestAnimationFrame(t => this.step(t));
+ },
+ startOverlayHold({ key, btnId, colorCss, innerHtml, isDanger = false, noGlow = false, onComplete }) {
+ this.start(key, {
+ isDanger,
+ onSetup() {
+ const overlay = document.getElementById('hold-overlay');
+ if (overlay) { 
+   overlay.innerHTML = innerHtml; 
+   if (!noGlow) { overlay.style.boxShadow = `inset 0 0 90px ${colorCss}, inset 0 0 30px ${colorCss}`; } 
+   else { overlay.style.boxShadow = 'none'; }
+   overlay.classList.add('active'); 
+ }
+ const btn = btnId ? document.getElementById(btnId) : null; if (btn) btn.classList.add('holding');
+ },
+ onUpdate(p) {
+ const overlay = document.getElementById('hold-overlay');
+ if (overlay) { overlay.style.opacity = p.toFixed(3); overlay.style.setProperty('--hold-scale', (0.86 + 0.14 * p).toFixed(3)); }
+ },
+ onRelease() { const btn = btnId ? document.getElementById(btnId) : null; if (btn) btn.classList.remove('holding'); },
+ onCleanup() {
+ const btn = btnId ? document.getElementById(btnId) : null; if (btn) btn.classList.remove('holding');
+ const overlay = document.getElementById('hold-overlay');
+ if (overlay) { overlay.classList.remove('active'); overlay.style.opacity = '0'; overlay.style.boxShadow = 'none'; overlay.innerHTML = ''; }
+ },
+ onComplete
+ });
+ }
 };
 
 window.addEventListener('pointerup', () => HoldEngine.release());
 window.addEventListener('pointercancel', () => HoldEngine.release());
 
-// ============================================================================
-// SPALVŲ PALETĖ IR PRADINIAI AMONGAI DUOMENYS
-// ============================================================================
 const COLOR_KEYS = ['red', 'amber', 'emerald', 'cyan', 'blue', 'purple', 'pink', 'gray', 'white'];
 const ITEM_COLOR_KEYS = ['none', ...COLOR_KEYS];
 
-const PALETTE = {
-  none: 'var(--c-none)',
-  red: 'var(--c-red)',
-  amber: 'var(--c-amber)',
-  emerald: 'var(--c-emerald)',
-  cyan: 'var(--c-cyan)',
-  blue: 'var(--c-blue)',
-  purple: 'var(--c-purple)',
-  pink: 'var(--c-pink)',
-  gray: 'var(--c-gray)',
-  white: 'var(--c-white)'
-};
+const PALETTE = { none: 'var(--c-none)', red: 'var(--c-red)', amber: 'var(--c-amber)', emerald: 'var(--c-emerald)', cyan: 'var(--c-cyan)', blue: 'var(--c-blue)', purple: 'var(--c-purple)', pink: 'var(--c-pink)', gray: 'var(--c-gray)', white: 'var(--c-white)' };
 
-function uid(prefix) {
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+function uid(prefix) { return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`; }
+function getColorCss(colorKey, fallback = 'var(--c-none)') { return (!colorKey || colorKey === 'none') ? fallback : (PALETTE[colorKey] || fallback); }
+
+function getGroupById(gameObj, groupId) {
+ if (!gameObj || !groupId || !Array.isArray(gameObj.groups)) return null;
+ return gameObj.groups.find(g => g.id === groupId) || null;
 }
-
-function getColorCss(colorKey, fallback = 'var(--c-none)') {
-  if (!colorKey || colorKey === 'none') return fallback;
-  return PALETTE[colorKey] || fallback;
+function resolveCardColorKey(gameObj, card) {
+ if (card && card.groupId) {
+ const grp = getGroupById(gameObj, card.groupId);
+ if (grp && grp.color && grp.color !== 'none') return grp.color;
+ }
+ return 'none';
 }
-
-function getRoleGroupById(gameObj, groupId) {
-  if (!gameObj || !groupId || !Array.isArray(gameObj.roleGroups)) return null;
-  return gameObj.roleGroups.find(g => g.id === groupId) || null;
+function sortCardsByGroups(gameObj) {
+ if (!gameObj || !Array.isArray(gameObj.cards)) return;
+ const groups = Array.isArray(gameObj.groups) ? gameObj.groups : [];
+ const groupOrder = new Map(groups.map((g, idx) => [g.id, idx]));
+ gameObj.cards.sort((a, b) => {
+ const aIdx = (a.groupId && groupOrder.has(a.groupId)) ? groupOrder.get(a.groupId) : Number.MAX_SAFE_INTEGER;
+ const bIdx = (b.groupId && groupOrder.has(b.groupId)) ? groupOrder.get(b.groupId) : Number.MAX_SAFE_INTEGER;
+ return aIdx - bIdx;
+ });
 }
-
-function resolveRoleColorKey(gameObj, role) {
-  if (role && role.color && role.color !== 'none') return role.color;
-  if (role && role.groupId) {
-    const grp = getRoleGroupById(gameObj, role.groupId);
-    if (grp && grp.color && grp.color !== 'none') return grp.color;
-  }
-  return 'none';
-}
-
-const DEFAULT_AMONG_AI_RAW = {
-  title: "AmongAI",
-  color: "blue",
-  roleGroups: [
-    { id: "g1", title: "Geriečiai", color: "blue" },
-    { id: "g2", title: "Blogiečiai", color: "red" },
-    { id: "g3", title: "Speciali rolė", color: "amber" }
-  ],
-  roles: [
-    { id: "c1", title: "Žmogus", groupId: "g1", color: "none", count: 5 },
-    { id: "c2", title: "Gydytojas", groupId: "g1", color: "none", count: 1 },
-    { id: "c3", title: "Teisėjas", groupId: "g1", color: "none", count: 1 },
-    { id: "c4", title: "Policininkas", groupId: "g1", color: "none", count: 1 },
-    { id: "c5", title: "Imposteris", groupId: "g2", color: "none", count: 2 },
-    { id: "c6", title: "Trintukas", groupId: "g2", color: "none", count: 1 },
-    { id: "c7", title: "Ligonis", groupId: "g2", color: "none", count: 1 },
-    { id: "c8", title: "Džakalas", groupId: "g3", color: "none", count: 1 }
-  ],
-  phases: [
-    { id: "p1", title: "Susipažinimas", color: "purple", loop: false, duration: 20, fxAlarm: false },
-    { id: "p2", title: "Užduotys ir veiksmas", color: "blue", loop: true, duration: 120, fxAlarm: true },
-    { id: "p3", title: "Skubus susirinkimas", color: "amber", loop: true, duration: 90, fxAlarm: false }
-  ],
-  endings: [
-    { id: "f1", title: "Žmonių pergalė", color: "blue" },
-    { id: "f2", title: "Imposterių pergalė", color: "red" },
-    { id: "f3", title: "Džakalo pergalė", color: "amber" }
-  ]
-};
 
 function normalizeGameObject(g) {
-  const copy = JSON.parse(JSON.stringify(g || {}));
-  copy.title = copy.title || "AmongAI";
-  copy.color = COLOR_KEYS.includes(copy.color) ? copy.color : "blue";
-
-  const rawGroups = Array.isArray(copy.roleGroups) ? copy.roleGroups : (Array.isArray(copy.groups) ? copy.groups : []);
-  copy.roleGroups = rawGroups.map((grp, i) => ({
-    id: grp.id || `g_${i + 1}`,
-    title: grp.title ?? "Grupė",
-    color: ITEM_COLOR_KEYS.includes(grp.color) ? grp.color : "none"
-  }));
-  delete copy.groups;
-
-  const validGroupIds = new Set(copy.roleGroups.map(grp => grp.id));
-  const rawRoles = Array.isArray(copy.roles) ? copy.roles : (Array.isArray(copy.cards) ? copy.cards : []);
-  copy.roles = rawRoles.map((r, i) => ({
-    id: r.id || `c_${i + 1}`,
-    title: r.title ?? "Rolė",
-    groupId: validGroupIds.has(r.groupId) ? r.groupId : "",
-    color: ITEM_COLOR_KEYS.includes(r.color) ? r.color : "none",
-    count: Math.max(0, Number(r.count) || 0)
-  }));
-  delete copy.cards;
-
-  copy.phases = Array.isArray(copy.phases) ? copy.phases.map((p, i) => ({
-    id: p.id || `p_${i + 1}`,
-    title: p.title ?? "Fazė",
-    color: ITEM_COLOR_KEYS.includes(p.color) ? p.color : "blue",
-    loop: Boolean(p.loop),
-    duration: Math.max(0, Number(p.duration) || 0),
-    fxAlarm: Boolean(p.fxAlarm)
-  })) : [];
-
-  const rawEndings = Array.isArray(copy.endings) ? copy.endings : (Array.isArray(copy.finals) ? copy.finals : []);
-  copy.endings = rawEndings.map((f, i) => ({
-    id: f.id || `f_${i + 1}`,
-    title: f.title ?? "Baigtis",
-    color: ITEM_COLOR_KEYS.includes(f.color) ? f.color : "emerald"
-  }));
-  delete copy.finals;
-
-  copy.hash = computeCanonicalHash(copy);
-  return copy;
+ const copy = JSON.parse(JSON.stringify(g || {}));
+ copy.title = copy.title || "Amongai";
+ copy.color = COLOR_KEYS.includes(copy.color) ? copy.color : "blue";
+ copy.groups = Array.isArray(copy.groups) ? copy.groups.map((grp, i) => ({ id: grp.id || `g_${i + 1}`, title: grp.title ?? "Grupė", color: ITEM_COLOR_KEYS.includes(grp.color) ? grp.color : "none" })) : [];
+ const validGroupIds = new Set(copy.groups.map(grp => grp.id));
+ copy.cards = Array.isArray(copy.cards) ? copy.cards.map((c, i) => ({ id: c.id || `c_${i + 1}`, title: c.title ?? "Rolė", groupId: validGroupIds.has(c.groupId) ? c.groupId : "" })) : [];
+ sortCardsByGroups(copy);
+ copy.phases = Array.isArray(copy.phases) ? copy.phases.map((p, i) => ({ id: p.id || `p_${i + 1}`, title: p.title ?? "Fazė", color: ITEM_COLOR_KEYS.includes(p.color) ? p.color : "blue", loop: Boolean(p.loop), duration: Math.max(0, Number(p.duration) || 0), fxAlarm: Boolean(p.fxAlarm), winner: Boolean(p.winner) })) : [];
+ copy.finals = Array.isArray(copy.finals) ? copy.finals.map((f, i) => ({ id: f.id || `f_${i + 1}`, title: f.title ?? "Baigtis", color: ITEM_COLOR_KEYS.includes(f.color) ? f.color : "emerald" })) : [];
+ copy.hash = computeCanonicalHash(copy);
+ return copy;
 }
 
-// ============================================================================
-// DETERMINISTINIS HASH IR POZICINIO MASYVO SERIALIZACIJA (DEFLATE)
-// ============================================================================
 function computeCanonicalHash(gameObj) {
-  const roleGroups = Array.isArray(gameObj.roleGroups) ? gameObj.roleGroups : [];
-  const groupIndexMap = new Map(roleGroups.map((g, idx) => [g.id, idx]));
-
-  const canonical = {
-    title: (gameObj.title || "").trim(),
-    color: gameObj.color || "blue",
-    roleGroups: roleGroups.map(g => ({
-      title: (g.title || "").trim(),
-      color: g.color || "none"
-    })),
-    roles: (gameObj.roles || []).map(r => ({
-      title: (r.title || "").trim(),
-      groupIdx: groupIndexMap.has(r.groupId) ? groupIndexMap.get(r.groupId) : -1,
-      color: r.color || "none",
-      count: Math.max(0, Number(r.count) || 0)
-    })),
-    phases: (gameObj.phases || []).map(p => ({
-      title: (p.title || "").trim(),
-      color: p.color || "blue",
-      loop: Boolean(p.loop),
-      duration: Math.max(0, Number(p.duration) || 0),
-      fxAlarm: Boolean(p.fxAlarm)
-    })),
-    endings: (gameObj.endings || []).map(f => ({
-      title: (f.title || "").trim(),
-      color: f.color || "blue"
-    }))
-  };
-  const str = JSON.stringify(canonical);
-  let h = 0x811c9dc5;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 0x01000193);
-  }
-  return (h >>> 0).toString(16).padStart(8, '0');
+ const groups = Array.isArray(gameObj.groups) ? gameObj.groups : [];
+ const groupIndexMap = new Map(groups.map((g, idx) => [g.id, idx]));
+ const canonical = {
+ title: (gameObj.title || "").trim(), color: gameObj.color || "blue",
+ groups: groups.map(g => ({ title: (g.title || "").trim(), color: g.color || "none" })),
+ cards: (gameObj.cards || []).map(c => ({ title: (c.title || "").trim(), groupIdx: groupIndexMap.has(c.groupId) ? groupIndexMap.get(c.groupId) : -1 })),
+ phases: (gameObj.phases || []).map(p => ({ title: (p.title || "").trim(), color: p.color || "blue", loop: Boolean(p.loop), duration: Math.max(0, Number(p.duration) || 0), fxAlarm: Boolean(p.fxAlarm), winner: Boolean(p.winner) })),
+ finals: (gameObj.finals || []).map(f => ({ title: (f.title || "").trim(), color: f.color || "blue" }))
+ };
+ const str = JSON.stringify(canonical);
+ let h = 0x811c9dc5;
+ for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+ return (h >>> 0).toString(16).padStart(8, '0');
 }
 
-function gameToPositionalArray(g) {
-  const roleGroups = Array.isArray(g.roleGroups) ? g.roleGroups : [];
-  const groupIndexMap = new Map(roleGroups.map((grp, idx) => [grp.id, idx]));
-
-  return [
-    (g.title || "AmongAI").trim(),
-    Math.max(0, COLOR_KEYS.indexOf(g.color || "blue")),
-    (g.roles || []).map(r => [
-      (r.title || "").trim(),
-      Math.max(0, ITEM_COLOR_KEYS.indexOf(r.color || "none")),
-      Math.max(0, Number(r.count) || 0),
-      groupIndexMap.has(r.groupId) ? groupIndexMap.get(r.groupId) : -1
-    ]),
-    (g.phases || []).map(p => [
-      (p.title || "").trim(),
-      Math.max(0, ITEM_COLOR_KEYS.indexOf(p.color || "blue")),
-      Math.max(0, Number(p.duration) || 0),
-      (p.loop ? 1 : 0) | (p.fxAlarm ? 8 : 0)
-    ]),
-    (g.endings || []).map(f => [
-      (f.title || "").trim(),
-      Math.max(0, ITEM_COLOR_KEYS.indexOf(f.color || "blue"))
-    ]),
-    roleGroups.map(grp => [
-      (grp.title || "").trim(),
-      Math.max(0, ITEM_COLOR_KEYS.indexOf(grp.color || "none"))
-    ])
-  ];
-}
-
-function positionalArrayToGame(arr) {
-  if (!Array.isArray(arr)) throw new Error("Netinkamas masyvas");
-
-  // Suderinamumas su senesniu 9–11 elementų masyvo formatu
-  if (arr.length >= 9) {
-    const hasGroupsArr = Array.isArray(arr[9]);
-    const colorLookup = hasGroupsArr ? ITEM_COLOR_KEYS : COLOR_KEYS;
-    const roleGroups = hasGroupsArr ? arr[9].map((grp, i) => ({
-      id: `g_${i + 1}`,
-      title: String(grp[0] || "Grupė"),
-      color: colorLookup[grp[1]] || "none"
-    })) : [];
-
-    return normalizeGameObject({
-      title: String(arr[0] || "AmongAI"),
-      color: COLOR_KEYS[arr[1]] || "blue",
-      roleGroups,
-      roles: Array.isArray(arr[6]) ? arr[6].map((c, i) => {
-        const grpIdx = (c.length > 3 && Number.isInteger(c[3]) && c[3] >= 0 && roleGroups[c[3]]) ? c[3] : -1;
-        return {
-          id: `c_${i + 1}`,
-          title: String(c[0] || "Rolė"),
-          color: colorLookup[c[1]] || "none",
-          count: Math.max(0, Number(c[2]) || 0),
-          groupId: grpIdx !== -1 ? roleGroups[grpIdx].id : ""
-        };
-      }) : [],
-      phases: Array.isArray(arr[7]) ? arr[7].map((p, i) => {
-        const mask = Number(p[3]) || 0;
-        return {
-          id: `p_${i + 1}`,
-          title: String(p[0] || "Fazė"),
-          color: colorLookup[p[1]] || "blue",
-          duration: Math.max(0, Number(p[2]) || 0),
-          loop: Boolean(mask & 1),
-          fxAlarm: Boolean(mask & 8)
-        };
-      }) : [],
-      endings: Array.isArray(arr[8]) ? arr[8].map((f, i) => ({
-        id: `f_${i + 1}`,
-        title: String(f[0] || "Baigtis"),
-        color: colorLookup[f[1]] || "blue"
-      })) : []
-    });
-  }
-
-  // Naujas 6 elementų formatas
-  if (arr.length < 5) throw new Error("Netinkamas masyvas");
-  const roleGroups = Array.isArray(arr[5]) ? arr[5].map((grp, i) => ({
-    id: `g_${i + 1}`,
-    title: String(grp[0] || "Grupė"),
-    color: ITEM_COLOR_KEYS[grp[1]] || "none"
-  })) : [];
-
-  return normalizeGameObject({
-    title: String(arr[0] || "AmongAI"),
-    color: COLOR_KEYS[arr[1]] || "blue",
-    roleGroups,
-    roles: Array.isArray(arr[2]) ? arr[2].map((r, i) => {
-      const grpIdx = (r.length > 3 && Number.isInteger(r[3]) && r[3] >= 0 && roleGroups[r[3]]) ? r[3] : -1;
-      return {
-        id: `c_${i + 1}`,
-        title: String(r[0] || "Rolė"),
-        color: ITEM_COLOR_KEYS[r[1]] || "none",
-        count: Math.max(0, Number(r[2]) || 0),
-        groupId: grpIdx !== -1 ? roleGroups[grpIdx].id : ""
-      };
-    }) : [],
-    phases: Array.isArray(arr[3]) ? arr[3].map((p, i) => {
-      const mask = Number(p[3]) || 0;
-      return {
-        id: `p_${i + 1}`,
-        title: String(p[0] || "Fazė"),
-        color: ITEM_COLOR_KEYS[p[1]] || "blue",
-        duration: Math.max(0, Number(p[2]) || 0),
-        loop: Boolean(mask & 1),
-        fxAlarm: Boolean(mask & 8)
-      };
-    }) : [],
-    endings: Array.isArray(arr[4]) ? arr[4].map((f, i) => ({
-      id: `f_${i + 1}`,
-      title: String(f[0] || "Baigtis"),
-      color: ITEM_COLOR_KEYS[f[1]] || "blue"
-    })) : []
-  });
-}
-
-async function runCompressionPipeline(inputBytes, transformStream) {
-  const writer = transformStream.writable.getWriter();
-  writer.write(inputBytes);
-  writer.close();
-
-  const reader = transformStream.readable.getReader();
-  const chunks = [];
-  let totalLen = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    totalLen += value.byteLength;
-  }
-  const out = new Uint8Array(totalLen);
-  let offset = 0;
-  for (const ch of chunks) {
-    out.set(ch, offset);
-    offset += ch.byteLength;
-  }
-  return out;
-}
-
-async function encodeGameToDeflateParam(gameObj) {
-  const posArr = gameToPositionalArray(gameObj);
-  const jsonBytes = new TextEncoder().encode(JSON.stringify(posArr));
-  let bytes = jsonBytes;
-  if ('CompressionStream' in window) {
-    try {
-      bytes = await runCompressionPipeline(jsonBytes, new CompressionStream('deflate-raw'));
-    } catch (_) {}
-  }
-  let binary = '';
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-async function decodeGameFromDeflateParam(encodedStr) {
-  const b64 = encodedStr.replace(/-/g, '+').replace(/_/g, '/');
-  const pad = b64.length % 4 ? '='.repeat(4 - (b64.length % 4)) : '';
-  const binary = atob(b64 + pad);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  let outBytes = bytes;
-  if ('DecompressionStream' in window) {
-    try {
-      outBytes = await runCompressionPipeline(bytes, new DecompressionStream('deflate-raw'));
-    } catch (_) {}
-  }
-  const text = new TextDecoder().decode(outBytes);
-  return positionalArrayToGame(JSON.parse(text));
-}
-
-// ============================================================================
-// AKTYVAUS ŽAIDIMO IR SESIJOS KIEKIŲ SAUGYKLA (LOCALSTORAGE)
-// ============================================================================
-function saveActiveGameToStorage(gameObj) {
+const GameConfigStore = {
+ load() {
   try {
-    localStorage.setItem(ACTIVE_GAME_STORAGE_KEY, JSON.stringify(normalizeGameObject(gameObj)));
+   const raw = localStorage.getItem(CUSTOM_GAME_STORAGE_KEY);
+   if (raw) return normalizeGameObject(JSON.parse(raw));
   } catch (_) {}
-}
-
-function loadActiveGameFromStorage() {
-  try {
-    const raw = localStorage.getItem(ACTIVE_GAME_STORAGE_KEY);
-    if (!raw) return null;
-    return normalizeGameObject(JSON.parse(raw));
-  } catch (_) {
-    return null;
-  }
-}
-
-function clearActiveGameStorage() {
-  try {
-    localStorage.removeItem(ACTIVE_GAME_STORAGE_KEY);
-  } catch (_) {}
-}
+  return normalizeGameObject(DEFAULT_GAME);
+ },
+ save(gameObj) {
+  const clean = normalizeGameObject(gameObj);
+  try { localStorage.setItem(CUSTOM_GAME_STORAGE_KEY, JSON.stringify(clean)); } catch (_) {}
+  return clean;
+ },
+ reset() {
+  try { localStorage.removeItem(CUSTOM_GAME_STORAGE_KEY); } catch (_) {}
+  return normalizeGameObject(DEFAULT_GAME);
+ }
+};
 
 const SessionStore = {
-  STORAGE_KEY: 'amongai-session-counts-v1',
-
-  _readAll() {
-    try {
-      const raw = localStorage.getItem(this.STORAGE_KEY);
-      if (!raw) return {};
-      const parsed = JSON.parse(raw);
-      const now = Date.now();
-      let changed = false;
-      for (const h of Object.keys(parsed)) {
-        if (!parsed[h] || (now - (parsed[h].updatedAt || 0) > SESSION_TTL_MS)) {
-          delete parsed[h];
-          changed = true;
-        }
-      }
-      if (changed) {
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(parsed));
-      }
-      return parsed;
-    } catch (_) {
-      return {};
-    }
-  },
-
-  loadForGame(gameObj) {
-    const all = this._readAll();
-    const entry = all[gameObj.hash];
-    const counts = {};
-
-    if (entry && entry.customCounts) {
-      (gameObj.roles || []).forEach(r => {
-        const val = entry.customCounts[r.id];
-        counts[r.id] = (typeof val === 'number' && val >= 0) ? val : r.count;
-      });
-      return counts;
-    }
-
-    (gameObj.roles || []).forEach(r => {
-      counts[r.id] = r.count;
-    });
-    return counts;
-  },
-
-  saveForGame(hash, customCounts) {
-    if (!hash) return;
-    try {
-      const all = this._readAll();
-      all[hash] = {
-        customCounts: { ...customCounts },
-        updatedAt: Date.now()
-      };
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(all));
-    } catch (_) {}
-  },
-
-  removeForGame(hash) {
-    if (!hash) return;
-    try {
-      const all = this._readAll();
-      if (all[hash]) {
-        delete all[hash];
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(all));
-      }
-    } catch (_) {}
-  }
+ STORAGE_KEY: 'c4rdx5-session-counts-v1',
+ _readAll() {
+ try {
+ const raw = localStorage.getItem(this.STORAGE_KEY); if (!raw) return {};
+ const parsed = JSON.parse(raw); const now = Date.now(); let changed = false;
+ for (const h of Object.keys(parsed)) { if (!parsed[h] || (now - (parsed[h].updatedAt || 0) > SESSION_TTL_MS)) { delete parsed[h]; changed = true; } }
+ if (changed) localStorage.setItem(this.STORAGE_KEY, JSON.stringify(parsed));
+ return parsed;
+ } catch (_) { return {}; }
+ },
+ loadForGame(gameObj) {
+ const all = this._readAll(); const entry = all[gameObj.hash]; const counts = {};
+ if (entry && entry.customCounts) {
+ (gameObj.cards || []).forEach(c => { const val = entry.customCounts[c.id]; counts[c.id] = (typeof val === 'number' && val >= 0) ? val : 0; });
+ return { customCounts: counts };
+ }
+ (gameObj.cards || []).forEach(c => counts[c.id] = 0);
+ return { customCounts: counts };
+ },
+ saveForGame(hash, customCounts) {
+ if (!hash) return;
+ try { const all = this._readAll(); all[hash] = { customCounts: { ...customCounts }, updatedAt: Date.now() }; localStorage.setItem(this.STORAGE_KEY, JSON.stringify(all)); } catch (_) {}
+ },
+ clearAll() {
+ try { localStorage.removeItem(this.STORAGE_KEY); } catch (_) {}
+ }
 };
 
-// ============================================================================
-// WEB AUDIO API GARSO VARIKLIS
-// ============================================================================
 const PLAY_AUDIO_SCREENS = new Set(['PREGAME', 'DEAL', 'DEAL_DONE', 'PHASE', 'FINAL']);
-
-function isPlayAudioAllowed() {
-  return PLAY_AUDIO_SCREENS.has(state.screen);
-}
+function isPlayAudioAllowed() { return PLAY_AUDIO_SCREENS.has(state.screen); }
 
 const SoundEngine = {
-  ctx: null,
-  muted: false,
-  keepAliveOsc: null,
-  keepAliveGain: null,
-  sirenInterval: null,
-  sirenOsc: null,
-  sirenGain: null,
-
-  ensureContext() {
-    if (!isPlayAudioAllowed()) return null;
-    if ('audioSession' in navigator) {
-      try { navigator.audioSession.type = 'playback'; } catch (_) {}
-    }
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return null;
-
-    if (!this.ctx || this.ctx.state === 'closed') {
-      try { this.ctx = new AudioCtx(); } catch (_) { return null; }
-    }
-    if (this.ctx.state !== 'running') {
-      try { this.ctx.resume().catch(() => {}); } catch (_) {}
-    }
-    return this.ctx;
-  },
-
-  unlock() {
-    if (!isPlayAudioAllowed()) return;
-    const ctx = this.ensureContext();
-    if (!ctx) return;
-    try {
-      const buf = ctx.createBuffer(1, 1, 22050);
-      const src = ctx.createBufferSource();
-      src.buffer = buf;
-      src.connect(ctx.destination);
-      src.onended = () => { try { src.disconnect(); } catch (_) {} };
-      src.start(0);
-    } catch (_) {}
-  },
-
-  startKeepAlive() {
-    if (!isPlayAudioAllowed() || this.muted || this.keepAliveOsc) return;
-    const ctx = this.ensureContext();
-    if (!ctx) return;
-    try {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(1, ctx.currentTime);
-      gain.gain.setValueAtTime(0.00001, ctx.currentTime);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      this.keepAliveOsc = osc;
-      this.keepAliveGain = gain;
-    } catch (_) {}
-  },
-
-  stopKeepAlive() {
-    if (this.keepAliveOsc) {
-      try { this.keepAliveOsc.stop(); this.keepAliveOsc.disconnect(); } catch (_) {}
-      this.keepAliveOsc = null;
-    }
-    if (this.keepAliveGain) {
-      try { this.keepAliveGain.disconnect(); } catch (_) {}
-      this.keepAliveGain = null;
-    }
-  },
-
-  _playTone(freqStart, freqEnd, duration, type = 'triangle', peakGain = 0.28, delay = 0) {
-    if (!isPlayAudioAllowed() || this.muted) return;
-    const ctx = this.ensureContext();
-    if (!ctx) return;
-    try {
-      const startAt = ctx.currentTime + delay;
-      const stopAt = startAt + duration;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      osc.type = type;
-      osc.frequency.setValueAtTime(freqStart, startAt);
-      if (freqEnd && freqEnd !== freqStart) {
-        osc.frequency.exponentialRampToValueAtTime(freqEnd, stopAt);
-      }
-
-      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-      gain.gain.setValueAtTime(peakGain, startAt);
-      gain.gain.exponentialRampToValueAtTime(0.0001, stopAt);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.onended = () => {
-        try { osc.disconnect(); } catch (_) {}
-        try { gain.disconnect(); } catch (_) {}
-      };
-
-      osc.start(startAt);
-      osc.stop(stopAt + 0.01);
-    } catch (_) {}
-  },
-
-  toggleMute() {
-    this.muted = !this.muted;
-    Haptics.tap();
-    if (this.muted) {
-      this.stopSiren();
-      this.stopKeepAlive();
-    } else {
-      this.unlock();
-      if (['DEAL', 'PHASE'].includes(state.screen)) {
-        this.startKeepAlive();
-      }
-      this.playCardFlip(true);
-    }
-    render();
-  },
-
-  playCardFlip(faceUp) {
-    this._playTone(faceUp ? 300 : 440, faceUp ? 580 : 200, 0.09, 'triangle', 0.28, 0);
-  },
-
-  playHoldPulse(progress = 0.3, isDanger = false) {
-    const base = isDanger ? 210 : 320;
-    const target = base + Math.round(progress * 220);
-    this._playTone(base, target, 0.075, 'sine', 0.2, 0);
-  },
-
-  playPhaseStart() {
-    this._playTone(440, 440, 0.32, 'triangle', 0.28, 0);
-    this._playTone(659.25, 659.25, 0.38, 'triangle', 0.28, 0.11);
-  },
-
-  playTick() {
-    this._playTone(920, 880, 0.055, 'sine', 0.22, 0);
-  },
-
-  playPhaseEnd() {
-    [261.63, 392.00, 523.25].forEach(freq => {
-      this._playTone(freq, freq, 0.9, 'sawtooth', 0.18, 0);
-    });
-  },
-
-  startSiren() {
-    this.stopSiren();
-    if (!isPlayAudioAllowed() || this.muted || !state.alarmActive) return;
-    const ctx = this.ensureContext();
-    if (!ctx) return;
-
-    try {
-      const now = ctx.currentTime;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(480, now);
-      gain.gain.setValueAtTime(0.26, now);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now);
-
-      this.sirenOsc = osc;
-      this.sirenGain = gain;
-
-      let high = true;
-      const sweep = () => {
-        if (!this.sirenOsc || !this.ctx || !state.alarmActive || !isPlayAudioAllowed()) return;
-        const c = this.ensureContext();
-        if (!c) return;
-        try {
-          const t = c.currentTime;
-          const startFreq = high ? 460 : 900;
-          const endFreq = high ? 900 : 460;
-          this.sirenOsc.frequency.cancelScheduledValues(t);
-          this.sirenOsc.frequency.setValueAtTime(startFreq, t);
-          this.sirenOsc.frequency.linearRampToValueAtTime(endFreq, t + 0.35);
-          high = !high;
-        } catch (_) {}
-      };
-      sweep();
-      this.sirenInterval = setInterval(sweep, 370);
-    } catch (_) {}
-  },
-
-  stopSiren() {
-    if (this.sirenInterval) {
-      clearInterval(this.sirenInterval);
-      this.sirenInterval = null;
-    }
-    if (this.sirenOsc) {
-      try { this.sirenOsc.stop(); this.sirenOsc.disconnect(); } catch (_) {}
-      this.sirenOsc = null;
-    }
-    if (this.sirenGain) {
-      try { this.sirenGain.disconnect(); } catch (_) {}
-      this.sirenGain = null;
-    }
-  },
-
-  playFinalFanfare() {
-    const notes = [261.63, 329.63, 392.00, 523.25];
-    notes.forEach((freq, idx) => {
-      this._playTone(freq, freq, 1.05, 'triangle', 0.28, idx * 0.09);
-    });
-  }
+ ctx: null, muted: false, keepAliveOsc: null, keepAliveGain: null, sirenInterval: null, sirenOsc: null, sirenGain: null,
+ ensureContext() {
+ if (!isPlayAudioAllowed()) return null;
+ if ('audioSession' in navigator) { try { navigator.audioSession.type = 'playback'; } catch (_) {} }
+ const AudioCtx = window.AudioContext || window.webkitAudioContext; if (!AudioCtx) return null;
+ if (!this.ctx || this.ctx.state === 'closed') { try { this.ctx = new AudioCtx(); } catch (_) { return null; } }
+ if (this.ctx.state !== 'running') { try { this.ctx.resume().catch(() => {}); } catch (_) {} }
+ return this.ctx;
+ },
+ unlock() {
+ if (!isPlayAudioAllowed()) return;
+ const ctx = this.ensureContext(); if (!ctx) return;
+ try { const buf = ctx.createBuffer(1, 1, 22050); const src = ctx.createBufferSource(); src.buffer = buf; src.connect(ctx.destination); src.onended = () => { try { src.disconnect(); } catch (_) {} }; src.start(0); } catch (_) {}
+ },
+ startKeepAlive() {
+ if (!isPlayAudioAllowed() || this.muted || this.keepAliveOsc) return;
+ const ctx = this.ensureContext(); if (!ctx) return;
+ try {
+ const osc = ctx.createOscillator(); const gain = ctx.createGain();
+ osc.type = 'sine'; osc.frequency.setValueAtTime(1, ctx.currentTime);
+ gain.gain.setValueAtTime(0.00001, ctx.currentTime);
+ osc.connect(gain); gain.connect(ctx.destination); osc.start();
+ this.keepAliveOsc = osc; this.keepAliveGain = gain;
+ } catch (_) {}
+ },
+ stopKeepAlive() {
+ if (this.keepAliveOsc) { try { this.keepAliveOsc.stop(); this.keepAliveOsc.disconnect(); } catch (_) {} this.keepAliveOsc = null; }
+ if (this.keepAliveGain) { try { this.keepAliveGain.disconnect(); } catch (_) {} this.keepAliveGain = null; }
+ },
+ _playTone(freqStart, freqEnd, duration, type = 'triangle', peakGain = 0.28, delay = 0) {
+ if (!isPlayAudioAllowed() || this.muted) return;
+ const ctx = this.ensureContext(); if (!ctx) return;
+ try {
+ const startAt = ctx.currentTime + delay; const stopAt = startAt + duration;
+ const osc = ctx.createOscillator(); const gain = ctx.createGain();
+ osc.type = type; osc.frequency.setValueAtTime(freqStart, startAt);
+ if (freqEnd && freqEnd !== freqStart) osc.frequency.exponentialRampToValueAtTime(freqEnd, stopAt);
+ gain.gain.setValueAtTime(0.0001, ctx.currentTime); gain.gain.setValueAtTime(peakGain, startAt); gain.gain.exponentialRampToValueAtTime(0.0001, stopAt);
+ osc.connect(gain); gain.connect(ctx.destination);
+ osc.onended = () => { try { osc.disconnect(); } catch (_) {} try { gain.disconnect(); } catch (_) {} };
+ osc.start(startAt); osc.stop(stopAt + 0.01);
+ } catch (_) {}
+ },
+ toggleMute() {
+ this.muted = !this.muted; Haptics.tap();
+ if (this.muted) { this.stopSiren(); this.stopKeepAlive(); } else { this.unlock(); if (['DEAL', 'PHASE'].includes(state.screen)) this.startKeepAlive(); this.playCardFlip(true); }
+ render();
+ },
+ playCardFlip(faceUp) { this._playTone(faceUp ? 300 : 440, faceUp ? 580 : 200, 0.09, 'triangle', 0.28, 0); },
+ playHoldPulse(progress = 0.3, isDanger = false) { const base = isDanger ? 210 : 320; const target = base + Math.round(progress * 220); this._playTone(base, target, 0.075, 'sine', 0.2, 0); },
+ playPhaseStart() { this._playTone(440, 440, 0.32, 'triangle', 0.28, 0); this._playTone(659.25, 659.25, 0.38, 'triangle', 0.28, 0.11); },
+ playTick() { this._playTone(920, 880, 0.055, 'sine', 0.22, 0); },
+ playPhaseEnd() { [261.63, 392.00, 523.25].forEach(freq => this._playTone(freq, freq, 0.9, 'sawtooth', 0.18, 0)); },
+ startSiren() {
+ this.stopSiren(); if (!isPlayAudioAllowed() || this.muted || !state.alarmActive) return;
+ const ctx = this.ensureContext(); if (!ctx) return;
+ try {
+ const now = ctx.currentTime; const osc = ctx.createOscillator(); const gain = ctx.createGain();
+ osc.type = 'sawtooth'; osc.frequency.setValueAtTime(480, now); gain.gain.setValueAtTime(0.26, now);
+ osc.connect(gain); gain.connect(ctx.destination); osc.start(now);
+ this.sirenOsc = osc; this.sirenGain = gain;
+ let high = true;
+ const sweep = () => {
+ if (!this.sirenOsc || !this.ctx || !state.alarmActive || !isPlayAudioAllowed()) return;
+ const c = this.ensureContext(); if (!c) return;
+ try {
+ const t = c.currentTime; const startFreq = high ? 460 : 900; const endFreq = high ? 900 : 460;
+ this.sirenOsc.frequency.cancelScheduledValues(t); this.sirenOsc.frequency.setValueAtTime(startFreq, t); this.sirenOsc.frequency.linearRampToValueAtTime(endFreq, t + 0.35);
+ high = !high;
+ } catch (_) {}
+ };
+ sweep(); this.sirenInterval = setInterval(sweep, 370);
+ } catch (_) {}
+ },
+ stopSiren() {
+ if (this.sirenInterval) { clearInterval(this.sirenInterval); this.sirenInterval = null; }
+ if (this.sirenOsc) { try { this.sirenOsc.stop(); this.sirenOsc.disconnect(); } catch (_) {} this.sirenOsc = null; }
+ if (this.sirenGain) { try { this.sirenGain.disconnect(); } catch (_) {} this.sirenGain = null; }
+ },
+ playFinalFanfare() { const notes = [261.63, 329.63, 392.00, 523.25]; notes.forEach((freq, idx) => this._playTone(freq, freq, 1.05, 'triangle', 0.28, idx * 0.09)); }
 };
 
-['touchstart', 'touchend', 'pointerdown', 'click'].forEach(evt => {
-  window.addEventListener(evt, () => {
-    if (isPlayAudioAllowed()) SoundEngine.ensureContext();
-  }, { passive: true });
-});
-
-// ============================================================================
-// BŪSENA IR PRADINIS PALEIDIMAS
-// ============================================================================
-const DEFAULT_GAME = normalizeGameObject(DEFAULT_AMONG_AI_RAW);
-let BASE_GAME = loadActiveGameFromStorage() || normalizeGameObject(DEFAULT_GAME);
+['touchstart', 'touchend', 'pointerdown', 'click'].forEach(evt => window.addEventListener(evt, () => { if (isPlayAudioAllowed()) SoundEngine.ensureContext(); }, { passive: true }));
 
 const state = {
-  screen: 'PREGAME', // 'PREGAME' | 'EDITOR' | 'DEAL' | 'DEAL_DONE' | 'PHASE' | 'FINAL'
-  locked: false,
-  wakeLock: null,
-  fxStartTimer: null,
-
-  copiedShare: false,
-  copiedShareTimer: null,
-
-  // 3.A Sesijos atmintis
-  customCounts: {},
-
-  // 2. Redaktoriaus laikinas juodraštis
-  editorDraft: null,
-
-  // 3.B Dalijimo būsena
-  deck: [],
-  dealIndex: 0,
-  cardFaceUp: false,
-  currentCard: null,
-
-  // 3.C Fazių ir tikslaus laikmačio (Drift-Free) būsena
-  phaseIndex: 0,
-  firstLap: true,
-  timeLeft: 0,
-  timerRunning: false,
-  timerInterval: null,
-  timerAccumulatedMs: 0,
-  timerLastResumeTs: 0,
-  phaseEndTriggered: false,
-  alarmActive: false,
-
-  // 3.D Baigties korta
-  activeFinal: null
+ screen: 'PREGAME', locked: false, wakeLock: null, fxStartTimer: null,
+ baseGame: null,
+ customCounts: {},
+ editorDraft: null, editorInitialHash: null,
+ deck: [], dealIndex: 0, cardFaceUp: false, currentCard: null,
+ phaseIndex: 0, firstLap: true, timeLeft: 0, elapsedSec: 0, phaseStartTs: 0, timerInterval: null, phaseEndTriggered: false, alarmActive: false,
+ activeFinal: null
 };
 
-async function handleStartupRouting() {
-  const rawHash = window.location.hash.slice(1);
-  if (rawHash) {
-    let encodedPayload = null;
-    if (rawHash.startsWith('/')) {
-      encodedPayload = rawHash.slice(1).trim();
-    } else {
-      const params = new URLSearchParams(rawHash);
-      encodedPayload = params.get('g');
-    }
-
-    if (encodedPayload) {
-      try {
-        const decodedGame = await decodeGameFromDeflateParam(encodedPayload);
-        history.replaceState(null, '', window.location.pathname + window.location.search);
-        BASE_GAME = normalizeGameObject(decodedGame);
-        saveActiveGameToStorage(BASE_GAME);
-      } catch (e) {
-        console.warn("Nepavyko iškoduoti žaidimo iš URL:", e);
-      }
-    }
-  }
-
-  state.customCounts = SessionStore.loadForGame(BASE_GAME);
-  goToPregame();
+function initApp() {
+ state.baseGame = GameConfigStore.load();
+ const restored = SessionStore.loadForGame(state.baseGame);
+ state.customCounts = restored.customCounts;
+ goToPregame();
 }
 
-window.addEventListener('hashchange', () => {
-  if (window.location.hash.length > 1) {
-    handleStartupRouting();
-  }
-});
+function startEditorItemDeleteHold(type, index, e) {
+ if (state.screen !== 'EDITOR' || !state.editorDraft) return;
+ const itemId = `ed-item-${type}-${index}`; const btnId = `ed-del-${type}-${index}`;
+ HoldEngine.start(`ed-del:${type}:${index}`, {
+ isDanger: true,
+ onUpdate(p) {
+ const item = document.getElementById(itemId); const btn = document.getElementById(btnId); if (!item) return;
+ const pct = Math.round(p * 100);
+ item.style.borderColor = `rgba(239, 68, 68, ${(0.35 + 0.65 * p).toFixed(2)})`; item.style.borderLeftColor = 'var(--c-red)';
+ item.style.boxShadow = `inset 0 0 ${Math.round(55 * p)}px rgba(239, 68, 68, ${(0.65 * p).toFixed(2)}), 0 0 ${Math.round(20 * p)}px rgba(239, 68, 68, ${(0.4 * p).toFixed(2)})`;
+ item.style.background = `linear-gradient(90deg, rgba(239, 68, 68, ${(0.48 * p).toFixed(2)}) ${pct}%, rgba(239, 68, 68, ${(0.16 * p).toFixed(2)}) ${pct}%), var(--surface-2)`;
+ if (btn) { btn.style.borderColor = 'var(--c-red)'; btn.style.color = p > 0.45 ? '#fff' : 'var(--c-red)'; btn.style.background = `rgba(239, 68, 68, ${(0.9 * p).toFixed(2)})`; }
+ },
+ onCleanup() {
+ const item = document.getElementById(itemId); const btn = document.getElementById(btnId);
+ if (item) { item.style.borderColor = ''; item.style.borderLeftColor = ''; item.style.boxShadow = ''; item.style.background = ''; }
+ if (btn) { btn.style.borderColor = ''; btn.style.color = ''; btn.style.background = ''; }
+ },
+ onComplete() {
+ const item = document.getElementById(itemId); if (item) item.classList.add('deleting-item');
+ setTimeout(() => {
+ if (state.screen !== 'EDITOR' || !state.editorDraft) return;
+ if (type === 'group') {
+ const grp = state.editorDraft.groups[index];
+ if (grp) { state.editorDraft.groups.splice(index, 1); state.editorDraft.cards.forEach(c => { if (c.groupId === grp.id) c.groupId = ""; }); }
+ } else if (type === 'card') state.editorDraft.cards.splice(index, 1);
+ else if (type === 'phase') state.editorDraft.phases.splice(index, 1);
+ else if (type === 'final') state.editorDraft.finals.splice(index, 1);
+ updateDraftHashBadge(); render();
+ }, 200);
+ }
+ }, e);
+}
 
-// ============================================================================
-// UŽLAIKYMO (HOLD) VEIKSMAI PER BENDRĄ HOLDENGINE
-// ============================================================================
-function startCancelHold(e) {
-  if (e) {
-    e.stopPropagation();
-    e.preventDefault();
+function startAppResetHold(e) {
+ HoldEngine.startOverlayHold({
+  key: 'reset:app', btnId: 'editor-reset-btn', colorCss: 'var(--c-red)', isDanger: true,
+  innerHtml: `<div class="hold-target hold-symbol-badge" style="--badge-color: var(--c-red)"><i class="fa-solid fa-skull"></i></div>`,
+  onComplete() {
+   const defaultGame = GameConfigStore.reset();
+   SessionStore.clearAll();
+   state.baseGame = defaultGame;
+   state.editorDraft = normalizeGameObject(defaultGame);
+   state.editorInitialHash = defaultGame.hash;
+   state.customCounts = SessionStore.loadForGame(defaultGame).customCounts;
+   document.title = getGameTitleWithHash(defaultGame);
+   setAccent(defaultGame.color);
+   render();
   }
-  HoldEngine.startOverlayHold({
-    key: 'cancel:session',
-    btnId: 'cancel-hold-btn',
-    colorCss: 'var(--c-red)',
-    isDanger: true,
-    innerHtml: `
-      <div class="hold-target hold-symbol-badge" style="--badge-color: var(--c-red)">
-        <i class="fa-solid fa-xmark"></i>
-      </div>
-    `,
-    onComplete() {
-      SoundEngine.playCardFlip(false);
-      goToPregame();
-    }
-  });
+ });
+}
+
+function startCancelHold(e) {
+ HoldEngine.startOverlayHold({
+ key: 'cancel:session', btnId: 'cancel-hold-btn', colorCss: 'var(--c-red)', isDanger: true,
+ innerHtml: `<div class="hold-target hold-symbol-badge" style="--badge-color: var(--c-red)"><i class="fa-solid fa-xmark"></i></div>`,
+ onComplete() { SoundEngine.playCardFlip(false); goToPregame(); }
+ });
 }
 
 function startFinalHold(idx, e) {
-  if (e) {
-    e.stopPropagation();
-    e.preventDefault();
-  }
-  if (state.screen !== 'PHASE') return;
-  const finalObj = (BASE_GAME.endings || [])[idx];
-  if (!finalObj) return;
-
-  const colorCss = getColorCss(finalObj.color, 'var(--c-none)');
-  const textColorCss = (!finalObj.color || finalObj.color === 'none') ? 'var(--text)' : PALETTE[finalObj.color];
-
-  HoldEngine.startOverlayHold({
-    key: `final:${idx}`,
-    btnId: `final-token-${idx}`,
-    colorCss,
-    isDanger: false,
-    innerHtml: `
-      <div class="hold-target playing-card" style="--card-color: ${colorCss}; --card-text-color: ${textColorCss};">
-        <div style="font-size: 3rem; color: ${textColorCss}; margin-bottom: 14px;">
-          <i class="fa-solid fa-trophy"></i>
-        </div>
-        <div class="card-face-title">${escapeHtml(finalObj.title)}</div>
-        <div class="return-btn-wrap">
-          <button style="border-color: ${colorCss}; color: ${textColorCss}; pointer-events: none;">
-            <i class="fa-solid fa-check"></i>
-          </button>
-        </div>
-      </div>
-    `,
-    onComplete() {
-      stopPhaseTimer();
-      SoundEngine.stopSiren();
-      clearAppEffects();
-      state.activeFinal = finalObj;
-      state.screen = 'FINAL';
-      setAccent(finalObj.color);
-      document.getElementById('app').classList.add('fx-final');
-      Haptics.finalWin();
-      SoundEngine.playFinalFanfare();
-      render();
-      triggerBarrier();
-    }
-  });
+ if (state.screen !== 'PHASE') return;
+ const currentPhase = (state.baseGame.phases || [])[state.phaseIndex];
+ if (!currentPhase || !currentPhase.winner) return;
+ const finalObj = (state.baseGame.finals || [])[idx]; if (!finalObj) return;
+ const colorCss = getColorCss(finalObj.color, 'var(--c-none)');
+ const textColorCss = (!finalObj.color || finalObj.color === 'none') ? 'var(--text)' : PALETTE[finalObj.color];
+ HoldEngine.startOverlayHold({
+ key: `final:${idx}`, btnId: `final-token-${idx}`, colorCss, isDanger: false, noGlow: true,
+ innerHtml: `<div class="hold-target playing-card" style="--card-color: ${colorCss}; --card-text-color: ${textColorCss};"><div style="font-size: 4rem; color: ${textColorCss}; margin-bottom: 14px; text-shadow: 0 4px 16px rgba(0,0,0,0.8);"><i class="fa-solid fa-trophy"></i></div><div class="card-face-title">${escapeHtml(finalObj.title)}</div><div class="return-btn-wrap"><button class="lg" style="--accent: ${colorCss}; color: ${textColorCss}; pointer-events: none;"><i class="fa-solid fa-check"></i></button></div></div>`,
+ onComplete() {
+ stopPhaseTimer(); SoundEngine.stopSiren(); clearAppEffects(); state.activeFinal = finalObj; state.screen = 'FINAL';
+ setAccent(finalObj.color);
+ Haptics.finalWin(); SoundEngine.playFinalFanfare(); render(); triggerBarrier();
+ }
+ });
 }
 
-// ============================================================================
-// DALINIMASIS ŽAIDIMO NUORODA
-// ============================================================================
-function getBaseShareUrl() {
-  return window.location.href.split('#')[0];
-}
-
-async function copyTextToClipboard(text) {
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch (_) {}
-  }
-  try {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.focus();
-    ta.select();
-    const ok = document.execCommand('copy');
-    document.body.removeChild(ta);
-    return ok;
-  } catch (_) {
-    return false;
-  }
-}
-
-function triggerShareConfirmation() {
-  Haptics.tap();
-  state.copiedShare = true;
-  if (state.copiedShareTimer) clearTimeout(state.copiedShareTimer);
-  render();
-  state.copiedShareTimer = setTimeout(() => {
-    state.copiedShare = false;
-    if (state.screen === 'PREGAME') render();
-  }, 1300);
-}
-
-async function shareCurrentGame(e) {
-  if (e) e.stopPropagation();
-  const deflated = await encodeGameToDeflateParam(BASE_GAME);
-  const url = `${getBaseShareUrl()}#/${deflated}`;
-
-  const isWebProtocol = window.location.protocol === 'http:' || window.location.protocol === 'https:';
-  const canUseNativeShare = typeof navigator.share === 'function';
-
-  if (canUseNativeShare) {
-    try {
-      const shareData = isWebProtocol ? { url } : { text: url };
-      if (!navigator.canShare || navigator.canShare(shareData)) {
-        await navigator.share(shareData);
-        triggerShareConfirmation();
-        return;
-      }
-    } catch (err) {
-      if (err && err.name === 'AbortError') return;
-    }
-  }
-
-  await copyTextToClipboard(url);
-  triggerShareConfirmation();
-}
-
-// ============================================================================
-// PAGALBINĖS FUNKCIJOS IR APSAUGOS BARJERAS
-// ============================================================================
-function getCustomDeckSize() {
-  return (BASE_GAME.roles || []).reduce((sum, r) => sum + (state.customCounts[r.id] ?? r.count), 0);
-}
-
-function setAccent(colorKey) {
-  const c = (!colorKey || colorKey === 'none') ? PALETTE.none : (PALETTE[colorKey] || PALETTE.blue);
-  document.documentElement.style.setProperty('--accent', c);
-}
-
+function getCustomDeckSize() { return (state.baseGame.cards || []).reduce((sum, c) => sum + (state.customCounts[c.id] ?? 0), 0); }
+function setAccent(colorKey) { const c = (!colorKey || colorKey === 'none') ? PALETTE.none : (PALETTE[colorKey] || PALETTE.blue); document.documentElement.style.setProperty('--accent', c); }
 function triggerBarrier() {
-  state.locked = true;
-  const app = document.getElementById('app');
-  const bar = document.getElementById('lock-bar');
-  app.classList.add('locked');
-  bar.classList.remove('active');
-  void bar.offsetWidth;
-  bar.classList.add('active');
-
-  setTimeout(() => {
-    state.locked = false;
-    app.classList.remove('locked');
-  }, 600);
+ state.locked = true; const app = document.getElementById('app'); const bar = document.getElementById('lock-bar');
+ app.classList.add('locked'); bar.classList.remove('active'); void bar.offsetWidth; bar.classList.add('active');
+ setTimeout(() => { state.locked = false; app.classList.remove('locked'); }, 600);
 }
-
 async function requestWakeLock() {
-  if ('wakeLock' in navigator && !state.wakeLock) {
-    try {
-      state.wakeLock = await navigator.wakeLock.request('screen');
-      state.wakeLock.addEventListener('release', () => { state.wakeLock = null; });
-    } catch (_) {}
-  }
+ if ('wakeLock' in navigator && !state.wakeLock) { try { state.wakeLock = await navigator.wakeLock.request('screen'); state.wakeLock.addEventListener('release', () => { state.wakeLock = null; }); } catch (_) {} }
 }
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') {
-    if (isPlayAudioAllowed()) SoundEngine.ensureContext();
-    if (!['PREGAME', 'EDITOR'].includes(state.screen)) {
-      requestWakeLock();
-    }
-  }
-});
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { if (isPlayAudioAllowed()) SoundEngine.ensureContext(); if (!['PREGAME', 'EDITOR'].includes(state.screen)) requestWakeLock(); } });
+function shuffleArray(arr) { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
-function shuffleArray(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-// ============================================================================
-// 3.A PRIEŠŽAIDIMINIS LANGAS
-// ============================================================================
 function goToPregame() {
-  HoldEngine.reset();
-  stopPhaseTimer();
-  SoundEngine.stopSiren();
-  SoundEngine.stopKeepAlive();
-  state.alarmActive = false;
-  state.screen = 'PREGAME';
-  clearAppEffects();
-  setAccent(BASE_GAME.color);
-  render();
+ HoldEngine.reset(); stopPhaseTimer(); SoundEngine.stopSiren(); SoundEngine.stopKeepAlive();
+ state.alarmActive = false; state.screen = 'PREGAME'; document.title = getGameTitleWithHash(state.baseGame);
+ clearAppEffects(); setAccent(state.baseGame.color); render();
+}
+function adjustCustomCount(cardId, delta) {
+ Haptics.tap(); SoundEngine.playCardFlip(true);
+ const current = state.customCounts[cardId] ?? 0; state.customCounts[cardId] = Math.max(0, current + delta);
+ SessionStore.saveForGame(state.baseGame.hash, state.customCounts); render();
 }
 
-function adjustCustomCount(roleId, delta) {
-  Haptics.tap();
-  SoundEngine.playCardFlip(true);
-  const current = state.customCounts[roleId] ?? 0;
-  state.customCounts[roleId] = Math.max(0, current + delta);
-  SessionStore.saveForGame(BASE_GAME.hash, state.customCounts);
-  render();
-}
-
-// ============================================================================
-// 2. ŽAIDIMO NUSTATYMŲ FORMA (EDITOR)
-// ============================================================================
 function openEditorFromPregame() {
-  Haptics.tap();
-  state.editorDraft = normalizeGameObject(BASE_GAME);
-  state.screen = 'EDITOR';
-  setAccent(state.editorDraft.color);
-  render();
+ Haptics.tap();
+ state.editorDraft = normalizeGameObject(state.baseGame);
+ state.editorInitialHash = state.editorDraft.hash;
+ state.screen = 'EDITOR';
+ setAccent(state.editorDraft.color);
+ render();
 }
-
-function resetGameToDefault() {
-  Haptics.tap();
-  SessionStore.removeForGame(BASE_GAME.hash);
-  SessionStore.removeForGame(DEFAULT_GAME.hash);
-  clearActiveGameStorage();
-  state.editorDraft = normalizeGameObject(DEFAULT_GAME);
-  BASE_GAME = normalizeGameObject(DEFAULT_GAME);
-  state.customCounts = SessionStore.loadForGame(BASE_GAME);
-  setAccent(state.editorDraft.color);
-  render();
+function addGroupInEditor(e) { if (e) e.stopPropagation(); if (!state.editorDraft) return; Haptics.tap(); state.editorDraft.groups.push({ id: uid('g'), title: 'Nauja grupė', color: 'blue' }); updateDraftHashBadge(); render(); }
+function addCardInEditor(e) {
+ if (e) e.stopPropagation(); if (!state.editorDraft) return; Haptics.tap();
+ const cards = state.editorDraft.cards; let inheritedGroupId = '';
+ if (cards.length > 0) { const prevGroupId = cards[cards.length - 1].groupId || ''; if (prevGroupId && state.editorDraft.groups.some(g => g.id === prevGroupId)) inheritedGroupId = prevGroupId; }
+ cards.push({ id: uid('c'), title: 'Nauja rolė', groupId: inheritedGroupId }); updateDraftHashBadge(); render();
 }
-
-function addRoleGroupInEditor(e) {
-  if (e) e.stopPropagation();
-  if (!state.editorDraft) return;
-  Haptics.tap();
-  state.editorDraft.roleGroups.push({ id: uid('g'), title: 'Nauja grupė', color: 'blue' });
-  render();
+function cycleCardGroupInEditor(cardIndex) {
+ if (!state.editorDraft) return; const card = state.editorDraft.cards[cardIndex]; if (!card) return; Haptics.tap();
+ const groups = state.editorDraft.groups || []; if (groups.length === 0) return;
+ const groupIds = ['', ...groups.map(g => g.id)]; const currentIdx = groupIds.indexOf(card.groupId || ''); card.groupId = groupIds[(currentIdx + 1) % groupIds.length]; updateDraftHashBadge(); render();
 }
-
-function addRoleInEditor(e) {
-  if (e) e.stopPropagation();
-  if (!state.editorDraft) return;
-  Haptics.tap();
-
-  const roles = state.editorDraft.roles;
-  let inheritedGroupId = '';
-  if (roles.length > 0) {
-    const prevGroupId = roles[roles.length - 1].groupId || '';
-    if (prevGroupId && state.editorDraft.roleGroups.some(g => g.id === prevGroupId)) {
-      inheritedGroupId = prevGroupId;
-    }
-  }
-
-  roles.push({
-    id: uid('c'),
-    title: 'Nauja rolė',
-    groupId: inheritedGroupId,
-    color: 'none',
-    count: 1
-  });
-  render();
+function addPhaseInEditor(e) { if (e) e.stopPropagation(); if (!state.editorDraft) return; Haptics.tap(); state.editorDraft.phases.push({ id: uid('p'), title: 'Nauja fazė', color: 'amber', loop: true, duration: 0, fxAlarm: false, winner: false }); updateDraftHashBadge(); render(); }
+function addPhaseDurationInEditor(phaseIndex, delta, e) {
+ if (e) e.stopPropagation();
+ if (!state.editorDraft || !state.editorDraft.phases[phaseIndex]) return;
+ Haptics.tap();
+ state.editorDraft.phases[phaseIndex].duration = Math.max(0, (Number(state.editorDraft.phases[phaseIndex].duration) || 0) + delta);
+ updateDraftHashBadge(); render();
 }
-
-function addPhaseInEditor(e) {
-  if (e) e.stopPropagation();
-  if (!state.editorDraft) return;
-  Haptics.tap();
-  state.editorDraft.phases.push({
-    id: uid('p'),
-    title: 'Nauja fazė',
-    color: 'amber',
-    loop: true,
-    duration: 60,
-    fxAlarm: false
-  });
-  render();
+function addFinalInEditor(e) { if (e) e.stopPropagation(); if (!state.editorDraft) return; Haptics.tap(); state.editorDraft.finals.push({ id: uid('f'), title: 'Nauja baigtis', color: 'emerald' }); updateDraftHashBadge(); render(); }
+function exitEditorToPregame() {
+ Haptics.tap();
+ goToPregame();
 }
-
-function addEndingInEditor(e) {
-  if (e) e.stopPropagation();
-  if (!state.editorDraft) return;
-  Haptics.tap();
-  state.editorDraft.endings.push({
-    id: uid('f'),
-    title: 'Nauja baigtis',
-    color: 'emerald'
-  });
-  render();
+function isEditorDirty() { return state.editorDraft && state.editorDraft.hash !== state.editorInitialHash; }
+function updateDraftHashBadge() {
+ if (!state.editorDraft) return; state.editorDraft.hash = computeCanonicalHash(state.editorDraft);
+ const badge = document.getElementById('draft-hash-badge'); if (badge) badge.textContent = `#${state.editorDraft.hash}`;
+ const saveBtn = document.getElementById('editor-save-btn'); if (saveBtn) saveBtn.classList.toggle('btn-confirm', isEditorDirty());
 }
-
-function exitEditorWithoutSaving() {
-  Haptics.tap();
-  goToPregame();
-}
-
-function cycleItemColor(currentKey) {
-  const idx = ITEM_COLOR_KEYS.indexOf(currentKey || 'none');
-  return ITEM_COLOR_KEYS[(idx + 1) % ITEM_COLOR_KEYS.length];
-}
-
-function cycleRoleColorInEditor(roleIndex) {
-  if (!state.editorDraft) return;
-  const role = state.editorDraft.roles[roleIndex];
-  if (!role) return;
-  Haptics.tap();
-  const grp = getRoleGroupById(state.editorDraft, role.groupId);
-  const grpColor = (grp && grp.color && grp.color !== 'none') ? grp.color : null;
-
-  let next = cycleItemColor(role.color);
-  if (grpColor && next === grpColor) {
-    next = cycleItemColor(next);
-  }
-  role.color = next;
-  render();
-}
-
-function updateGroupTitleInSelects(groupId, newTitle) {
-  const selects = document.querySelectorAll('.group-select');
-  selects.forEach(sel => {
-    const opt = sel.querySelector(`option[value="${groupId}"]`);
-    if (opt) opt.textContent = newTitle || 'Grupė';
-  });
-}
-
-function deleteRoleGroupInEditor(groupIndex) {
-  if (!state.editorDraft) return;
-  const grp = state.editorDraft.roleGroups[groupIndex];
-  if (!grp) return;
-  Haptics.tap();
-  state.editorDraft.roleGroups.splice(groupIndex, 1);
-  state.editorDraft.roles.forEach(r => {
-    if (r.groupId === grp.id) {
-      r.groupId = "";
-    }
-  });
-  render();
-}
-
-function moveItem(arr, index, dir) {
-  const target = index + dir;
-  if (target < 0 || target >= arr.length) return;
-  Haptics.tap();
-  const temp = arr[index];
-  arr[index] = arr[target];
-  arr[target] = temp;
-  render();
-}
-
+function cycleItemColor(currentKey) { const idx = ITEM_COLOR_KEYS.indexOf(currentKey || 'none'); return ITEM_COLOR_KEYS[(idx + 1) % ITEM_COLOR_KEYS.length]; }
 function saveEditorChanges() {
-  if (!state.editorDraft) return;
-  Haptics.tap();
-  if (!state.editorDraft.title || !state.editorDraft.title.trim()) {
-    state.editorDraft.title = "AmongAI";
-  }
-  const prevHash = BASE_GAME.hash;
-  BASE_GAME = normalizeGameObject(state.editorDraft);
-  if (prevHash !== BASE_GAME.hash) {
-    SessionStore.removeForGame(prevHash);
-  }
-  saveActiveGameToStorage(BASE_GAME);
-  state.customCounts = SessionStore.loadForGame(BASE_GAME);
-  goToPregame();
+ if (!state.editorDraft) return; Haptics.tap();
+ if (!state.editorDraft.title || !state.editorDraft.title.trim()) state.editorDraft.title = "Amongai";
+ const savedGame = GameConfigStore.save(state.editorDraft);
+ const nextCounts = {};
+ (savedGame.cards || []).forEach(c => { nextCounts[c.id] = state.customCounts[c.id] ?? 0; });
+ state.customCounts = nextCounts;
+ SessionStore.saveForGame(savedGame.hash, state.customCounts);
+ state.baseGame = savedGame;
+ state.editorDraft = normalizeGameObject(savedGame);
+ state.editorInitialHash = savedGame.hash;
+ document.title = getGameTitleWithHash(savedGame);
+ setAccent(savedGame.color);
+ render();
 }
 
-// ============================================================================
-// 3.B KORTŲ DALIJIMO PROCESAS
-// ============================================================================
 function buildSessionDeck() {
-  const raw = [];
-  (BASE_GAME.roles || []).forEach(r => {
-    const qty = state.customCounts[r.id] ?? r.count;
-    for (let i = 0; i < qty; i++) {
-      raw.push({ ...r });
-    }
-  });
-  return shuffleArray(raw);
+ const raw = [];
+ (state.baseGame.cards || []).forEach(c => { const qty = state.customCounts[c.id] ?? 0; for (let i = 0; i < qty; i++) raw.push({ ...c }); });
+ return shuffleArray(raw);
 }
-
 function startDealing() {
-  HoldEngine.reset();
-  Haptics.tap();
-  state.screen = 'DEAL';
-  SoundEngine.unlock();
-  SoundEngine.startKeepAlive();
-  requestWakeLock();
-  clearAppEffects();
-  setAccent(BASE_GAME.color);
-
-  SessionStore.saveForGame(BASE_GAME.hash, state.customCounts);
-
-  state.deck = buildSessionDeck();
-  state.dealIndex = 0;
-  state.cardFaceUp = false;
-  state.currentCard = null;
-
-  if (state.deck.length === 0) state.screen = 'DEAL_DONE';
-  render();
+ HoldEngine.reset(); Haptics.tap(); state.screen = 'DEAL'; SoundEngine.unlock(); SoundEngine.startKeepAlive(); requestWakeLock(); clearAppEffects(); setAccent(state.baseGame.color);
+ SessionStore.saveForGame(state.baseGame.hash, state.customCounts);
+ state.deck = buildSessionDeck(); state.dealIndex = 0; state.cardFaceUp = false; state.currentCard = null;
+ if (state.deck.length === 0) state.screen = 'DEAL_DONE';
+ render();
 }
-
 function handleCardTap() {
-  if (state.locked) return;
-
-  if (!state.cardFaceUp) {
-    state.cardFaceUp = true;
-    state.currentCard = state.deck[state.dealIndex];
-    const resolvedColor = resolveRoleColorKey(BASE_GAME, state.currentCard);
-    setAccent(resolvedColor);
-    Haptics.cardFlip();
-    SoundEngine.playCardFlip(true);
-    render();
-  } else {
-    Haptics.cardFlip();
-    SoundEngine.playCardFlip(false);
-    state.dealIndex++;
-    state.cardFaceUp = false;
-    state.currentCard = null;
-    setAccent(BASE_GAME.color);
-
-    if (state.dealIndex >= state.deck.length) state.screen = 'DEAL_DONE';
-    render();
-    triggerBarrier();
-  }
+ if (state.locked) return;
+ if (!state.cardFaceUp) {
+ state.cardFaceUp = true; state.currentCard = state.deck[state.dealIndex];
+ const resolvedColor = resolveCardColorKey(state.baseGame, state.currentCard); setAccent(resolvedColor);
+ Haptics.cardFlip(); SoundEngine.playCardFlip(true); render();
+ } else {
+ Haptics.cardFlip(); SoundEngine.playCardFlip(false); state.dealIndex++; state.cardFaceUp = false; state.currentCard = null; setAccent(state.baseGame.color);
+ if (state.dealIndex >= state.deck.length) state.screen = 'DEAL_DONE';
+ render(); triggerBarrier();
+ }
 }
 
-// ============================================================================
-// 3.C FAZIŲ VALDYMAS IR TIKSLUS LAIKMATIS BE VĖLAVIMO (DRIFT-FREE TIMER)
-// ============================================================================
-function startPhases() {
-  HoldEngine.reset();
-  state.screen = 'PHASE';
-  SoundEngine.unlock();
-  SoundEngine.startKeepAlive();
-  requestWakeLock();
-
-  SessionStore.saveForGame(BASE_GAME.hash, state.customCounts);
-
-  state.phaseIndex = 0;
-  state.firstLap = true;
-  state.alarmActive = false;
-  loadCurrentPhase();
-}
-
+function startPhases() { HoldEngine.reset(); state.screen = 'PHASE'; SoundEngine.unlock(); SoundEngine.startKeepAlive(); requestWakeLock(); SessionStore.saveForGame(state.baseGame.hash, state.customCounts); state.phaseIndex = 0; state.firstLap = true; state.alarmActive = false; loadCurrentPhase(); }
 function triggerPhaseStartEffect() {
-  const app = document.getElementById('app');
-  if (state.fxStartTimer) {
-    clearTimeout(state.fxStartTimer);
-    state.fxStartTimer = null;
-  }
-  app.classList.remove('fx-start');
-  void app.offsetWidth;
-  app.classList.add('fx-start');
-  state.fxStartTimer = setTimeout(() => {
-    app.classList.remove('fx-start');
-    state.fxStartTimer = null;
-  }, 920);
+ const app = document.getElementById('app'); if (state.fxStartTimer) { clearTimeout(state.fxStartTimer); state.fxStartTimer = null; }
+ app.classList.remove('fx-start'); void app.offsetWidth; app.classList.add('fx-start');
+ state.fxStartTimer = setTimeout(() => { app.classList.remove('fx-start'); state.fxStartTimer = null; }, 920);
 }
-
 function loadCurrentPhase() {
-  HoldEngine.reset();
-  stopPhaseTimer();
-  SoundEngine.stopSiren();
-  SoundEngine.startKeepAlive();
-  clearAppEffects();
-  state.alarmActive = false;
-
-  const hasPhases = BASE_GAME.phases && BASE_GAME.phases.length > 0;
-  if (!hasPhases) {
-    setAccent(BASE_GAME.color);
-    state.timeLeft = 0;
-    state.timerAccumulatedMs = 0;
-    state.timerLastResumeTs = performance.now();
-    state.phaseEndTriggered = false;
-    state.timerRunning = true;
-    startPhaseTimer(0);
-    render();
-    return;
-  }
-
-  const phase = BASE_GAME.phases[state.phaseIndex];
-  setAccent(phase.color);
-
-  triggerPhaseStartEffect();
-  Haptics.phaseStart();
-  SoundEngine.playPhaseStart();
-
-  const durationSec = (phase.duration && phase.duration > 0) ? Number(phase.duration) : 0;
-  state.timeLeft = durationSec;
-  state.timerAccumulatedMs = 0;
-  state.timerLastResumeTs = performance.now();
-  state.phaseEndTriggered = false;
-  state.timerRunning = true;
-  startPhaseTimer(durationSec);
-  render();
+ HoldEngine.reset(); stopPhaseTimer(); SoundEngine.stopSiren(); SoundEngine.startKeepAlive(); clearAppEffects(); state.alarmActive = false;
+ const hasPhases = state.baseGame.phases && state.baseGame.phases.length > 0;
+ if (!hasPhases) {
+ setAccent(state.baseGame.color); state.timeLeft = 0; state.elapsedSec = 0; state.phaseStartTs = performance.now(); state.phaseEndTriggered = false;
+ startPhaseTimer(0); render(); return;
+ }
+ const phase = state.baseGame.phases[state.phaseIndex]; setAccent(phase.color);
+ triggerPhaseStartEffect(); Haptics.phaseStart(); SoundEngine.playPhaseStart();
+ const durationSec = (phase.duration && phase.duration > 0) ? Number(phase.duration) : 0;
+ state.timeLeft = durationSec; state.elapsedSec = 0; state.phaseStartTs = performance.now(); state.phaseEndTriggered = false;
+ startPhaseTimer(durationSec); render();
 }
-
 function startPhaseTimer(durationSec) {
-  stopPhaseTimer();
-  const isCountdown = durationSec > 0;
-
-  state.timerInterval = setInterval(() => {
-    if (!state.timerRunning) return;
-
-    const now = performance.now();
-    const totalElapsedMs = state.timerAccumulatedMs + Math.max(0, now - state.timerLastResumeTs);
-    const elapsedSec = Math.floor(totalElapsedMs / 1000);
-
-    if (isCountdown) {
-      const nextLeft = Math.max(0, durationSec - elapsedSec);
-      if (nextLeft !== state.timeLeft) {
-        state.timeLeft = nextLeft;
-        if (state.timeLeft > 0 && state.timeLeft <= 5) {
-          Haptics.tick();
-          SoundEngine.playTick();
-        }
-        if (state.timeLeft === 0 && !state.phaseEndTriggered) {
-          state.phaseEndTriggered = true;
-          const currentPhase = (BASE_GAME.phases || [])[state.phaseIndex];
-          // Fazės, turinčios loop nustatymą, pasibaigus laikui keičiasi automatiškai
-          if (currentPhase && currentPhase.loop && getNextPhaseIndex() !== -1) {
-            nextPhase();
-            return;
-          }
-          document.getElementById('app').classList.add('fx-end');
-          Haptics.phaseEnd();
-          SoundEngine.playPhaseEnd();
-        }
-        renderTimerOnly();
-      }
-    } else {
-      if (elapsedSec !== state.timeLeft) {
-        state.timeLeft = elapsedSec;
-        renderTimerOnly();
-      }
-    }
-  }, 200);
+ stopPhaseTimer();
+ const hasLimit = durationSec > 0;
+ state.timerInterval = setInterval(() => {
+ const elapsedSec = Math.floor(Math.max(0, performance.now() - state.phaseStartTs) / 1000);
+ let changed = false;
+ if (elapsedSec !== state.elapsedSec) {
+ state.elapsedSec = elapsedSec;
+ changed = true;
+ }
+ if (hasLimit) {
+ const nextLeft = Math.max(0, durationSec - elapsedSec);
+ if (nextLeft !== state.timeLeft) {
+ state.timeLeft = nextLeft;
+ changed = true;
+ if (state.timeLeft > 0 && state.timeLeft <= 5) { Haptics.tick(); SoundEngine.playTick(); }
+ if (state.timeLeft === 0 && !state.phaseEndTriggered) {
+ state.phaseEndTriggered = true;
+ document.getElementById('app').classList.add('fx-end');
+ Haptics.phaseEnd(); SoundEngine.playPhaseEnd();
+ }
+ }
+ }
+ if (changed) renderTimerOnly();
+ }, 200);
 }
-
-function stopPhaseTimer() {
-  if (state.timerInterval) {
-    clearInterval(state.timerInterval);
-    state.timerInterval = null;
-  }
-}
-
-function togglePausePhase() {
-  Haptics.tap();
-  SoundEngine.ensureContext();
-  if (state.timerRunning) {
-    state.timerAccumulatedMs += Math.max(0, performance.now() - state.timerLastResumeTs);
-    state.timerRunning = false;
-  } else {
-    state.timerLastResumeTs = performance.now();
-    state.timerRunning = true;
-  }
-  render();
-}
-
+function stopPhaseTimer() { if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; } }
 function triggerAlarm() {
-  SoundEngine.unlock();
-  state.alarmActive = !state.alarmActive;
-  const app = document.getElementById('app');
-  app.classList.toggle('fx-alarm', state.alarmActive);
-  if (state.alarmActive) {
-    Haptics.alarm();
-    SoundEngine.startSiren();
-  } else {
-    Haptics.tap();
-    SoundEngine.stopSiren();
-  }
-  render();
+ SoundEngine.unlock(); state.alarmActive = !state.alarmActive; const app = document.getElementById('app'); app.classList.toggle('fx-alarm', state.alarmActive);
+ if (state.alarmActive) { Haptics.alarm(); SoundEngine.startSiren(); } else { Haptics.tap(); SoundEngine.stopSiren(); }
+ render();
 }
-
 function getNextPhaseIndex() {
-  const phases = BASE_GAME.phases || [];
-  if (phases.length === 0) return -1;
+ const phases = state.baseGame.phases || []; if (phases.length === 0) return -1;
+ if (state.firstLap) { if (state.phaseIndex + 1 < phases.length) return state.phaseIndex + 1; return phases.findIndex(p => p.loop); }
+ else { for (let i = state.phaseIndex + 1; i < phases.length; i++) { if (phases[i].loop) return i; } for (let i = 0; i <= state.phaseIndex; i++) { if (phases[i].loop) return i; } return -1; }
+}
+function nextPhase() { SoundEngine.unlock(); const phases = state.baseGame.phases || []; if (state.firstLap && state.phaseIndex + 1 >= phases.length) state.firstLap = false; const nextIdx = getNextPhaseIndex(); if (nextIdx !== -1) { state.phaseIndex = nextIdx; loadCurrentPhase(); } }
+function closeFinalCard() { if (state.locked) return; Haptics.tap(); SoundEngine.playCardFlip(false); goToPregame(); }
+function clearAppEffects() { if (state.fxStartTimer) { clearTimeout(state.fxStartTimer); state.fxStartTimer = null; } const app = document.getElementById('app'); app.classList.remove('fx-start', 'fx-end', 'fx-alarm'); }
+function formatTime(sec) { const m = String(Math.floor(sec / 60)).padStart(2, '0'); const s = String(sec % 60).padStart(2, '0'); return `${m}:${s}`; }
+function escapeHtml(str) { return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
-  if (state.firstLap) {
-    if (state.phaseIndex + 1 < phases.length) return state.phaseIndex + 1;
-    return phases.findIndex(p => p.loop);
-  } else {
-    for (let i = state.phaseIndex + 1; i < phases.length; i++) {
-      if (phases[i].loop) return i;
-    }
-    for (let i = 0; i <= state.phaseIndex; i++) {
-      if (phases[i].loop) return i;
-    }
-    return -1;
-  }
+function getPhaseTimerView() {
+ const phase = (state.baseGame.phases || [])[state.phaseIndex];
+ const durationSec = (phase && phase.duration > 0) ? Number(phase.duration) : 0;
+ const hasLimit = durationSec > 0;
+ if (!hasLimit) {
+ return {
+  text: formatTime(state.elapsedSec),
+  isExpired: false,
+  isBlinking: false,
+  isOverdue: false,
+  nextIcon: 'fa-check'
+ };
+ }
+ if (state.elapsedSec < durationSec) {
+ return {
+  text: formatTime(state.timeLeft),
+  isExpired: false,
+  isBlinking: false,
+  isOverdue: false,
+  nextIcon: 'fa-forward'
+ };
+ }
+ const overSec = state.elapsedSec - durationSec;
+ if (overSec < ZERO_BLINK_SEC) {
+ return {
+  text: '00:00',
+  isExpired: true,
+  isBlinking: true,
+  isOverdue: false,
+  nextIcon: 'fa-check'
+ };
+ }
+ return {
+ text: formatTime(overSec - ZERO_BLINK_SEC + 1),
+ isExpired: true,
+ isBlinking: false,
+ isOverdue: true,
+ nextIcon: 'fa-check'
+ };
 }
 
-function nextPhase() {
-  SoundEngine.unlock();
-  const phases = BASE_GAME.phases || [];
-  if (state.firstLap && state.phaseIndex + 1 >= phases.length) {
-    state.firstLap = false;
-  }
-  const nextIdx = getNextPhaseIndex();
-  if (nextIdx !== -1) {
-    state.phaseIndex = nextIdx;
-    loadCurrentPhase();
-  }
-}
-
-function closeFinalCard() {
-  if (state.locked) return;
-  Haptics.tap();
-  SoundEngine.playCardFlip(false);
-  goToPregame();
-}
-
-function clearAppEffects() {
-  if (state.fxStartTimer) {
-    clearTimeout(state.fxStartTimer);
-    state.fxStartTimer = null;
-  }
-  const app = document.getElementById('app');
-  app.classList.remove('fx-start', 'fx-end', 'fx-alarm', 'fx-final');
-}
-
-function formatTime(sec) {
-  const m = String(Math.floor(sec / 60)).padStart(2, '0');
-  const s = String(sec % 60).padStart(2, '0');
-  return `${m}:${s}`;
-}
-
-function escapeHtml(str) {
-  return String(str ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-// ============================================================================
-// ATVAIZDAVIMAS (RENDER)
-// ============================================================================
 function renderTimerOnly() {
-  const el = document.getElementById('timer-val');
-  const nextBtn = document.getElementById('next-phase-btn');
-  if (!el) { render(); return; }
+ const el = document.getElementById('timer-val');
+ const nextBtn = document.getElementById('next-phase-btn');
+ if (!el) { render(); return; }
+ const tv = getPhaseTimerView();
+ el.textContent = tv.text;
+ el.classList.toggle('timer-blink', tv.isBlinking);
+ el.classList.toggle('timer-overdue', tv.isOverdue);
+ if (nextBtn) {
+ nextBtn.classList.toggle('pulse-btn', tv.isExpired);
+ const iconEl = nextBtn.querySelector('i');
+ if (iconEl) iconEl.className = `fa-solid ${tv.nextIcon}`;
+ }
+}
 
-  const phase = (BASE_GAME.phases || [])[state.phaseIndex];
-  const isZero = phase && phase.duration > 0 && state.timeLeft === 0;
-  el.textContent = formatTime(state.timeLeft);
-  el.classList.toggle('timer-blink', Boolean(isZero));
-  if (nextBtn) {
-    nextBtn.classList.toggle('pulse-btn', Boolean(isZero));
-  }
+// === RENDER SUBSYSTEM ===
+function renderPregame(app, savedScroll) {
+ const game = state.baseGame; let deckCount = 0; let modeControlsHtml = '';
+ const hasCards = game.cards && game.cards.length > 0;
+ if (hasCards) {
+ deckCount = getCustomDeckSize();
+ const rows = game.cards.map(c => { const resolvedColor = resolveCardColorKey(game, c); const grp = getGroupById(game, c.groupId); return `<div class="card-row" style="--row-color: ${getColorCss(resolvedColor, 'var(--border)')}"><div class="card-row-info"><span class="card-row-title">${escapeHtml(c.title)}</span>${grp ? `<span class="card-row-group">${escapeHtml(grp.title)}</span>` : ''}</div><div class="stepper"><button class="sm" onclick="adjustCustomCount('${c.id}', -1)"><i class="fa-solid fa-minus"></i></button><span>${state.customCounts[c.id] ?? 0}</span><button class="sm" onclick="adjustCustomCount('${c.id}', 1)"><i class="fa-solid fa-plus"></i></button></div></div>`; }).join('');
+ modeControlsHtml = `<div class="counter-pill"><i class="fa-solid fa-users"></i> ${deckCount}</div><div class="card-list">${rows}</div>`;
+ }
+ const showBottomActions = hasCards && deckCount > 0;
+ app.innerHTML = `<div class="edge-fade-top"></div>${showBottomActions ? `<div class="edge-fade-bottom"></div>` : ''}<div class="top-bar center-bar"><div class="top-actions"><button class="sm" onclick="openEditorFromPregame()"><i class="fa-solid fa-pen-to-square"></i></button><button class="sm" onclick="SoundEngine.toggleMute()"><i class="fa-solid ${SoundEngine.muted ? 'fa-volume-xmark' : 'fa-volume-high'}"></i></button></div></div><div class="screen-scroll pregame-scroll"><div class="game-header"><div class="game-title">${escapeHtml(game.title)}</div></div>${modeControlsHtml}</div><div class="bottom-bar"><div class="action-row">${showBottomActions ? `<button class="lg" onclick="startDealing()"><i class="fa-solid fa-masks-theater"></i></button>` : ''}</div></div>`;
+ const el = app.querySelector('.pregame-scroll'); if (el && savedScroll > 0) el.scrollTop = savedScroll;
+}
+
+function renderEditor(app, savedScroll) {
+ const d = state.editorDraft; const dirty = isEditorDirty();
+ const paletteHtml = COLOR_KEYS.map(ck => `<div class="color-swatch ${d.color === ck ? 'selected' : ''}" style="background: ${PALETTE[ck]}; color: ${PALETTE[ck]}" onpointerdown="event.preventDefault()" onclick="Haptics.tap(); state.editorDraft.color='${ck}'; setAccent('${ck}'); updateDraftHashBadge(); render();"></div>`).join('');
+ const groupsHtml = d.groups.map((grp, i) => { const isNone = !grp.color || grp.color === 'none'; const isWhite = grp.color === 'white'; const itemColorCss = getColorCss(grp.color, 'var(--border)'); return `<div id="ed-item-group-${i}" class="editor-item" style="--item-color: ${itemColorCss}"><div class="editor-item-main"><div class="color-cycle-btn ${isNone ? 'is-none' : ''} ${isWhite ? 'is-white' : ''}" style="background: ${isNone ? 'transparent' : PALETTE[grp.color]}" onpointerdown="event.preventDefault()" onclick="Haptics.tap(); state.editorDraft.groups[${i}].color = cycleItemColor('${grp.color}'); updateDraftHashBadge(); render();">${isNone ? '<i class="fa-solid fa-ban"></i>' : ''}</div><input class="text-input" value="${escapeHtml(grp.title)}" placeholder="Grupės pavadinimas" oninput="state.editorDraft.groups[${i}].title = this.value; updateDraftHashBadge();" /><button id="ed-del-group-${i}" class="icon-btn del hold-btn" oncontextmenu="return false;" onpointerdown="startEditorItemDeleteHold('group', ${i}, event)"><i class="fa-solid fa-trash"></i></button></div></div>`; }).join('');
+ const cardsHtml = d.cards.map((c, i) => { 
+      const grp = getGroupById(d, c.groupId); 
+      const resolvedColorKey = resolveCardColorKey(d, c); 
+      const isNone = resolvedColorKey === 'none'; 
+      const isWhite = resolvedColorKey === 'white'; 
+      const itemColorCss = getColorCss(resolvedColorKey, 'var(--border)'); 
+      const groupTextColor = isNone ? 'var(--muted)' : PALETTE[resolvedColorKey];
+ 
+      return `<div id="ed-item-card-${i}" class="editor-item" style="--item-color: ${itemColorCss}">
+          <div class="editor-item-main">
+              <div class="color-cycle-btn ${isNone ? 'is-none' : ''} ${isWhite ? 'is-white' : ''}" title="${grp ? escapeHtml(grp.title) : 'Be grupės'}" style="background: ${isNone ? 'transparent' : PALETTE[resolvedColorKey]}" onpointerdown="event.preventDefault()" onclick="cycleCardGroupInEditor(${i})"><i class="fa-solid fa-flag"></i></div>
+              <div style="display: flex; flex-direction: column; flex: 1; gap: 4px; min-width: 0;">
+                  <input class="text-input" value="${escapeHtml(c.title)}" placeholder="Rolės pavadinimas" oninput="state.editorDraft.cards[${i}].title = this.value; updateDraftHashBadge();" />
+                  <span style="font-size: 0.78rem; font-weight: 600; color: ${groupTextColor}; padding-left: 12px;">${grp ? escapeHtml(grp.title) : 'Be grupės'}</span>
+              </div>
+              <button id="ed-del-card-${i}" class="icon-btn del hold-btn" oncontextmenu="return false;" onpointerdown="startEditorItemDeleteHold('card', ${i}, event)"><i class="fa-solid fa-trash"></i></button>
+          </div>
+      </div>`; 
+  }).join('');
+ const phasesHtml = d.phases.map((p, i) => { const isNone = !p.color || p.color === 'none'; const isWhite = p.color === 'white'; const itemColorCss = getColorCss(p.color, 'var(--border)'); return `<div id="ed-item-phase-${i}" class="editor-item" style="--item-color: ${itemColorCss}"><div class="editor-item-main"><div class="color-cycle-btn ${isNone ? 'is-none' : ''} ${isWhite ? 'is-white' : ''}" style="background: ${isNone ? 'transparent' : PALETTE[p.color]}" onpointerdown="event.preventDefault()" onclick="Haptics.tap(); state.editorDraft.phases[${i}].color = cycleItemColor('${p.color}'); updateDraftHashBadge(); render();">${isNone ? '<i class="fa-solid fa-ban"></i>' : ''}</div><input class="text-input" value="${escapeHtml(p.title)}" placeholder="Fazės pavadinimas" oninput="state.editorDraft.phases[${i}].title = this.value; updateDraftHashBadge();" /><button id="ed-del-phase-${i}" class="icon-btn del hold-btn" oncontextmenu="return false;" onpointerdown="startEditorItemDeleteHold('phase', ${i}, event)"><i class="fa-solid fa-trash"></i></button></div><div class="editor-item-subrow"><div class="toggle-group"><i class="fa-solid fa-stopwatch field-icon"></i><input type="number" min="0" class="num-input" value="${p.duration || ''}" oninput="state.editorDraft.phases[${i}].duration = Math.max(0, parseInt(this.value)||0); updateDraftHashBadge();" /><button class="icon-btn" onpointerdown="event.preventDefault()" onclick="addPhaseDurationInEditor(${i}, 10, event)"><i class="fa-solid fa-plus"></i></button></div><div class="toggle-group"><button class="icon-btn ${p.loop ? 'active-toggle' : ''}" onpointerdown="event.preventDefault()" onclick="Haptics.tap(); state.editorDraft.phases[${i}].loop = !state.editorDraft.phases[${i}].loop; updateDraftHashBadge(); render();"><i class="fa-solid fa-repeat"></i></button><button class="icon-btn ${p.fxAlarm ? 'active-toggle' : ''}" onpointerdown="event.preventDefault()" onclick="Haptics.tap(); state.editorDraft.phases[${i}].fxAlarm = !state.editorDraft.phases[${i}].fxAlarm; updateDraftHashBadge(); render();"><i class="fa-solid fa-bullhorn"></i></button><button class="icon-btn ${p.winner ? 'active-toggle' : ''}" onpointerdown="event.preventDefault()" onclick="Haptics.tap(); state.editorDraft.phases[${i}].winner = !state.editorDraft.phases[${i}].winner; updateDraftHashBadge(); render();"><i class="fa-solid fa-trophy"></i></button></div></div></div>`; }).join('');
+ const finalsHtml = d.finals.map((f, i) => { const isNone = !f.color || f.color === 'none'; const isWhite = f.color === 'white'; const itemColorCss = getColorCss(f.color, 'var(--border)'); return `<div id="ed-item-final-${i}" class="editor-item" style="--item-color: ${itemColorCss}"><div class="editor-item-main"><div class="color-cycle-btn ${isNone ? 'is-none' : ''} ${isWhite ? 'is-white' : ''}" style="background: ${isNone ? 'transparent' : PALETTE[f.color]}" onpointerdown="event.preventDefault()" onclick="Haptics.tap(); state.editorDraft.finals[${i}].color = cycleItemColor('${f.color}'); updateDraftHashBadge(); render();">${isNone ? '<i class="fa-solid fa-ban"></i>' : ''}</div><input class="text-input" value="${escapeHtml(f.title)}" placeholder="Baigties pavadinimas" oninput="state.editorDraft.finals[${i}].title = this.value; updateDraftHashBadge();" /><button id="ed-del-final-${i}" class="icon-btn del hold-btn" oncontextmenu="return false;" onpointerdown="startEditorItemDeleteHold('final', ${i}, event)"><i class="fa-solid fa-trash"></i></button></div></div>`; }).join('');
+ app.innerHTML = `<div class="edge-fade-top"></div><div class="top-bar"><div class="top-actions"><button class="sm" onclick="exitEditorToPregame()"><i class="fa-solid fa-arrow-left"></i></button></div><div class="top-actions"><button id="editor-reset-btn" class="sm hold-btn" style="--hold-color: var(--c-red)" oncontextmenu="return false;" onpointerdown="startAppResetHold(event)"><i class="fa-solid fa-skull"></i></button><button id="editor-save-btn" class="sm ${dirty ? 'btn-confirm' : ''}" onclick="saveEditorChanges()"><i class="fa-solid fa-check"></i></button></div></div><div class="screen-scroll editor-scroll"><div class="editor-wrap"><div class="editor-section"><div class="section-head"><span class="section-head-label"><i class="fa-solid fa-palette"></i></span><span class="hash-badge" id="draft-hash-badge">#${d.hash}</span></div><div class="field-row"><input class="text-input" value="${escapeHtml(d.title)}" placeholder="Žaidimo pavadinimas" oninput="state.editorDraft.title = this.value; updateDraftHashBadge();" /></div><div class="field-row"><div class="palette-row">${paletteHtml}</div></div></div><div class="editor-section"><div class="section-head"><span class="section-head-label"><i class="fa-solid fa-flag"></i> (${d.groups.length})</span><button class="xs" onpointerdown="event.preventDefault()" onclick="addGroupInEditor(event)"><i class="fa-solid fa-plus"></i></button></div>${d.groups.length > 0 ? `<div class="editor-item-list">${groupsHtml}</div>` : ''}</div><div class="editor-section"><div class="section-head"><span class="section-head-label"><i class="fa-solid fa-masks-theater"></i> (${d.cards.length})</span><button class="xs" onpointerdown="event.preventDefault()" onclick="addCardInEditor(event)"><i class="fa-solid fa-plus"></i></button></div>${d.cards.length > 0 ? `<div class="editor-item-list">${cardsHtml}</div>` : ''}</div><div class="editor-section"><div class="section-head"><span class="section-head-label"><i class="fa-solid fa-play"></i> (${d.phases.length})</span><button class="xs" onpointerdown="event.preventDefault()" onclick="addPhaseInEditor(event)"><i class="fa-solid fa-plus"></i></button></div>${d.phases.length > 0 ? `<div class="editor-item-list">${phasesHtml}</div>` : ''}</div><div class="editor-section"><div class="section-head"><span class="section-head-label"><i class="fa-solid fa-trophy"></i> (${d.finals.length})</span><button class="xs" onpointerdown="event.preventDefault()" onclick="addFinalInEditor(event)"><i class="fa-solid fa-plus"></i></button></div>${d.finals.length > 0 ? `<div class="editor-item-list">${finalsHtml}</div>` : ''}</div></div></div><div class="bottom-bar"></div>`;
+ const el = app.querySelector('.editor-scroll'); if (el && savedScroll > 0) el.scrollTop = savedScroll;
+}
+
+function renderDeal(app) {
+ const resolvedCardColorKey = (state.cardFaceUp && state.currentCard) ? resolveCardColorKey(state.baseGame, state.currentCard) : state.baseGame.color;
+ const cardColorCss = getColorCss(resolvedCardColorKey, 'var(--c-none)'); const cardTextColorCss = (resolvedCardColorKey === 'none') ? 'var(--text)' : PALETTE[resolvedCardColorKey];
+ const cardGroup = (state.cardFaceUp && state.currentCard) ? getGroupById(state.baseGame, state.currentCard.groupId) : null;
+ app.innerHTML = `<div class="top-bar"><button id="cancel-hold-btn" class="sm hold-btn" style="--hold-color: var(--c-red)" oncontextmenu="return false;" onpointerdown="startCancelHold(event)"><i class="fa-solid fa-xmark"></i></button><div class="counter-pill" style="font-size:1.05rem; padding:6px 16px;">${state.dealIndex + 1}/${state.deck.length}</div><div style="width: 42px;"></div></div><div class="card-stage"><div class="playing-card ${state.cardFaceUp ? '' : 'face-down'}" style="--card-color: ${cardColorCss}; --card-text-color: ${cardTextColorCss}" onclick="handleCardTap()">${state.cardFaceUp ? `${cardGroup ? `<div class="card-face-group">${escapeHtml(cardGroup.title)}</div>` : ''}<div class="card-face-title">${escapeHtml(state.currentCard.title)}</div><button class="lg card-check-btn" style="--accent: ${cardColorCss}; color: ${cardTextColorCss};"><i class="fa-solid fa-check"></i></button>` : `<div class="card-back-emblem"><i class="fa-solid fa-masks-theater"></i></div>`}</div></div><div class="bottom-bar"></div>`;
+}
+
+function renderDealDone(app) {
+ const hasPhases = state.baseGame.phases && state.baseGame.phases.length > 0;
+ app.innerHTML = `<div class="top-bar"><button id="cancel-hold-btn" class="sm hold-btn" style="--hold-color: var(--c-red)" oncontextmenu="return false;" onpointerdown="startCancelHold(event)"><i class="fa-solid fa-xmark"></i></button><div></div></div><div class="card-stage"><div style="display: flex; flex-direction: column; gap: 24px; align-items: center; justify-content: center; width: 100%;">${hasPhases ? `<button class="lg" onclick="startPhases()"><i class="fa-solid fa-play"></i></button>` : `<button class="lg" onclick="startDealing()"><i class="fa-solid fa-arrows-rotate"></i></button>`}</div></div><div class="bottom-bar"></div>`;
+}
+
+function renderPhase(app) {
+ const phases = state.baseGame.phases || []; const hasPhases = phases.length > 0;
+ const currentPhase = hasPhases ? phases[state.phaseIndex] : null; const title = currentPhase ? currentPhase.title : state.baseGame.title;
+ const tv = getPhaseTimerView();
+ const canAdvance = hasPhases && getNextPhaseIndex() !== -1;
+ const showAlarm = Boolean(currentPhase && currentPhase.fxAlarm);
+ const showFinals = Boolean(currentPhase && currentPhase.winner && state.baseGame.finals && state.baseGame.finals.length > 0);
+ const alarmHtml = showAlarm ? `<button class="danger ${state.alarmActive ? 'active-alarm' : ''}" onclick="triggerAlarm()"><i class="fa-solid fa-bullhorn"></i></button>` : '';
+ const finalsHtml = showFinals ? `<div class="finals-tray">${state.baseGame.finals.map((f, idx) => `<button id="final-token-${idx}" class="final-token ${HoldEngine.activeKey === 'final:' + idx && HoldEngine.isHolding ? 'holding' : ''}" style="--token-color: ${getColorCss(f.color, 'var(--text)')}" oncontextmenu="return false;" onpointerdown="startFinalHold(${idx}, event)"><i class="fa-solid fa-trophy"></i></button>`).join('')}</div>` : '';
+ app.innerHTML = `<div class="top-bar"><button id="cancel-hold-btn" class="sm hold-btn" style="--hold-color: var(--c-red)" oncontextmenu="return false;" onpointerdown="startCancelHold(event)"><i class="fa-solid fa-xmark"></i></button><button class="sm" onclick="SoundEngine.toggleMute()"><i class="fa-solid ${SoundEngine.muted ? 'fa-volume-xmark' : 'fa-volume-high'}"></i></button></div><div class="phase-stage"><div class="phase-spacer-top"></div><div class="phase-core"><div class="phase-title">${escapeHtml(title)}</div><div id="timer-val" class="timer-display ${tv.isBlinking ? 'timer-blink' : ''} ${tv.isOverdue ? 'timer-overdue' : ''}">${tv.text}</div></div><div class="phase-aux">${alarmHtml}${finalsHtml}</div></div><div class="bottom-bar"><div class="action-row">${canAdvance ? `<button id="next-phase-btn" class="${tv.isExpired ? 'pulse-btn' : ''}" onclick="nextPhase()"><i class="fa-solid ${tv.nextIcon}"></i></button>` : ''}</div></div>`;
+}
+
+function renderFinal(app) {
+ const f = state.activeFinal; const colorCss = getColorCss(f.color, 'var(--c-none)'); const textColorCss = (!f.color || f.color === 'none') ? 'var(--text)' : PALETTE[f.color];
+ app.innerHTML = `<div class="top-bar"></div><div class="card-stage"><div class="playing-card" style="--card-color: ${colorCss}; --card-text-color: ${textColorCss}" onclick="closeFinalCard()"><div style="font-size: 4rem; color: ${textColorCss}; margin-bottom: 14px; text-shadow: 0 4px 16px rgba(0,0,0,0.8);"><i class="fa-solid fa-trophy"></i></div><div class="card-face-title">${escapeHtml(f.title)}</div><div class="return-btn-wrap"><button class="lg" style="--accent: ${colorCss}; color: ${textColorCss}; pointer-events: none;"><i class="fa-solid fa-check"></i></button></div></div></div><div class="bottom-bar"></div>`;
 }
 
 function render() {
-  const app = document.getElementById('app');
-  const hasRoles = BASE_GAME.roles && BASE_GAME.roles.length > 0;
-  const hasPhasesOrEndings = (BASE_GAME.phases && BASE_GAME.phases.length > 0) ||
-                             (BASE_GAME.endings && BASE_GAME.endings.length > 0);
+ const app = document.getElementById('app');
+ const savedEditorScroll = (app.querySelector('.editor-scroll') || {}).scrollTop || 0;
+ const savedPregameScroll = (app.querySelector('.pregame-scroll') || {}).scrollTop || 0;
 
-  // --------------------------------------------------------------------------
-  // 1. PRIEŠŽAIDIMINIS LANGAS (3.A)
-  // --------------------------------------------------------------------------
-  if (state.screen === 'PREGAME') {
-    let deckCount = 0;
-    let roleControlsHtml = '';
-
-    if (hasRoles) {
-      deckCount = getCustomDeckSize();
-      const rows = BASE_GAME.roles.map(r => {
-        const resolvedColor = resolveRoleColorKey(BASE_GAME, r);
-        const grp = getRoleGroupById(BASE_GAME, r.groupId);
-        return `
-          <div class="card-row" style="--row-color: ${getColorCss(resolvedColor, 'var(--border)')}">
-            <div class="card-row-info">
-              <span class="card-row-title">${escapeHtml(r.title)}</span>
-              ${grp ? `<span class="card-row-group">${escapeHtml(grp.title)}</span>` : ''}
-            </div>
-            <div class="stepper">
-              <button class="sm" onclick="adjustCustomCount('${r.id}', -1)"><i class="fa-solid fa-minus"></i></button>
-              <span>${state.customCounts[r.id] ?? r.count}</span>
-              <button class="sm" onclick="adjustCustomCount('${r.id}', 1)"><i class="fa-solid fa-plus"></i></button>
-            </div>
-          </div>
-        `;
-      }).join('');
-      roleControlsHtml = `
-        <div class="counter-pill"><i class="fa-solid fa-users"></i> ${deckCount}</div>
-        <div class="card-list">${rows}</div>
-      `;
-    }
-
-    app.innerHTML = `
-      <div class="top-bar">
-        <div></div>
-        <div class="top-actions">
-          <button class="sm ${state.copiedShare ? 'copied-check' : ''}" onclick="shareCurrentGame(event)">
-            <i class="fa-solid ${state.copiedShare ? 'fa-check' : 'fa-share-nodes'}"></i>
-          </button>
-          <button class="sm" onclick="openEditorFromPregame()">
-            <i class="fa-solid fa-pen-to-square"></i>
-          </button>
-          <button class="sm" onclick="SoundEngine.toggleMute()">
-            <i class="fa-solid ${SoundEngine.muted ? 'fa-volume-xmark' : 'fa-volume-high'}"></i>
-          </button>
-        </div>
-      </div>
-
-      <div class="game-header">
-        <div class="game-title">${escapeHtml(BASE_GAME.title)}</div>
-      </div>
-
-      ${roleControlsHtml}
-
-      <div class="bottom-bar">
-        <div class="action-row">
-          ${hasRoles && deckCount > 0 ? `
-            <button class="lg" onclick="startDealing()">
-              <img src="${LOGO_URL}" alt="Dalinti" class="btn-logo-img" />
-            </button>
-          ` : ''}
-          ${hasPhasesOrEndings ? `
-            <button class="lg" onclick="startPhases()">
-              <i class="fa-solid fa-play"></i>
-            </button>
-          ` : ''}
-        </div>
-      </div>
-    `;
-    return;
-  }
-
-  // --------------------------------------------------------------------------
-  // 2. REDAKTORIAUS FORMA (EDITOR)
-  // --------------------------------------------------------------------------
-  if (state.screen === 'EDITOR' && state.editorDraft) {
-    const d = state.editorDraft;
-
-    const paletteHtml = COLOR_KEYS.map(ck => `
-      <div class="color-swatch ${d.color === ck ? 'selected' : ''}"
-           style="background: ${PALETTE[ck]}; color: ${PALETTE[ck]}"
-           onclick="Haptics.tap(); state.editorDraft.color='${ck}'; setAccent('${ck}'); render();"></div>
-    `).join('');
-
-    const roleGroupsHtml = d.roleGroups.map((grp, i) => {
-      const isNone = !grp.color || grp.color === 'none';
-      const itemColorCss = getColorCss(grp.color, 'var(--border)');
-      return `
-        <div class="editor-item" style="--item-color: ${itemColorCss}">
-          <div class="editor-item-main">
-            <div class="color-cycle-btn ${isNone ? 'is-none' : ''}"
-                 style="background: ${isNone ? 'transparent' : PALETTE[grp.color]}"
-                 onclick="Haptics.tap(); state.editorDraft.roleGroups[${i}].color = cycleItemColor('${grp.color}'); render();">
-              ${isNone ? '<i class="fa-solid fa-ban"></i>' : ''}
-            </div>
-            <input class="text-input"
-                   value="${escapeHtml(grp.title)}"
-                   placeholder="Rolių grupės pavadinimas"
-                   oninput="state.editorDraft.roleGroups[${i}].title = this.value; updateGroupTitleInSelects('${grp.id}', this.value);" />
-            <button class="icon-btn del" onclick="deleteRoleGroupInEditor(${i})"><i class="fa-solid fa-trash"></i></button>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    const rolesHtml = d.roles.map((r, i) => {
-      const resolvedColorKey = resolveRoleColorKey(d, r);
-      const isNoneResolved = resolvedColorKey === 'none';
-      const itemColorCss = getColorCss(resolvedColorKey, 'var(--border)');
-
-      const groupOptions = [
-        `<option value="" ${!r.groupId ? 'selected' : ''}>Be grupės</option>`,
-        ...d.roleGroups.map(grp => `<option value="${grp.id}" ${r.groupId === grp.id ? 'selected' : ''}>${escapeHtml(grp.title)}</option>`)
-      ].join('');
-
-      return `
-        <div class="editor-item" style="--item-color: ${itemColorCss}">
-          <div class="editor-item-main">
-            <div class="color-cycle-btn ${isNoneResolved ? 'is-none' : ''}"
-                 style="background: ${isNoneResolved ? 'transparent' : PALETTE[resolvedColorKey]}"
-                 onclick="cycleRoleColorInEditor(${i})">
-              ${isNoneResolved ? '<i class="fa-solid fa-ban"></i>' : ''}
-            </div>
-            <input class="text-input"
-                   value="${escapeHtml(r.title)}"
-                   placeholder="Rolės pavadinimas"
-                   oninput="state.editorDraft.roles[${i}].title = this.value;" />
-          </div>
-          <div class="editor-item-subrow">
-            <select class="group-select"
-                    onchange="Haptics.tap(); state.editorDraft.roles[${i}].groupId = this.value; state.editorDraft.roles[${i}].color = 'none'; render();">
-              ${groupOptions}
-            </select>
-            <input type="number" min="0" class="num-input"
-                   value="${r.count}"
-                   oninput="state.editorDraft.roles[${i}].count = Math.max(0, parseInt(this.value)||0);" />
-            <div class="toggle-group">
-              <button class="icon-btn" onclick="moveItem(state.editorDraft.roles, ${i}, -1)"><i class="fa-solid fa-chevron-up"></i></button>
-              <button class="icon-btn" onclick="moveItem(state.editorDraft.roles, ${i}, 1)"><i class="fa-solid fa-chevron-down"></i></button>
-              <button class="icon-btn del" onclick="Haptics.tap(); state.editorDraft.roles.splice(${i}, 1); render();"><i class="fa-solid fa-trash"></i></button>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    const phasesHtml = d.phases.map((p, i) => {
-      const isNone = !p.color || p.color === 'none';
-      const itemColorCss = getColorCss(p.color, 'var(--border)');
-      return `
-        <div class="editor-item" style="--item-color: ${itemColorCss}">
-          <div class="editor-item-main">
-            <div class="color-cycle-btn ${isNone ? 'is-none' : ''}"
-                 style="background: ${isNone ? 'transparent' : PALETTE[p.color]}"
-                 onclick="Haptics.tap(); state.editorDraft.phases[${i}].color = cycleItemColor('${p.color}'); render();">
-              ${isNone ? '<i class="fa-solid fa-ban"></i>' : ''}
-            </div>
-            <input class="text-input"
-                   value="${escapeHtml(p.title)}"
-                   placeholder="Fazės pavadinimas"
-                   oninput="state.editorDraft.phases[${i}].title = this.value;" />
-          </div>
-          <div class="editor-item-subrow">
-            <div class="toggle-group">
-              <i class="fa-solid fa-stopwatch field-icon"></i>
-              <input type="number" min="0" class="num-input"
-                     value="${p.duration}"
-                     oninput="state.editorDraft.phases[${i}].duration = Math.max(0, parseInt(this.value)||0);" />
-            </div>
-            <div class="toggle-group">
-              <button class="icon-btn ${p.loop ? 'active-toggle' : ''}"
-                      onclick="Haptics.tap(); state.editorDraft.phases[${i}].loop = !state.editorDraft.phases[${i}].loop; render();">
-                <i class="fa-solid fa-repeat"></i>
-              </button>
-              <button class="icon-btn ${p.fxAlarm ? 'active-toggle' : ''}"
-                      onclick="Haptics.tap(); state.editorDraft.phases[${i}].fxAlarm = !state.editorDraft.phases[${i}].fxAlarm; render();">
-                <i class="fa-solid fa-bullhorn"></i>
-              </button>
-              <button class="icon-btn" onclick="moveItem(state.editorDraft.phases, ${i}, -1)"><i class="fa-solid fa-chevron-up"></i></button>
-              <button class="icon-btn" onclick="moveItem(state.editorDraft.phases, ${i}, 1)"><i class="fa-solid fa-chevron-down"></i></button>
-              <button class="icon-btn del" onclick="Haptics.tap(); state.editorDraft.phases.splice(${i}, 1); render();"><i class="fa-solid fa-trash"></i></button>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    const endingsHtml = d.endings.map((f, i) => {
-      const isNone = !f.color || f.color === 'none';
-      const itemColorCss = getColorCss(f.color, 'var(--border)');
-      return `
-        <div class="editor-item" style="--item-color: ${itemColorCss}">
-          <div class="editor-item-main">
-            <div class="color-cycle-btn ${isNone ? 'is-none' : ''}"
-                 style="background: ${isNone ? 'transparent' : PALETTE[f.color]}"
-                 onclick="Haptics.tap(); state.editorDraft.endings[${i}].color = cycleItemColor('${f.color}'); render();">
-              ${isNone ? '<i class="fa-solid fa-ban"></i>' : ''}
-            </div>
-            <input class="text-input"
-                   value="${escapeHtml(f.title)}"
-                   placeholder="Baigties pavadinimas"
-                   oninput="state.editorDraft.endings[${i}].title = this.value;" />
-            <button class="icon-btn del" onclick="Haptics.tap(); state.editorDraft.endings.splice(${i}, 1); render();"><i class="fa-solid fa-trash"></i></button>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    app.innerHTML = `
-      <div class="top-bar">
-        <button class="sm" onclick="exitEditorWithoutSaving()"><i class="fa-solid fa-arrow-left"></i></button>
-        <div class="top-actions">
-          <button class="sm" onclick="resetGameToDefault()"><i class="fa-solid fa-rotate-left"></i></button>
-          <button class="sm btn-confirm" onclick="saveEditorChanges()"><i class="fa-solid fa-floppy-disk"></i></button>
-        </div>
-      </div>
-
-      <div class="editor-wrap">
-        <!-- Bendrieji nustatymai (be antraščių) -->
-        <div class="editor-section">
-          <input class="text-input" value="${escapeHtml(d.title)}"
-                 oninput="state.editorDraft.title = this.value;" />
-          <div class="palette-row">${paletteHtml}</div>
-        </div>
-
-        <!-- Rolių grupės -->
-        <div class="editor-section">
-          <div class="section-head">
-            <span><i class="fa-solid fa-users"></i> (${d.roleGroups.length})</span>
-            <button class="xs" onclick="addRoleGroupInEditor(event)">
-              <i class="fa-solid fa-plus"></i>
-            </button>
-          </div>
-          ${d.roleGroups.length > 0 ? `<div class="editor-item-list">${roleGroupsHtml}</div>` : ''}
-        </div>
-
-        <!-- Rolės -->
-        <div class="editor-section">
-          <div class="section-head">
-            <span><i class="fa-solid fa-user"></i> (${d.roles.length})</span>
-            <button class="xs" onclick="addRoleInEditor(event)">
-              <i class="fa-solid fa-plus"></i>
-            </button>
-          </div>
-          ${d.roles.length > 0 ? `<div class="editor-item-list">${rolesHtml}</div>` : ''}
-        </div>
-
-        <!-- Fazės / žingsniai -->
-        <div class="editor-section">
-          <div class="section-head">
-            <span><i class="fa-solid fa-list-ol"></i> (${d.phases.length})</span>
-            <button class="xs" onclick="addPhaseInEditor(event)">
-              <i class="fa-solid fa-plus"></i>
-            </button>
-          </div>
-          ${d.phases.length > 0 ? `<div class="editor-item-list">${phasesHtml}</div>` : ''}
-        </div>
-
-        <!-- Baigtys -->
-        <div class="editor-section">
-          <div class="section-head">
-            <span><i class="fa-solid fa-trophy"></i> (${d.endings.length})</span>
-            <button class="xs" onclick="addEndingInEditor(event)">
-              <i class="fa-solid fa-plus"></i>
-            </button>
-          </div>
-          ${d.endings.length > 0 ? `<div class="editor-item-list">${endingsHtml}</div>` : ''}
-        </div>
-      </div>
-    `;
-    return;
-  }
-
-  // --------------------------------------------------------------------------
-  // 3. KORTŲ DALIJIMO LANGAS (3.B)
-  // --------------------------------------------------------------------------
-  if (state.screen === 'DEAL') {
-    const progressText = `${state.dealIndex + 1} / ${state.deck.length}`;
-
-    const resolvedCardColorKey = (state.cardFaceUp && state.currentCard)
-      ? resolveRoleColorKey(BASE_GAME, state.currentCard)
-      : BASE_GAME.color;
-
-    const cardColorCss = getColorCss(resolvedCardColorKey, 'var(--c-none)');
-    const cardTextColorCss = (resolvedCardColorKey === 'none') ? 'var(--text)' : PALETTE[resolvedCardColorKey];
-    const cardGroup = (state.cardFaceUp && state.currentCard)
-      ? getRoleGroupById(BASE_GAME, state.currentCard.groupId)
-      : null;
-
-    app.innerHTML = `
-      <div class="top-bar">
-        <button id="cancel-hold-btn"
-                class="sm hold-btn"
-                style="--hold-color: var(--c-red)"
-                oncontextmenu="return false;"
-                onpointerdown="startCancelHold(event)"
-                onpointerup="HoldEngine.release()"
-                onpointerleave="HoldEngine.release()"
-                onpointercancel="HoldEngine.release()">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-        <div class="counter-pill" style="font-size:1.05rem; padding:6px 16px;">${progressText}</div>
-        <div></div>
-      </div>
-
-      <div class="card-stage">
-        <div class="playing-card ${state.cardFaceUp ? '' : 'face-down'}"
-             style="--card-color: ${cardColorCss}; --card-text-color: ${cardTextColorCss}"
-             onclick="handleCardTap()">
-          ${state.cardFaceUp ? `
-            ${cardGroup ? `<div class="card-face-group">${escapeHtml(cardGroup.title)}</div>` : ''}
-            <div class="card-face-title">${escapeHtml(state.currentCard.title)}</div>
-          ` : `
-            <div class="card-back-emblem">
-              <img src="${LOGO_URL}" alt="C4RDx5" class="card-back-logo" />
-            </div>
-          `}
-        </div>
-      </div>
-
-      <div class="bottom-bar"></div>
-    `;
-    return;
-  }
-
-  // --------------------------------------------------------------------------
-  // 4. IŠDALINUS VISAS KORTAS (3.B.5)
-  // --------------------------------------------------------------------------
-  if (state.screen === 'DEAL_DONE') {
-    app.innerHTML = `
-      <div class="top-bar"></div>
-      <div class="card-stage">
-        <div class="action-row">
-          <button class="lg" onclick="startDealing()"><i class="fa-solid fa-arrows-rotate"></i></button>
-          ${hasPhasesOrEndings ? `<button class="lg" onclick="startPhases()"><i class="fa-solid fa-play"></i></button>` : ''}
-          <button class="lg" onclick="Haptics.tap(); goToPregame()"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-      </div>
-      <div class="bottom-bar"></div>
-    `;
-    return;
-  }
-
-  // --------------------------------------------------------------------------
-  // 5. FAZIŲ MODERATORIUS (3.C)
-  // --------------------------------------------------------------------------
-  if (state.screen === 'PHASE') {
-    const phases = BASE_GAME.phases || [];
-    const hasPhases = phases.length > 0;
-    const currentPhase = hasPhases ? phases[state.phaseIndex] : null;
-    const title = currentPhase ? currentPhase.title : BASE_GAME.title;
-    const isZero = currentPhase && currentPhase.duration > 0 && state.timeLeft === 0;
-    const canAdvance = hasPhases && getNextPhaseIndex() !== -1;
-
-    const endingsHtml = (BASE_GAME.endings && BASE_GAME.endings.length > 0) ? `
-      <div class="finals-tray">
-        ${BASE_GAME.endings.map((f, idx) => `
-          <button id="final-token-${idx}"
-                  class="final-token ${HoldEngine.activeKey === 'final:' + idx && HoldEngine.isHolding ? 'holding' : ''}"
-                  style="--token-color: ${getColorCss(f.color, 'var(--text)')}"
-                  oncontextmenu="return false;"
-                  onpointerdown="startFinalHold(${idx}, event)"
-                  onpointerup="HoldEngine.release()"
-                  onpointerleave="HoldEngine.release()"
-                  onpointercancel="HoldEngine.release()">
-            <i class="fa-solid fa-trophy"></i>
-          </button>
-        `).join('')}
-      </div>
-    ` : '';
-
-    app.innerHTML = `
-      <div class="top-bar">
-        <button id="cancel-hold-btn"
-                class="sm hold-btn"
-                style="--hold-color: var(--c-red)"
-                oncontextmenu="return false;"
-                onpointerdown="startCancelHold(event)"
-                onpointerup="HoldEngine.release()"
-                onpointerleave="HoldEngine.release()"
-                onpointercancel="HoldEngine.release()">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-        <button class="sm" onclick="SoundEngine.toggleMute()">
-          <i class="fa-solid ${SoundEngine.muted ? 'fa-volume-xmark' : 'fa-volume-high'}"></i>
-        </button>
-      </div>
-
-      <div class="phase-stage">
-        <div class="phase-title">${escapeHtml(title)}</div>
-        <div id="timer-val" class="timer-display ${isZero ? 'timer-blink' : ''}">
-          ${formatTime(state.timeLeft)}
-        </div>
-      </div>
-
-      <div class="bottom-bar">
-        <div class="action-row">
-          <button onclick="togglePausePhase()">
-            <i class="fa-solid ${state.timerRunning ? 'fa-pause' : 'fa-play'}"></i>
-          </button>
-          ${currentPhase && currentPhase.fxAlarm ? `
-            <button class="danger ${state.alarmActive ? 'active-alarm' : ''}" onclick="triggerAlarm()">
-              <i class="fa-solid fa-bullhorn"></i>
-            </button>
-          ` : ''}
-          ${canAdvance ? `
-            <button id="next-phase-btn" class="${isZero ? 'pulse-btn' : ''}" onclick="nextPhase()">
-              <i class="fa-solid fa-forward-step"></i>
-            </button>
-          ` : ''}
-        </div>
-        ${endingsHtml}
-      </div>
-    `;
-    return;
-  }
-
-  // --------------------------------------------------------------------------
-  // 6. BAIGTIES KORTA (3.D)
-  // --------------------------------------------------------------------------
-  if (state.screen === 'FINAL' && state.activeFinal) {
-    const f = state.activeFinal;
-    const colorCss = getColorCss(f.color, 'var(--c-none)');
-    const textColorCss = (!f.color || f.color === 'none') ? 'var(--text)' : PALETTE[f.color];
-    app.innerHTML = `
-      <div class="top-bar"></div>
-      <div class="card-stage">
-        <div class="playing-card"
-             style="--card-color: ${colorCss}; --card-text-color: ${textColorCss}"
-             onclick="closeFinalCard()">
-          <div style="font-size: 3rem; color: ${textColorCss}; margin-bottom: 14px;">
-            <i class="fa-solid fa-trophy"></i>
-          </div>
-          <div class="card-face-title">${escapeHtml(f.title)}</div>
-          <div class="return-btn-wrap">
-            <button style="border-color: ${colorCss}; color: ${textColorCss}; pointer-events: none;">
-              <i class="fa-solid fa-check"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-      <div class="bottom-bar"></div>
-    `;
-  }
+ if (state.screen === 'PREGAME') renderPregame(app, savedPregameScroll);
+ else if (state.screen === 'EDITOR') renderEditor(app, savedEditorScroll);
+ else if (state.screen === 'DEAL') renderDeal(app);
+ else if (state.screen === 'DEAL_DONE') renderDealDone(app);
+ else if (state.screen === 'PHASE') renderPhase(app);
+ else if (state.screen === 'FINAL') renderFinal(app);
 }
 
-handleStartupRouting();
+initApp();
 </script>
 </body>
 </html>
